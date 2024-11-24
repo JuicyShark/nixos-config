@@ -19,16 +19,10 @@ in
   imports = with nix-config.inputs.stylix.nixosModules; [ stylix ];
   stylix = {
       enable = true;
-      autoEnable = false;
+      autoEnable = true;
       image = "${stylix-background}/wallpaper.png";
       polarity = "dark";
-
-      targets.chromium.enable = true;
-      #targets.console.enable = true;
-      targets.gtk.enable = true;
-      #targets.nixos-icons.enable = true;
- targets.nixvim.enable = true;
-      base16Scheme = {
+        base16Scheme = {
         system = "base16";
         name = "selenized-black";
         author = "Jan Warchol (https://github.com/jan-warchol/selenized) / adapted to base16 by ali";
