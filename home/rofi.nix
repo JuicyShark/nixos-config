@@ -3,14 +3,11 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   inherit (lib) mkForce;
   inherit (config.lib.formats.rasi) mkLiteral;
   inherit (config.lib.stylix.colors.withHashtag) base00 base05;
-in
-{
+in {
   programs.rofi = {
     enable = true;
     cycle = false;
@@ -19,7 +16,7 @@ in
 
     extraConfig = {
       modi = "drun,filebrowser";
-      font = "Noto Sans CJK JP 12";
+      font = "Noto Sans 12";
       show-icons = true;
       disable-history = true;
       hover-select = true;
@@ -27,8 +24,8 @@ in
       display-drun = "";
       display-window = "";
       display-combi = "";
-      icon-theme = "Fluent-dark";
-      terminal = "kitty";
+      icon-theme = "Papirus-Dark";
+      terminal = "foot";
       drun-match-fields = "name";
       drun-display-format = "{name}";
       me-select-entry = "";
@@ -39,7 +36,7 @@ in
     # Based on Newman Sánchez's Launchpad theme <https://github.com/newmanls/rofi-themes-collection>
     theme = mkForce {
       "*" = {
-        font = "Noto Sans CJK JP Bold 12";
+        font = "Noto Sans Bold 12";
         background-color = mkLiteral "transparent";
         foreground = mkLiteral "${base05}";
         text-color = mkLiteral "${base05}";
@@ -53,9 +50,7 @@ in
         background-color = mkLiteral "${base00}dd";
       };
 
-      mainbox = {
-        padding = mkLiteral "8px";
-      };
+      mainbox = {padding = mkLiteral "8px";};
 
       inputbar = {
         background-color = mkLiteral "${base05}20";
@@ -68,15 +63,10 @@ in
         border-radius = mkLiteral "2px";
         border-color = mkLiteral "${base05}40";
 
-        children = map mkLiteral [
-          "icon-search"
-          "entry"
-        ];
+        children = map mkLiteral ["icon-search" "entry"];
       };
 
-      prompt = {
-        enabled = false;
-      };
+      prompt = {enabled = false;};
 
       icon-search = {
         expand = false;
@@ -97,9 +87,7 @@ in
         fixed-columns = true;
       };
 
-      "element, element-text, element-icon" = {
-        cursor = mkLiteral "pointer";
-      };
+      "element, element-text, element-icon" = {cursor = mkLiteral "pointer";};
 
       element = {
         padding = mkLiteral "8px";
@@ -109,18 +97,14 @@ in
         border-radius = mkLiteral "12px";
       };
 
-      "element selected" = {
-        background-color = mkLiteral "${base05}33";
-      };
+      "element selected" = {background-color = mkLiteral "${base05}33";};
 
       element-icon = {
         size = mkLiteral "5.75em";
         horizontal-align = mkLiteral "0.5";
       };
 
-      element-text = {
-        horizontal-align = mkLiteral "0.5";
-      };
+      element-text = {horizontal-align = mkLiteral "0.5";};
     };
   };
 }

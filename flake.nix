@@ -8,12 +8,13 @@
     };
 
     stylix = {
-      url = "github:donovanglover/stylix";
 
       inputs = {
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
       };
+      url = "github:danth/stylix";
+
     };
 
     sakaya = {
@@ -25,6 +26,21 @@
       url = "github:donovanglover/mobile-nixos";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprland = {
+      url = "github:hyprwm/Hyprland";
+      #inputs.nixpkgs.follows = "nixpkgs";
+      #submodules = true;
+    };
+    nixvim = {
+      url = "github:nix-community/nixvim";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs =
@@ -76,7 +92,7 @@
         nixos = nixosSystem {
           system = "x86_64-linux";
           specialArgs.nix-config = self;
-          modules = listFilesRecursive ./hosts/laptop;
+          modules = listFilesRecursive ./hosts/leo;
         };
 
         mobile-nixos = nixosSystem {

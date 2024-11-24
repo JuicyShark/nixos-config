@@ -1,14 +1,10 @@
-{ pkgs, ... }:
+{pkgs, ...}: {
+  home.packages = with pkgs; [icoextract thud];
 
-{
-  home.packages = with pkgs; [
-    icoextract
-    thud
-  ];
-
-  xdg.configFile."xfce4/helpers.rc".text = # ini
+  xdg.configFile."xfce4/helpers.rc".text =
+    # ini
     ''
-      TerminalEmulator=kitty
+      TerminalEmulator=foot
       TerminalEmulatorDismissed=true
     '';
 }

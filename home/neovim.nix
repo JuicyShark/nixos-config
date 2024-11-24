@@ -1,439 +1,585 @@
-{ pkgs, ... }:
-
 {
-  stylix.targets.neovim.plugin = "base16-nvim";
+  nix-config,
+  pkgs,
+  ...
+}: let
+  inherit (nix-config.packages.${pkgs.system}) vim-hypr-nav;
+in {
+  # having a condition against config causes infinite recursion?
+  imports = [
+    nix-config.inputs.nixvim.homeManagerModules.nixvim
+  ];
+  home.packages = with pkgs; [
+    alejandra
+  ];
 
-  programs.neovim = {
+  stylix.targets.neovim.plugin = "base16-nvim";
+  programs.nixvim = {
     enable = true;
     defaultEditor = true;
+    vimdiffAlias = true;
+    viAlias = true;
+    vimAlias = true;
+    withNodeJs = false;
+    withRuby = false;
 
+    globals = {
+      mapleader = " ";
+      maplocalleader = "<C-Space>";
+
+      loaded_ruby_provider = 0;
+      loaded_perl_provider = 0;
+      loaded_python_provider = 0;
+      loaded_npm_provider = 0;
+    };
+
+    opts = {
+      # Folds
+      foldmethod = "syntax";
+      #fold = 2;
+      foldminlines = 6;
+      foldnestmax = 3;
+
+      # Whitespace
+      tabstop = 2;
+      shiftwidth = 2;
+      expandtab = true;
+      autoindent = true;
+      copyindent = true;
+
+      linebreak = true;
+      clipboard = "unnamedplus";
+      cursorline = true;
+      number = true;
+      relativenumber = true;
+      signcolumn = "number";
+
+      updatetime = 300;
+      termguicolors = true;
+      mouse = "a";
+      hidden = true;
+
+      scrolloff = 3;
+
+      # Misc
+      swapfile = false;
+    };
+
+    opts.completeopt = ["menu" "menuone" "noselect"];
     extraPackages = with pkgs; [
-      nodePackages.typescript-language-server
-      nodePackages."@astrojs/language-server"
-      nodePackages."@prisma/language-server"
-      emmet-language-server
-      markdown-oxide
-      tailwindcss-language-server
-      vscode-langservers-extracted
+      lua-language-server
+      nil
       rust-analyzer
-      texlab
-      nixd
-      universal-ctags
+      vscode-langservers-extracted
+
+      prettierd
+      alejandra
+      stylua
+    ];
+    extraPlugins = [
+      (pkgs.vimUtils.buildVimPlugin {
+        name = "vim-hypr-nav";
+        src = vim-hypr-nav;
+      })
+      pkgs.vimPlugins.neorg-telescope
     ];
 
-    extraConfig = # vim
-      ''
-        filetype plugin indent on
-
-        set undofile
-        set spell
-        set number
-        set linebreak
-        set clipboard=unnamedplus
-        set fileencoding=utf-8
-        set fileencodings=utf-8,sjis
-        set spelllang=en_us,cjk
-        set noshowmode
-        set mouse=a
-        set ignorecase
-        set smartcase
-        set scrolloff=1
-        set sidescrolloff=5
-
-        set foldmethod=indent
-        set foldlevelstart=99
-
-        map <MiddleMouse> <Nop>
-        imap <MiddleMouse> <Nop>
-        map <2-MiddleMouse> <Nop>
-        imap <2-MiddleMouse> <Nop>
-        map <3-MiddleMouse> <Nop>
-        imap <3-MiddleMouse> <Nop>
-        map <4-MiddleMouse> <Nop>
-        imap <4-MiddleMouse> <Nop>
-
-        highlight Search ctermbg=240 ctermfg=255
-        highlight IncSearch ctermbg=255 ctermfg=240
-        highlight Folded ctermbg=NONE guibg=NONE
-
-        let mapleader = ' '
-
-        nnoremap <silent> <leader>e :set nu!<CR>
-        nnoremap <silent> <leader>o :GitBlameToggle<CR>
-        nnoremap <silent> <leader>a :NvimTreeFocus<CR>
-        nnoremap <silent> <leader>d :bp\|bd #<CR>
-        nnoremap <silent> <leader>f :Files<CR>
-        nnoremap <silent> <leader>g :set hlsearch!<CR>
-        nnoremap <silent> <leader>j :Buffers<CR>
-        nnoremap <silent> <leader>l :Rg<CR>
-        nnoremap <silent> <leader>; :NvimTreeToggle<CR>
-        nnoremap <silent> <leader>b :Vista!!<CR>
-
-        autocmd BufWritePre,FileWritePre * silent! call mkdir(expand('<afile>:p:h'), 'p')
-        autocmd VimEnter * silent! :cd `git rev-parse --show-toplevel`
-
-        tnoremap <C-space> <C-\><C-n>
-      '';
-
-    plugins = with pkgs.vimPlugins; [
+    keymaps = [
       {
-        plugin = nvim-tree-lua;
-        type = "lua";
-        config = # lua
-          ''
-            require("nvim-tree").setup {
-              update_focused_file = {
-                enable = true
-              }
-            }
-
-            vim.api.nvim_create_autocmd({"QuitPre"}, {
-              callback = function()
-                vim.cmd("NvimTreeClose")
-              end
-            })
-
-            local function open_nvim_tree(data)
-              local real_file = vim.fn.filereadable(data.file) == 1
-              local no_name = data.file == "" and vim.bo[data.buf].buftype == ""
-
-              if not real_file and not no_name then
-                return
-              end
-
-              require("nvim-tree.api").tree.toggle({ focus = false, find_file = true })
-            end
-
-            vim.api.nvim_create_autocmd({ "VimEnter" }, { callback = open_nvim_tree })
-          '';
+        # [F]ind things, mainly uses Telescope
+        mode = ["n" "v"];
+        key = "<leader>ff";
+        action = "<cmd>Telescope find_files<CR>";
+        options = {desc = "[F]ind [F]iles";};
       }
       {
-        plugin = indent-blankline-nvim;
-        type = "lua";
-        config = # lua
-          ''
-            require("ibl").setup()
-          '';
+        mode = ["n" "v" "i"];
+        key = "<C-f>";
+        action = "<cmd>Tele find_files<CR>";
+        options = {
+          desc = "[F]ind [F]iles";
+          silent = true;
+          nowait = true;
+        };
       }
       {
-        plugin = gitsigns-nvim;
-        type = "lua";
-        config = # lua
-          ''
-            require('gitsigns').setup()
-          '';
+        mode = ["n" "v" "i"];
+        key = "<C-f>";
+        action = "<cmd>Telescope find_files<CR>";
+        options = {
+          desc = "[F]ind [F]iles";
+          silent = true;
+          nowait = true;
+        };
       }
       {
-        plugin = nvim-web-devicons;
-        type = "lua";
+        mode = ["n" "v"];
+        key = "<leader>fh";
+        action = "<cmd>Telescope harpoon marks<CR>";
+        options = {
+          desc = "[F]ind [H]arpoons";
+          silent = true;
+          nowait = true;
+        };
       }
       {
-        plugin = nvim-scrollbar;
-        type = "lua";
-        config = # lua
-          ''
-            require("scrollbar").setup()
-          '';
+        mode = ["n" "v" "i"];
+        key = "<C-h>";
+        action = "<cmd>Telescope harpoon marks<CR>";
+        options = {
+          desc = "[F]ind [H]arpoons";
+          silent = true;
+          nowait = true;
+        };
       }
       {
-        plugin = nvim-lspconfig;
-        type = "lua";
-        config = # lua
-          ''
-            local lspconfig = require('lspconfig')
-            local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-            lspconfig.eslint.setup {
-              capabilities = capabilities,
-              on_attach = function(client, bufnr)
-                vim.api.nvim_create_autocmd("BufWritePre", {
-                  buffer = bufnr,
-                  command = "EslintFixAll",
-                })
-              end
-            }
-
-            lspconfig.tailwindcss.setup {
-              capabilities = capabilities,
-              on_attach = function(client, bufnr)
-                require("tailwindcss-colors").buf_attach(bufnr)
-              end
-            }
-
-            lspconfig.nixd.setup {
-              capabilities = capabilities,
-              offset_encoding = 'utf-8'
-            }
-
-            vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
-            vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
-            vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
-            vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
-
-            vim.api.nvim_create_autocmd('LspAttach', {
-              group = vim.api.nvim_create_augroup('UserLspConfig', {}),
-
-              callback = function(ev)
-                local opts = { buffer = ev.buf }
-
-                vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
-                vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-                vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-                vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
-                vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
-                vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
-                vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
-                vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
-                vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-              end,
-            })
-
-            vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(
-              vim.lsp.handlers.hover, { border = "single" }
-            )
-
-            vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(
-              vim.lsp.handlers.signature_help, { border = "single" }
-            )
-
-            vim.diagnostic.config {
-              float = { border = "single" }
-            }
-          '';
+        mode = ["n" "v"];
+        key = "<leader>fg";
+        action = "<cmd>Telescope live_grep<CR>";
+        options = {
+          desc = "[F]ind w/ [G]rep";
+          nowait = true;
+        };
       }
       {
-        plugin = nvim-cmp;
-        type = "lua";
-        config = # lua
-          ''
-            local capabilities = require("cmp_nvim_lsp").default_capabilities()
-            local lspconfig = require('lspconfig')
+        mode = ["n" "v"];
+        key = "<leader>fb";
+        action = "<cmd>Telescope buffers<CR>";
+        options = {
+          desc = "[F]ind [B]uffers";
+          nowait = true;
+        };
+      }
+      {
+        mode = ["n" "v"];
+        key = "<leader>f?";
+        action = "<cmd>Telescope help_tags<CR>";
+        options = {
+          desc = "The [F]uck[?]";
+          nowait = true;
+        };
+      }
+      {
+        mode = ["n" "v"];
+        key = "<leader>?";
+        action = "<cmd>Telescope help_tags<CR>";
+        options = {silent = true;};
+      }
+      {
+        mode = ["n" "v"];
+        key = "<leader>ft";
+        action = "<cmd>TodoTrouble<CR>";
+        options = {
+          desc = "[F]ind [T]odo's";
+          nowait = true;
+        };
+      }
+      {
+        mode = ["n" "v"];
+        key = "<leader>d";
+        action = "<cmd>Trouble<CR>";
+        options = {
+          desc = "Grep";
+          nowait = true;
+        };
+      }
+      # Git
+      {
+        mode = ["n" "v"];
+        key = "<leader>gc";
+        action = "<cmd>Neogit commit<CR>";
+        options = {desc = "[G]it [C]ompete";};
+      }
+      # Misc
+      {
+        mode = "n";
+        key = "<leader>.";
+        action = "<cmd>NvimTreeToggle<CR>";
+        options.desc = "Open Explorer";
+      }
+      {
+        mode = ["n" "v"];
+        key = "<Down>";
+        options.silent = true;
+        options.noremap = true;
+        action = "gj";
+      }
+      {
+        mode = ["n" "v"];
+        key = "<Up>";
+        options.silent = true;
+        options.noremap = true;
+        action = "gk";
+      }
 
-            local servers = {
-              'rust_analyzer',
-              'markdown_oxide',
-              'html',
-              'texlab',
-              'prismals',
-              'jsonls',
-              'emmet_language_server',
-              'astro',
-              'cssls',
-              'ts_ls',
-            }
+      ## [N]eorg / [N]otes Binds
+      {
+        mode = "n";
+        key = "<leader>nt";
+        action = "<cmd>Neorg journal today<CR>";
+        options = {desc = "Open Journal";};
+      }
+      {
+        mode = "n";
+        key = "<leader>nn";
+        action = "<Plug>(neorg.tempus.insert-date-insert-mode)";
+        options = {
+          #buffer = "norg";
+          desc = "Insert Date";
+        };
+      }
+    ];
 
-            for _, lsp in ipairs(servers) do
-              lspconfig[lsp].setup {
-                capabilities = capabilities,
-              }
-            end
+    plugins = {
+      web-devicons.enable = true;
+      which-key = {
+        enable = true;
+        # show_help = true;
+        settings = {
+          plugins = {
+            # marks = true;
+            registers = true;
+            presets = {
+              g = true;
+              motions = true;
+              nav = false;
+              operators = true;
+              textObjects = true;
+              windows = false;
+              z = true;
+            };
+            spelling = {
+              enabled = true;
+              suggestions = 8;
+            };
+          };
+          layout = {
+            align = "center";
+            height = {
+              max = 20;
+              min = 6;
+            };
+            width = {
+              max = 75;
+              min = 45;
+            };
+          };
+          # hidden = ["<silent>" "<cmd>" "<Cmd>" "<CR>" "^:" "^ " "^call " "^lua "];
+          triggersNoWait = ["`" "'" "g`" "g'" ''"'' "<c-r>" "z="];
+          /*
+          registrations = {
+            "<leader>n" = "[N]otes";
+            "<leader>f" = "[F]ind";
+            "<leader>h" = "[H]arpoon that B*";
+            "<leader>g" = "[G]it";
+          };
+          */
+        };
+      };
+      rustaceanvim.enable = false;
+      telescope = {
+        enable = true;
 
-            local luasnip = require('luasnip')
-            local cmp = require('cmp')
+        settings.defaults = {
+          file_ignore_patterns = [
+            "^.git/"
+            "^.mypy_cache/"
+            "^__pycache__/"
+            "^output/"
+            "^result/"
+            "^data/"
+            "%.ipynb"
+          ];
+          set_env.COLORTERM = "truecolor";
+          pickers.find_files.hidden = true;
+        };
+      };
 
-            cmp.setup {
-              snippet = {
-                expand = function(args)
-                  luasnip.lsp_expand(args.body)
-                end,
-              },
-              mapping = cmp.mapping.preset.insert({
-                ['<C-u>'] = cmp.mapping.scroll_docs(-4),
-                ['<C-d>'] = cmp.mapping.scroll_docs(4),
-                ['<C-Space>'] = cmp.mapping.complete(),
+      harpoon = {
+        enable = false;
+        enableTelescope = true;
+        markBranch = true;
 
-                ['<CR>'] = cmp.mapping.confirm {
-                  behavior = cmp.ConfirmBehavior.Replace,
-                  select = true,
-                },
+        keymaps = {
+          addFile = "<C-a>";
+          navFile = {
+            "1" = "<C-1>";
+            "2" = "<C-2>";
+            "3" = "<C-3>";
+            "4" = "<C-4>";
+          };
+          navNext = "<C-e>";
+          navPrev = "<C-q>";
+          toggleQuickMenu = "<C-w>";
+        };
+      };
 
-                ['<Tab>'] = cmp.mapping(function(fallback)
-                  if cmp.visible() then
-                    cmp.select_next_item()
-                  elseif luasnip.expand_or_jumpable() then
-                    luasnip.expand_or_jump()
-                  else
-                    fallback()
-                  end
-                end, { 'i', 's' }),
+      # TODO setup FOLKE plugins
+      trouble = {
+        enable = true;
+        settings = {
+          auto_fold = true;
+          #auto_open = true;
+          posistion = "bottom";
+        };
+      };
+      # File Explorer
+      nvim-tree = {
+        enable = true;
+        autoReloadOnWrite = true;
+        autoClose = true;
+        disableNetrw = true;
+        hijackCursor = true;
+        hijackUnnamedBufferWhenOpening = true;
+        openOnSetup = true;
+        openOnSetupFile = true;
+      };
 
-                ['<S-Tab>'] = cmp.mapping(function(fallback)
-                  if cmp.visible() then
-                    cmp.select_prev_item()
-                  elseif luasnip.jumpable(-1) then
-                    luasnip.jump(-1)
-                  else
-                    fallback()
-                  end
-                end, { 'i', 's' }),
-              }),
+      noice = {
+        enable = true;
+        settings = {
+        cmdline.view = "cmdline";
 
-              sources = {
-                { name = 'nvim_lsp' },
-                { name = 'luasnip' },
-              },
-            }
-          '';
-      }
-      cmp-nvim-lsp
-      cmp_luasnip
-      {
-        plugin = luasnip;
-        type = "lua";
-        config = # lua
-          ''
-            require("luasnip.loaders.from_vscode").lazy_load()
-          '';
-      }
-      friendly-snippets
-      {
-        plugin = lualine-nvim;
-        type = "lua";
-        config = # lua
-          ''
-            local theme = require("lualine.themes.base16")
-            theme.normal.b.bg = nil
-            theme.normal.c.bg = nil
-            theme.replace.b.bg = nil
-            theme.insert.b.bg = nil
-            theme.visual.b.bg = nil
-            theme.inactive.a.bg = nil
-            theme.inactive.b.bg = nil
-            theme.inactive.c.bg = nil
+        notify = {
+          enabled = true;
+          view = "notify";
+        };
 
-            require('lualine').setup {
-              options = {
-                theme = theme,
-                disabled_filetypes = {'NvimTree', 'tagbar'}
-              },
-              sections = { lualine_c = {'%f'} }
-            }
-          '';
-      }
-      {
-        plugin = git-blame-nvim;
-        type = "lua";
-      }
-      {
-        plugin = comment-nvim;
-        type = "lua";
-        config = # lua
-          ''
-            require('Comment').setup {
-              pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook()
-            }
-          '';
-      }
-      {
-        plugin = nvim-autopairs;
-        type = "lua";
-        config = # lua
-          ''
-            require("nvim-autopairs").setup()
-          '';
-      }
-      {
-        plugin = auto-save-nvim;
-        type = "lua";
-        config = # lua
-          ''
-            require("auto-save").setup()
-          '';
-      }
-      {
-        plugin = vimtex;
-        config = # vim
-          ''
-            let g:vimtex_mappings_enabled = 0
-            let g:vimtex_imaps_enabled = 0
-            let g:vimtex_view_method = 'zathura'
-            let g:vimtex_compiler_latexmk = {'out_dir': '/tmp/vimtex'}
+        lsp = {
+          override = {
+            "cmp.entry.get_documentation" = true;
+            "vim.lsp.util.convert_input_to_markdown_lines" = true;
+            "vim.lsp.util.stylize_markdown" = true;
+          };
+          documentation = {
+            opts = {
+              format = ["{message}"];
+              lang = "markdown";
+              render = "plain";
+              replace = true;
+              win_options = {
+                concealcursor = "n";
+                conceallevel = 3;
+              };
+            };
+            view = "hover";
+          };
+          progress = {
+            enabled = true;
+            format = "lsp_progress";
+            formatDone = "lsp_progress";
+            throttle = 1000 / 30;
+            view = "mini";
+          };
+          message = {
+            enabled = true;
+            view = "notify";
+          };
+        };
+        markdown = {
+          highlights = {
+            "@%S+" = "@parameter";
+            "^%s*(Parameters:)" = "@text.title";
+            "^%s*(Return:)" = "@text.title";
+            "^%s*(See also:)" = "@text.title";
+            "{%S-}" = "@parameter";
+            "|%S-|" = "@text.reference";
+          };
+          hover = {
+            "%[.-%]%((%S-)%)" = {__raw = "require('noice.util').open";};
+            "|(%S-)|" = {__raw = "vim.cmd.help";};
+          };
+        };
+        popupmenu = {
+          enabled = true;
+          backend = "nui";
+        };
+      };
+      };
 
-            nnoremap <localleader>f <plug>(vimtex-view)
-            nnoremap <localleader>g <plug>(vimtex-compile)
-            nnoremap <localleader>d <plug>(vimtex-env-delete)
-            nnoremap <localleader>c <plug>(vimtex-env-change)
-          '';
-      }
-      {
-        plugin = nvim-ts-autotag;
-        type = "lua";
-        config = # lua
-          ''
-            require('nvim-ts-autotag').setup()
-          '';
-      }
-      {
-        plugin = nvim-surround;
-        type = "lua";
-        config = # lua
-          ''
-            require('nvim-surround').setup()
-          '';
-      }
-      {
-        plugin = tailwindcss-colors-nvim;
-        type = "lua";
-        config = # lua
-          ''
-            require('tailwindcss-colors').setup()
-          '';
-      }
-      {
-        plugin = nvim-ts-context-commentstring;
-        type = "lua";
-        config = # lua
-          ''
-            require('ts_context_commentstring').setup {
-              enable_autocmd = false,
-            }
-          '';
-      }
-      {
-        plugin = nvim-treesitter.withAllGrammars;
-        type = "lua";
-        config = # lua
-          ''
-            require('nvim-treesitter.configs').setup {
-              highlight = {
-                enable = true,
-                disable = function(lang)
-                  return lang ~= "javascript"
-                    and lang ~= "tsx"
-                    and lang ~= "typescript"
-                    and lang ~= "astro"
-                    and lang ~= "css"
-                    and lang ~= "glsl"
-                    and lang ~= "nix"
-                    and lang ~= "prisma"
-                    and lang ~= "markdown"
-                end,
-                additional_vim_regex_highlighting = true,
-              },
-            }
-          '';
-      }
-      {
-        plugin = vista-vim;
-        config = # vim
-          ''
-            let g:vista_default_executive = 'nvim_lsp'
-            let g:vista_executive_for = {
-              \ 'rust': 'ctags',
-              \ }
+      headlines = {
+        enable = true;
+        settings.norg = {
+          headline_highlights = ["Headline"];
+          bullet_highlights = [
+            "@neorg.headings.1.prefix"
+            "@neorg.headings.2.prefix"
+            "@neorg.headings.3.prefix"
+            "@neorg.headings.4.prefix"
+            "@neorg.headings.5.prefix"
+            "@neorg.headings.6.prefix"
+          ];
+          bullets = ["◉" "○" "✸" "✿"];
+          codeblock_highlight = "CodeBlock";
+          dash_highlight = "Dash";
+          dash_string = "-";
+          doubledash_highlight = "DoubleDash";
+          doubledash_string = "=";
+          quote_highlight = "Quote";
+          quote_string = "┃";
+          fat_headlines = true;
+          fat_headline_upper_string = "▃";
+          fat_headline_lower_string = "🬂";
+        };
+      };
+      gitsigns.enable = true;
+      notify = {
+        enable = true;
+        fps = 120;
+        level = "info";
+        maxHeight = 42;
+        maxWidth = 35;
+        minimumWidth = 200;
+        render = "default";
+        timeout = 3750;
+        topDown = true;
+      };
+      nix.enable = true;
+      illuminate.enable = true;
+      treesitter = {
+        enable = true;
+        folding = true;
+        nixvimInjections = true;
+        nodejsPackage = null;
+        nixGrammars = true;
+        grammarPackages = with pkgs.tree-sitter-grammars; [
+          tree-sitter-norg
+          tree-sitter-norg-meta
+          tree-sitter-zig
+          tree-sitter-rust
+          tree-sitter-toml
+          tree-sitter-lua
+          tree-sitter-css
+          tree-sitter-json
+          tree-sitter-python
+          tree-sitter-ledger
+          tree-sitter-godot-resource
+        ];
+        languageRegister = {
+          norg = "norg";
+          css = "css";
+        };
+        settings = {
+          highlight.enable = true;
+          incremental_selection.enable = true;
+          indent.enable = true;
+        };
+      };
+      startup = {
+        enable = true;
+        theme = "dashboard";
+      };
+      cmp = {
+        enable = true;
+        autoEnableSources = true;
+        settings = {
+          #snippet.expand = "function(args) require('luasnip').lsp_expand(args.body) end";
 
-            autocmd QuitPre * silent! :Vista!
-          '';
+          mapping = {
+            "<C-d>" = "cmp.mapping.scroll_docs(-4)";
+            "<C-f>" = "cmp.mapping.scroll_docs(4)";
+            "<C-Space>" = "cmp.mapping.complete()";
+            "<C-e>" = "cmp.mapping.close()";
+            "<Tab>" = "cmp.mapping(cmp.mapping.select_next_item(), {'i', 's'})";
+            "<S-Tab>" = "cmp.mapping(cmp.mapping.select_prev_item(), {'i', 's'})";
+            "<CR>" = "cmp.mapping.confirm({ select = true })";
+          };
+          sources = [
+            {name = "nvim_lsp";}
+            {name = "path";}
+            {name = "buffer";}
+            {name = "neorg";}
+          ];
+        };
+      };
+      cmp-rg.enable = true;
+      cmp-zsh.enable = true;
+      cmp-nvim-lsp.enable = true;
+
+      # LSP
+      lsp = {
+        enable = true;
+        keymaps = {
+          silent = true;
+          diagnostic = {
+            # Navigate in diagnostics
+            "<leader>k" = "goto_prev";
+            "<leader>j" = "goto_next";
+          };
+
+          lspBuf = {
+            gd = "definition";
+            gD = "references";
+            gt = "type_definition";
+            gi = "implementation";
+            K = "hover";
+            "<F2>" = "rename";
+          };
+        };
+        servers = {
+          nil_ls = {
+            enable = true;
+            settings = {
+              formatting.command = ["alejandra"];
+            };
+          };
+          lua_ls.enable = false;
+          rust_analyzer = {
+            enable = true;
+            filetypes = ["toml" "rs"];
+            installCargo = false;
+            installRustc = false;
+          };
+        };
+      };
+      lsp-format.enable = false;
+      lspkind = {
+        enable = true;
+        cmp = {
+          enable = true;
+          menu = {
+            nvim_lsp = "[LSP]";
+            nvim_lua = "[api]";
+            path = "[path]";
+            #   luasnip = "[snip]";
+            buffer = "[buffer]";
+            neorg = "[neorg]";
+          };
+        };
+      };
+      yazi.enable = true;
+      vim-surround.enable = true;
+      todo-comments.enable = true;
+      lualine.enable = false;
+      auto-save.enable = true;
+      auto-save.settings.debounce_delay = 100000;
+      nvim-colorizer.enable = true;
+
+      dap.enable = true;
+    };
+    autoCmd = [
+      {
+        event = "BufWrite";
+        command = "%s/\\s\\+$//e";
+        desc = "Remove Whitespaces";
       }
-      fzf-vim
-      vim-graphql
-      vim-javascript
-      vim-jsx-pretty
-      rust-vim
-      neoformat
-      vim-nix
-      tagbar
-      rainbow-delimiters-nvim
+      {
+        event = "FileType";
+        pattern = ["norg"];
+        command = "setlocal conceallevel=1";
+        desc = "Conceal Syntax Attribute";
+      }
+      {
+        event = "FileType";
+        pattern = ["norg"];
+        command = "setlocal concealcursor=n";
+        desc = "Conceal line when not editing";
+      }
+      {
+        event = "FileType";
+        pattern = "help";
+        command = "wincmd L";
+      }
     ];
   };
 }

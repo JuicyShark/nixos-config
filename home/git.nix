@@ -1,10 +1,5 @@
-{ pkgs, ... }:
-
-{
-  home.packages = with pkgs; [
-    tig
-    mgitstatus
-  ];
+{pkgs, ...}: {
+  home.packages = with pkgs; [tig mgitstatus];
 
   xdg.configFile."tig/config".text = ''
     color cursor black green bold
@@ -15,11 +10,14 @@
   programs.git = {
     enable = true;
 
-    attributes = [ "*.lockb binary diff=lockb" ];
+    userEmail = "maxwellb9879@gmail.com";
+    userName = "JuicyShark";
+
+    attributes = ["*.lockb binary diff=lockb"];
 
     extraConfig = {
       include.path = "~/.gituser";
-      commit.gpgsign = true;
+      #commit.gpgsign = true;
 
       diff.lockb = {
         textconv = "bun";
@@ -40,9 +38,7 @@
       rerere.enabled = true;
       color.ui = true;
 
-      blame = {
-        date = "relative";
-      };
+      blame = {date = "relative";};
 
       "color \"diff-highlight\"" = {
         oldNormal = "red bold";

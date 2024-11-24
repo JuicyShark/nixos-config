@@ -6,7 +6,6 @@
   imagemagick,
   color ? "181818",
 }:
-
 stdenvNoCC.mkDerivation {
   pname = "phosh-backgrounds";
   version = "1.0.0";
@@ -37,10 +36,7 @@ stdenvNoCC.mkDerivation {
     })
   ];
 
-  nativeBuildInputs = [
-    fd
-    imagemagick
-  ];
+  nativeBuildInputs = [fd imagemagick];
 
   unpackPhase = ''
     runHook preUnpack
@@ -65,7 +61,7 @@ stdenvNoCC.mkDerivation {
     description = "Custom background for Phosh with seamless picture for a full-screen background image";
     license = lib.licenses.cc-by-sa-40;
     homepage = "https://forums.puri.sm/t/tutorial-add-a-custom-background-in-phosh/13385/23";
-    maintainers = with lib.maintainers; [ donovanglover ];
+    maintainers = with lib.maintainers; [donovanglover];
     platforms = lib.platforms.all;
   };
 }

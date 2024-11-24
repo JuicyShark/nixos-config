@@ -3,7 +3,6 @@
   stdenvNoCC,
   fetchurl,
 }:
-
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "ublock-origin";
   version = "1.61.0";
@@ -27,7 +26,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     homepage = "https://addons.mozilla.org/en-US/firefox/addon/ublock-origin/";
     description = "Efficient wide-spectrum content blocker";
     license = lib.licenses.gpl3Plus;
-    maintainers = with lib.maintainers; [ donovanglover ];
+    maintainers = with lib.maintainers; [donovanglover];
     platforms = lib.platforms.all;
   };
 })

@@ -4,14 +4,13 @@
   imagemagick,
   color ? "181818",
 }:
-
 stdenvNoCC.mkDerivation {
   pname = "stylix-background";
   version = "1.0.0-${color}";
 
   dontUnpack = true;
 
-  nativeBuildInputs = [ imagemagick ];
+  nativeBuildInputs = [imagemagick];
 
   postInstall = ''
     mkdir -p $out
@@ -22,7 +21,7 @@ stdenvNoCC.mkDerivation {
     description = "Solid background color for stylix to use";
     license = lib.licenses.publicDomain;
     homepage = "https://stackoverflow.com/questions/7771975/imagemagick-create-a-png-file-which-is-just-a-solid-rectangle";
-    maintainers = with lib.maintainers; [ donovanglover ];
+    maintainers = with lib.maintainers; [donovanglover];
     platforms = lib.platforms.all;
   };
 }

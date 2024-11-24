@@ -4,21 +4,14 @@
   lib,
   config,
   ...
-}:
-
-let
+}: let
   inherit (lib.types) nullOr str listOf;
   inherit (config.boot) isContainer;
 
-  inherit (lib)
-    mkOption
-    mkEnableOption
-    mkIf
-    singleton
-    optional
-    ;
+  inherit (lib) mkOption mkEnableOption mkIf singleton optional;
 
-  inherit (cfg)
+  inherit
+    (cfg)
     username
     iHaveLotsOfRam
     hashedPassword
@@ -30,9 +23,8 @@ let
   isPhone = config.programs.calls.enable;
 
   cfg = config.modules.system;
-in
-{
-  imports = with nix-config.inputs.home-manager.nixosModules; [ home-manager ];
+in {
+  imports = with nix-config.inputs.home-manager.nixosModules; [home-manager];
 
   options.modules.system = {
     username = mkOption {
@@ -47,27 +39,23 @@ in
 
     timeZone = mkOption {
       type = str;
-      default = "America/New_York";
+      default = "Australia/Brisbane";
     };
 
     defaultLocale = mkOption {
       type = str;
-      default = "ja_JP.UTF-8";
+      default = "en_AU.UTF-8";
     };
 
     supportedLocales = mkOption {
       type = listOf str;
 
-      default = [
-        "ja_JP.UTF-8/UTF-8"
-        "en_US.UTF-8/UTF-8"
-        "fr_FR.UTF-8/UTF-8"
-      ];
+      default = ["en_AU.UTF-8/UTF-8" "en_US.UTF-8/UTF-8"];
     };
 
     stateVersion = mkOption {
       type = str;
-      default = "22.11";
+      default = "24.05";
     };
 
     hostName = mkOption {
@@ -83,7 +71,14 @@ in
 
   config = {
     boot = {
-      tmp = if iHaveLotsOfRam then { useTmpfs = true; } else { cleanOnBoot = true; };
+      tmp =
+        if iHaveLotsOfRam
+        then {
+          useTmpfs = true;
+        }
+        else {
+          cleanOnBoot = true;
+        };
 
       binfmt.emulatedSystems = mkIf (pkgs.system == "x86_64-linux") [ "aarch64-linux" ];
 
@@ -99,7 +94,6 @@ in
       };
 
       kernelPackages = pkgs.linuxPackages_latest;
-
       blacklistedKernelModules = [ "floppy" ];
     };
 
@@ -117,15 +111,9 @@ in
         allow-import-from-derivation = false;
         keep-going = true;
 
-        experimental-features = [
-          "nix-command"
-          "flakes"
-        ];
+        experimental-features = ["nix-command" "flakes"];
 
-        trusted-users = [
-          "root"
-          "@wheel"
-        ];
+        trusted-users = ["root" "@wheel"];
       };
     };
 
@@ -134,17 +122,11 @@ in
       memoryPercent = 100;
     };
 
-    time = {
-      inherit (cfg) timeZone;
-    };
+    time = {inherit (cfg) timeZone;};
 
-    i18n = {
-      inherit (cfg) defaultLocale supportedLocales;
-    };
+    i18n = {inherit (cfg) defaultLocale supportedLocales;};
 
-    system = {
-      inherit (cfg) stateVersion;
-    };
+    system = {inherit (cfg) stateVersion;};
 
     users = {
       mutableUsers = false;
@@ -158,16 +140,15 @@ in
         password = mkIf (hashedPassword == null && !isContainer) (if isPhone then "1234" else username);
 
         extraGroups =
-          if isContainer then
-            [ ]
-          else
-            [
-              "wheel"
-              "networkmanager"
-              "dialout"
-              "feedbackd"
-              "video"
-            ];
+          if isContainer
+          then []
+          else [
+            "wheel"
+            "networkmanager"
+            "dialout"
+            "feedbackd"
+            "video"
+          ];
       };
     };
 
@@ -176,9 +157,7 @@ in
       useUserPackages = true;
 
       sharedModules = singleton {
-        home = {
-          inherit (cfg) stateVersion;
-        };
+        home = {inherit (cfg) stateVersion;};
 
         programs.man.generateCaches = mkIf (!isPhone) true;
       };
@@ -225,7 +204,7 @@ in
         wifi.macAddress = "random";
         ethernet.macAddress = "random";
 
-        unmanaged = [ "interface-name:ve-*" ];
+        unmanaged = ["interface-name:ve-*"];
       };
 
       useHostResolvConf = true;

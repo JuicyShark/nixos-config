@@ -1,58 +1,87 @@
 {
+  nix-config,
   pkgs,
   config,
   lib,
   ...
-}:
-
-let
+}: let
+  inherit (lib.types) float int;
   inherit (config.modules.system) username;
   inherit (config.boot) isContainer;
+  inherit (builtins) attrValues;
+  inherit (nix-config.inputs.sakaya.packages.${pkgs.system}) sakaya;
+  inherit (nix-config.inputs.hyprland.packages.${pkgs.system}) hyprland;
+  inherit (lib) mkEnableOption mkIf mkMerge mkOption;
 
-  inherit (lib)
-    mkEnableOption
-    mkIf
-    mkMerge
-    ;
-
-  inherit (cfg) bloat;
+  inherit (cfg) bloat gaming streaming opacity fontSize;
 
   isPhone = config.programs.calls.enable;
 
   cfg = config.modules.desktop;
-in
-{
+
+  quantum = 32;
+  rate = 48000;
+  qr = "${toString quantum}/${toString rate}";
+in {
+  imports =
+    attrValues {inherit (nix-config.inputs.stylix.nixosModules) stylix;};
+
   options.modules.desktop = {
+    opacity = mkOption {
+      type = float;
+      default = 0.95;
+    };
+
+    fontSize = mkOption {
+      type = int;
+      default = 13;
+    };
+
     bloat = mkEnableOption "GUI applications";
+    streaming = mkEnableOption "Streaming Apps";
+    gaming = mkEnableOption "Steam + Proton";
   };
 
   config = {
-    hardware.graphics.enable32Bit = mkIf (!isPhone) true;
-
+    hardware.graphics.enable32Bit = (!isPhone) true;
+    hardware.xpadneo.enable = mkIf gaming true;
+    systemd.extraConfig = mkIf gaming "DefaultLimitNOFILE=1048576";
+    /*sakaya = {
+      enable = true;
+      openFirewall = true;
+      username = username;
+      port = 39889;
+    }; */
     programs = {
-      hyprland.enable = mkIf (!isContainer && !isPhone) true;
+      hyprland.enable = mkIf (!isContainer) true;
+      hyprland.package = hyprland;
       cdemu.enable = mkIf (!isPhone) true;
+      };
+      steam = {
+        enable = mkIf (gaming && !isContainer) true;
+        extest.enable = false;
+        localNetworkGameTransfers.openFirewall = true;
+        dedicatedServer.openFirewall = true;
+        remotePlay.openFirewall = true;
+        extraCompatPackages = with pkgs; [proton-ge-bin sakaya];
+      };
 
       thunar = {
         enable = mkIf (!isPhone) true;
 
-        plugins = with pkgs.xfce; [
-          thunar-volman
-        ];
+        plugins = with pkgs.xfce; [thunar-volman];
+      };
+      gnupg = {
+        agent = {
+          enable = true;
+          pinentryPackage = pkgs.pinentry-curses;
+          enableSSHSupport = true;
+        };
       };
     };
-
-    i18n.inputMethod = mkIf (!isPhone) {
-      enable = true;
-      type = "fcitx5";
-
-      fcitx5 = {
-        waylandFrontend = true;
-
-        addons = with pkgs; [
-          fcitx5-mozc
-        ];
-      };
+    xdg.portal = {
+      enable = mkIf (!isContainer) true;
+      extraPortals = with pkgs; [xdg-desktop-portal-gtk];
     };
 
     services = {
@@ -68,25 +97,20 @@ in
           accelSpeed = "0.75";
         };
 
-        mouse = {
-          accelProfile = "flat";
-        };
+        mouse = {accelProfile = "flat";};
       };
 
       xserver = mkIf (!isContainer) {
         enable = true;
-        excludePackages = with pkgs; [ xterm ];
-        displayManager.startx.enable = true;
+        excludePackages = with pkgs; [xterm];
+
+        displayManager.startx.enable = mkIf (!isContainer) true;
       };
 
       pipewire = mkIf (!isPhone) {
         enable = true;
-
-        alsa = {
-          enable = true;
-          support32Bit = true;
-        };
-
+        alsa.enable = true;
+        alsa.support32Bit = true;
         pulse.enable = true;
 
 
@@ -126,7 +150,7 @@ in
         settings = {
           default_session = {
             command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd Hyprland --time-format '%F %R'";
-            user = "greeter";
+            user = "juicy";
           };
 
           initial_session = {
@@ -135,40 +159,162 @@ in
           };
         };
       };
-
+      dbus.packages = [pkgs.gcr];
       tumbler.enable = true;
       gvfs.enable = true;
       gnome.gnome-keyring.enable = true;
       upower.enable = true;
     };
 
-    environment.systemPackages = mkMerge [
-      (mkIf bloat (
-        with pkgs;
-        [
-          mullvad-browser
-          spek
-          audacity
-          gimp
-          libreoffice
-          element-desktop
-          signal-desktop
-          qbittorrent
-          popsicle
-          satty
-          srb2
-          ringracers
-          jamesdsp
-          texliveFull
-        ]
-      ))
+    users.extraGroups.audio.members = [ username ];
+    security.rtkit.enable = true;
 
-      (with pkgs; [
-        anki
-        pulseaudio
-        grim
-        wl-clipboard-rs
-      ])
+   boot = {
+      kernel.sysctl."vm.swappiness" = 10;
+      kernelModules = [ "snd-seq" "snd-rawmidi" ];
+      kernelParams = [ "threadirqs" ];
+      postBootCommands = ''
+        echo 2048 > /sys/class/rtc/rtc0/max_user_freq
+        echo 2048 > /proc/sys/dev/hpet/max-user-freq
+        setpci -v -d *:* latency_timer=b0
+      '';
+    };
+
+    security.pam.loginLimits = [
+      { domain = "@audio"; item = "memlock"; type = "-"; value = "unlimited"; }
+      { domain = "@audio"; item = "rtprio"; type = "-"; value = "99"; }
+      { domain = "@audio"; item = "nofile"; type = "soft"; value = "99999"; }
+      { domain = "@audio"; item = "nofile"; type = "hard"; value = "99999"; }
+  { domain = "@users"; item = "rtprio"; type = "-"; value = 1;  }
     ];
-  };
+
+    services.udev.extraRules = ''
+      KERNEL=="rtc0", GROUP="audio"
+      KERNEL=="hpet", GROUP="audio"
+    '';
+
+    environment.systemPackages = mkMerge [
+      (mkIf bloat (with pkgs; [
+        audacity
+        obsidian
+        gimp
+        element-desktop
+        signal-desktop
+        pwvucontrol
+        discord
+        youtube-music
+        zathura
+        xournal
+      ]))
+
+      (mkIf (pkgs.system == "x86_64-linux") [sakaya])
+      (mkIf config.hardware.keyboard.zsa.enable (with pkgs; [keymapp]))
+      (mkIf streaming (with pkgs; [obs-studio chatterino2 streamlink]))
+      (mkIf gaming (with pkgs; [heroic ryujinx]))
+      (with pkgs; [pulseaudio grim wl-clipboard-rs])
+    ];
+
+    fonts = {
+      enableDefaultPackages = false;
+
+      packages = with pkgs; [
+        noto-fonts
+        roboto-serif
+        noto-fonts-emoji
+        maple-mono
+        font-awesome
+        (nerdfonts.override {fonts = ["Noto"];})
+        liberation_ttf
+      ];
+
+      fontconfig = {
+        defaultFonts = {
+
+
+          serif = ["Roboto Serif"];
+          sansSerif = ["Noto Sans"];
+          monospace = ["Maple Mono"];
+        };
+
+        allowBitmaps = false;
+      };
+    };
+
+    stylix = {
+      enable = true;
+      autoEnable = false;
+      #image = "${stylix-background}/wallpaper.png";
+      polarity = "dark";
+
+      targets.chromium.enable = true;
+      #targets.console.enable = true;
+      targets.gtk.enable = true;
+      #targets.nixos-icons.enable = true;
+ targets.nixvim.enable = true;
+      base16Scheme = {
+        system = "base16";
+        name = "selenized-black";
+        author = "Jan Warchol (https://github.com/jan-warchol/selenized) / adapted to base16 by ali";
+        variant = "dark";
+
+        palette = {
+          base00 = "1e1e2e";
+          base01 = "181825";
+          base02 = "313244";
+          base03 = "45475a";
+          base04 = "585b70";
+          base05 = "cdd6f4";
+          base06 = "f5e0dc";
+          base07 = "b4befe";
+          base08 = "f38ba8";
+          base09 = "fab387";
+          base0A = "f9e2af";
+          base0B = "a6e3a1";
+          base0C = "94e2d5";
+          base0D = "89b4fa";
+          base0E = "cba6f7";
+          base0F = "f2cdcd";
+        };
+      };
+
+      opacity = {
+        terminal = opacity;
+        popups = opacity + 2.5e-2;
+      };
+
+      cursor = {
+        package = pkgs.phinger-cursors;
+        name = "phinger-cursors";
+        size = 32;
+      };
+
+      fonts = {
+        serif = {
+          package = pkgs.roboto-serif;
+          name = "Roboto Serif";
+        };
+
+        sansSerif = {
+          package = pkgs.noto-fonts;
+          name = "Noto Sans";
+        };
+
+        monospace = {
+          package = pkgs.maple-mono;
+          name = "Maple Mono";
+        };
+
+        emoji = {
+          package = pkgs.noto-fonts-emoji;
+          name = "Noto Color Emoji";
+        };
+
+        sizes = {
+          applications = fontSize;
+          desktop = fontSize - 1;
+          popups = fontSize - 2;
+          terminal = fontSize + 1;
+        };
+      };
+    };
 }

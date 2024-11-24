@@ -3,7 +3,6 @@
   stdenvNoCC,
   fetchzip,
 }:
-
 stdenvNoCC.mkDerivation {
   pname = "osu-backgrounds";
   version = "2024-10-09";
@@ -237,7 +236,7 @@ stdenvNoCC.mkDerivation {
   meta = {
     description = "Collection of osu! fanart entries";
     homepage = "https://osu.ppy.sh/home/news";
-    maintainers = with lib.maintainers; [ donovanglover ];
+    maintainers = with lib.maintainers; [donovanglover];
     platforms = lib.platforms.all;
   };
 }

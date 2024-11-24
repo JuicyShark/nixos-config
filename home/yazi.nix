@@ -1,3 +1,4 @@
+
 {config, pkgs, ...}
 :{
   xdg.configFile."yazi/plugins/smart-enter.yazi/init.lua".text = ''
@@ -19,17 +20,17 @@
 
   programs.yazi = {
     enable = true;
+    enableZshIntegration = true;
+    shellWrapperName = "y";
 
     settings = {
       manager = {
+        sort_by = "alphabetical";
+        show_hidden = true;
         sort_dir_first = true;
         linemode = "mtime";
 
-        ratio = [
-          1
-          2
-          4
-        ];
+        ratio = [1 3 5];
       };
 
       preview = {
@@ -97,14 +98,13 @@ audio = [
 ];
 
       };
-
     };
 
     keymap = {
       manager.prepend_keymap = [
         {
           run = "remove --force";
-          on = [ "d" ];
+          on = ["d"];
         }
       ];
     };

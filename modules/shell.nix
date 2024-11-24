@@ -1,12 +1,8 @@
-{ pkgs, ... }:
-
-{
-  users.defaultUserShell = pkgs.fish;
+{pkgs, ...}: {
+  users.defaultUserShell = pkgs.zsh;
 
   environment = {
-    shells = with pkgs; [
-      fish
-    ];
+    shells = with pkgs; [fish zsh];
 
     systemPackages = with pkgs; [
       jq
@@ -15,11 +11,8 @@
       file
       timg
       choose
-      sd
       rustscan
       yt-dlp
-      sox
-      asak
       timer
       dig
       mtr
@@ -27,30 +20,17 @@
       fdupes
       whois
       killall
-      trashy
       hwinfo
       duf
       stress
       hdparm
-      recode
-      rmlint
       jpegoptim
-      pass
       sudachi-rs
-      tango
       npm-check-updates
       microfetch
       onefetch
-      scc
-      genact
-      sanctity
       asciiquarium-transparent
       cmatrix
-      gdu
-      hexyl
-      diskonaut
-      pgcli
-      litecli
       p7zip
       unar
       rsync
@@ -65,21 +45,15 @@
       lychee
       bluetui
       ventoy
-      taskwarrior3
       nixpkgs-review
       nix-init
       nix-update
-      statix
-      nvd
       nix-search-cli
       nix-tree
       gcc
       rustc
       rustfmt
       cargo
-      cargo-tarpaulin
-      bacon
-      clippy
       nodejs
       monolith
       haylxon
@@ -89,8 +63,10 @@
     ];
   };
 
+  environment.pathsToLink = ["/share/zsh"];
   programs = {
     fish.enable = true;
+    zsh.enable = true;
     neovim.enable = true;
 
     direnv = {

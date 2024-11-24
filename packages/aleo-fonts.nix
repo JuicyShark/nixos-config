@@ -3,7 +3,6 @@
   stdenvNoCC,
   fetchFromGitHub,
 }:
-
 stdenvNoCC.mkDerivation {
   pname = "aleo-fonts";
   version = "2.0.0-unstable-2023-06-03";
@@ -27,7 +26,7 @@ stdenvNoCC.mkDerivation {
     description = "Slab serif typeface designed by Alessio Laiso";
     homepage = "https://github.com/AlessioLaiso/aleo";
     license = lib.licenses.ofl;
-    maintainers = with lib.maintainers; [ donovanglover ];
+    maintainers = with lib.maintainers; [donovanglover];
     platforms = lib.platforms.all;
   };
 }

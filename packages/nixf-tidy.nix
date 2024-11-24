@@ -8,12 +8,11 @@
   fd,
   jq,
   nixf,
-}:
-
-let
+}: let
   script = writeTextFile {
     name = "nixf-tidy";
-    text = # fish
+    text =
+      # fish
       ''
         #!/usr/bin/env fish
 
@@ -45,41 +44,33 @@ let
       '';
   };
 in
-stdenvNoCC.mkDerivation {
-  pname = "nixf-tidy";
-  version = "0.1.0";
+  stdenvNoCC.mkDerivation {
+    pname = "nixf-tidy";
+    version = "0.1.0";
 
-  dontUnpack = true;
+    dontUnpack = true;
 
-  nativeBuildInputs = [ makeWrapper ];
+    nativeBuildInputs = [makeWrapper];
 
-  installPhase = ''
-    runHook preInstall
+    installPhase = ''
+      runHook preInstall
 
-    install -Dm755 ${script} $out/bin/nixf-tidy
+      install -Dm755 ${script} $out/bin/nixf-tidy
 
-    runHook postInstall
-  '';
+      runHook postInstall
+    '';
 
-  postInstall = ''
-    wrapProgram $out/bin/nixf-tidy \
-      --prefix PATH ":" "${
-        lib.makeBinPath [
-          fish
-          git
-          fd
-          jq
-          nixf
-        ]
-      }"
-  '';
+    postInstall = ''
+      wrapProgram $out/bin/nixf-tidy \
+        --prefix PATH ":" "${lib.makeBinPath [fish git fd jq nixf]}"
+    '';
 
-  meta = {
-    homepage = "https://github.com/nix-community/nixd/blob/main/libnixf/README.md#nixf-tidy";
-    description = "Dedicated tool tailored for linting Nix projects";
-    license = lib.licenses.lgpl3Plus;
-    maintainers = with lib.maintainers; [ donovanglover ];
-    mainProgram = "nixf-tidy";
-    platforms = lib.platforms.linux;
-  };
-}
+    meta = {
+      homepage = "https://github.com/nix-community/nixd/blob/main/libnixf/README.md#nixf-tidy";
+      description = "Dedicated tool tailored for linting Nix projects";
+      license = lib.licenses.lgpl3Plus;
+      maintainers = with lib.maintainers; [donovanglover];
+      mainProgram = "nixf-tidy";
+      platforms = lib.platforms.linux;
+    };
+  }

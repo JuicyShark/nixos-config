@@ -3,9 +3,7 @@
   pkgs,
   lib,
   ...
-}:
-
-let
+}: let
   inherit (lib) singleton mkMerge;
   inherit (builtins) attrValues;
 in
@@ -17,39 +15,36 @@ in
     stylix
     system
   ];
-
+in {  
   home-manager.sharedModules =
     attrValues nix-config.homeModules
-    ++ singleton {
-      programs.btop.enable = true;
-    };
+    ++ singleton {programs.btop.enable = true;};
 
   environment.systemPackages = mkMerge [
-    (with pkgs; [
-      ruby
-      php
-    ])
+    (with pkgs; [ruby php])
 
     (with nix-config.packages.${pkgs.system}; [
       dunst-scripts
     ])
   ];
 
-  nixpkgs.overlays = attrValues nix-config.overlays ++ [
-    (final: prev: {
-      btop = prev.btop.overrideAttrs (oldAttrs: {
-        postInstall =
-          (oldAttrs.postInstall or "")
-          # bash
-          + ''
-            echo "#!/usr/bin/env sh"  >> btop-overlay
-            echo "echo 'hello world'" >> btop-overlay
+  nixpkgs.overlays =
+    attrValues nix-config.overlays
+    ++ [
+      (final: prev: {
+        btop = prev.btop.overrideAttrs (oldAttrs: {
+          postInstall =
+            (oldAttrs.postInstall or "")
+            # bash
+            + ''
+              echo "#!/usr/bin/env sh"  >> btop-overlay
+              echo "echo 'hello world'" >> btop-overlay
 
-            install -Dm755 btop-overlay $out/bin/btop-overlay
-          '';
-      });
-    })
-  ];
+              install -Dm755 btop-overlay $out/bin/btop-overlay
+            '';
+        });
+      })
+    ];
 
   modules.system.username = "asuna";
 }

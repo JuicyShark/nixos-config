@@ -1,15 +1,9 @@
-{ lib, ... }:
-
-{
+{lib, ...}: {
   programs.fzf = {
     enable = true;
-    colors = lib.mkForce { };
+    enableZshIntegration = true;
+    colors = lib.mkForce {};
 
-    defaultOptions = [
-      "--height 40%"
-      "--reverse"
-      "--border"
-      "--color=16"
-    ];
+    defaultOptions = ["--height 40%" "--reverse" "--border" "--color=16"];
   };
 }

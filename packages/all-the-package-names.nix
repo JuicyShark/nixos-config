@@ -3,7 +3,6 @@
   buildNpmPackage,
   fetchFromGitHub,
 }:
-
 buildNpmPackage rec {
   pname = "all-the-package-names";
   version = "2.0.1794";
@@ -22,6 +21,6 @@ buildNpmPackage rec {
     homepage = "https://github.com/nice-registry/all-the-package-names";
     license = lib.licenses.mit;
     mainProgram = "all-the-package-names";
-    maintainers = with lib.maintainers; [ donovanglover ];
+    maintainers = with lib.maintainers; [donovanglover];
   };
 }

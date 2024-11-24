@@ -6,6 +6,7 @@ let
   isPhone = nixosConfig.programs.calls.enable;
 in
 {
+
   xdg = {
     userDirs = {
       enable = true;
@@ -13,15 +14,14 @@ in
 
       templates = null;
       publicShare = null;
-
       desktop = homeDirectory;
-      download = if isPhone then homeDirectory else "${homeDirectory}/ダウンロード";
-      documents = if isPhone then homeDirectory else "${homeDirectory}/ドキュメント";
-      music = if isPhone then homeDirectory else "${homeDirectory}/音楽";
-      pictures = if isPhone then homeDirectory else "${homeDirectory}/画像";
-      videos = if isPhone then homeDirectory else "${homeDirectory}/ビデオ";
+      download = if isPhone then homeDirectory else "${homeDirectory}/tmp";
+      documents = if isPhone then homeDirectory else "${homeDirectory}/documents";
+      music = if isPhone then homeDirectory else "${homeDirectory}/media/music";
+      pictures = if isPhone then homeDirectory else "${homeDirectory}/media/pictures";
+      videos = if isPhone then homeDirectory else "${homeDirectory}/media/videos";
     };
 
-    configFile."user-dirs.locale".text = "ja_JP";
+    configFile."user-dirs.locale".text = "en_AU";
   };
 }

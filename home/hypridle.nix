@@ -1,6 +1,6 @@
 {
   services.hypridle = {
-    enable = true;
+    enable = false;
 
     settings = {
       general = {
@@ -11,21 +11,16 @@
 
       listener = [
         {
-          timeout = 150;
-          on-timeout = "brightnessctl set 0 --save && brightnessctl --device=tpacpi::kbd_backlight set 0 --save";
-          on-resume = "brightnessctl --restore && brightnessctl --device=tpacpi::kbd_backlight --restore";
-        }
-        {
-          timeout = 300;
+          timeout = 900;
           on-timeout = "loginctl lock-session";
         }
         {
-          timeout = 380;
+          timeout = 1280;
           on-timeout = "hyprctl dispatch dpms off";
           on-resume = "hyprctl dispatch dpms on";
         }
         {
-          timeout = 1800;
+          timeout = 4800;
           on-timeout = "systemctl suspend";
         }
       ];

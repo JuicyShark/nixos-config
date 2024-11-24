@@ -10,11 +10,9 @@ in
 
   nixpkgs = {
     overlays = with nix-config.overlays; [ phinger-cursors ];
-
-    config.permittedInsecurePackages = [
-      "olm-3.2.16"
-    ];
+    config.permittedInsecurePackages = ["olm-3.2.16"];
   };
+
 
   home-manager.sharedModules = with nix-config.homeModules; [
     dconf

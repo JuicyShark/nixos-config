@@ -1,30 +1,20 @@
 {
-  pkgs,
   config,
   lib,
+  pkgs,
   ...
-}:
-
-let
+}: let
+  inherit (lib) mkEnableOption mkIf;
   inherit (builtins) toJSON;
-
-  inherit (lib)
-    mkEnableOption
-    mkIf
-    ;
 
   inherit (cfg)
     bluetooth
     nvidia
     ;
 
-
   cfg = config.modules.hardware;
-in
-{
+in {
   options.modules.hardware = {
-    keyboardBinds = mkEnableOption "caps lock as ctrl when held and esc when tapped";
-    mouseSettings = mkEnableOption "piper for gaming mice";
     bluetooth = mkEnableOption "bluetooth support";
     nvidia = {
       enable = mkEnableOption "Nvidia drivers";
@@ -49,3 +39,4 @@ in
     ];
   };
 }
+

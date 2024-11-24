@@ -4,9 +4,7 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   inherit (lib) mkIf;
   inherit (config.modules.system) username;
   inherit (config.boot) enableContainers;
@@ -45,9 +43,7 @@ let
       }
     ];
 
-    specialArgs = {
-      inherit nix-config;
-    };
+    specialArgs = {inherit nix-config;};
   };
 in
 {
@@ -79,7 +75,7 @@ in
             fish
             git
             gtk
-            kitty
+            foot
             neovim
             xresources
             yazi
@@ -93,7 +89,7 @@ in
               winetricks
             ];
 
-            variables.TERM = "xterm-kitty";
+            variables.TERM = "foot-direct";
           };
 
           hardware.graphics.enable = true;

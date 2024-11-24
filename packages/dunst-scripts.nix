@@ -7,12 +7,11 @@
   pipewire,
   brightnessctl,
   libnotify,
-}:
-
-let
+}: let
   volume = writeTextFile {
     name = "volume";
-    text = # fish
+    text =
+      # fish
       ''
         #!/usr/bin/env fish
 
@@ -32,7 +31,8 @@ let
 
   brightness = writeTextFile {
     name = "brightness";
-    text = # fish
+    text =
+      # fish
       ''
         #!/usr/bin/env fish
 
@@ -45,63 +45,58 @@ let
       '';
   };
 in
-stdenvNoCC.mkDerivation {
-  pname = "dunst-scripts";
-  version = "0.1.0";
+  stdenvNoCC.mkDerivation {
+    pname = "dunst-scripts";
+    version = "0.1.0";
 
-  dontUnpack = true;
+    dontUnpack = true;
 
-  nativeBuildInputs = [ makeWrapper ];
+    nativeBuildInputs = [makeWrapper];
 
-  installPhase = ''
-    runHook preInstall
+    installPhase = ''
+      runHook preInstall
 
-    install -Dm755 ${brightness} $out/bin/mb-up
-    install -Dm755 ${brightness} $out/bin/mb-down
-    install -Dm755 ${volume} $out/bin/mv-up
-    install -Dm755 ${volume} $out/bin/mv-down
-    install -Dm755 ${volume} $out/bin/mv-mute
+      install -Dm755 ${brightness} $out/bin/mb-up
+      install -Dm755 ${brightness} $out/bin/mb-down
+      install -Dm755 ${volume} $out/bin/mv-up
+      install -Dm755 ${volume} $out/bin/mv-down
+      install -Dm755 ${volume} $out/bin/mv-mute
 
-    substituteInPlace $out/bin/mb-down \
-      --replace-fail "5%+" "5%-"
+      substituteInPlace $out/bin/mb-down \
+        --replace-fail "5%+" "5%-"
 
-    substituteInPlace $out/bin/mv-down \
-      --replace-fail "5%+" "5%-"
+      substituteInPlace $out/bin/mv-down \
+        --replace-fail "5%+" "5%-"
 
-    substituteInPlace $out/bin/mv-mute \
-      --replace-fail "set-volume --limit 1" "set-mute" \
-      --replace-fail "5%+" "toggle"
+      substituteInPlace $out/bin/mv-mute \
+        --replace-fail "set-volume --limit 1" "set-mute" \
+        --replace-fail "5%+" "toggle"
 
-    install -Dm755 $out/bin/mv-mute $out/bin/mv-mic
+      install -Dm755 $out/bin/mv-mute $out/bin/mv-mic
 
-    substituteInPlace $out/bin/mv-mic \
-      --replace-fail "DEFAULT_AUDIO_SINK" "DEFAULT_AUDIO_SOURCE" \
-      --replace-fail "multimedia-volume-control" "audio-input-microphone" \
-      --replace-fail "x-dunst-stack-tag:volume" "x-dunst-stack-tag:microphone" \
-      --replace-fail "音量" "マイク"
+      substituteInPlace $out/bin/mv-mic \
+        --replace-fail "DEFAULT_AUDIO_SINK" "DEFAULT_AUDIO_SOURCE" \
+        --replace-fail "multimedia-volume-control" "audio-input-microphone" \
+        --replace-fail "x-dunst-stack-tag:volume" "x-dunst-stack-tag:microphone" \
+        --replace-fail "音量" "マイク"
 
-    runHook postInstall
-  '';
+      runHook postInstall
+    '';
 
-  postInstall = ''
-    for bin in $out/bin/*; do
-      wrapProgram "$bin" \
-        --prefix PATH ":" "${
-          lib.makeBinPath [
-            fish
-            pipewire
-            brightnessctl
-            libnotify
-          ]
-        }"
-    done
-  '';
+    postInstall = ''
+      for bin in $out/bin/*; do
+        wrapProgram "$bin" \
+          --prefix PATH ":" "${
+        lib.makeBinPath [fish pipewire brightnessctl libnotify]
+      }"
+      done
+    '';
 
-  meta = {
-    homepage = "https://github.com/donovanglover/nix-config";
-    description = "Dunst scripts for brightness and volume";
-    license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ donovanglover ];
-    platforms = lib.platforms.linux;
-  };
-}
+    meta = {
+      homepage = "https://github.com/donovanglover/nix-config";
+      description = "Dunst scripts for brightness and volume";
+      license = lib.licenses.mit;
+      maintainers = with lib.maintainers; [donovanglover];
+      platforms = lib.platforms.linux;
+    };
+  }
