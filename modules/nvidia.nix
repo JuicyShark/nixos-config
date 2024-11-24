@@ -22,7 +22,7 @@
         nvidiaPersistenced = false;
         powerManagement.enable = true;
         powerManagement.finegrained = false;
-        open = false;
+        open = true;
 
         nvidiaSettings = false;
       };
