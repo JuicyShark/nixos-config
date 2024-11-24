@@ -11,18 +11,13 @@ let
   inherit (lib)
     mkEnableOption
     mkIf
-    getExe
-    singleton
     ;
 
   inherit (cfg)
-    mouseSettings
-    lidIgnore
-    keyboardBinds
     bluetooth
+    nvidia
     ;
 
-  dualFunctionKeysConfig = "dual-function-keys.yaml";
 
   cfg = config.modules.hardware;
 in
@@ -31,70 +26,26 @@ in
     keyboardBinds = mkEnableOption "caps lock as ctrl when held and esc when tapped";
     mouseSettings = mkEnableOption "piper for gaming mice";
     bluetooth = mkEnableOption "bluetooth support";
-    lidIgnore = mkEnableOption "ignoring the laptop lid on close";
+    nvidia = {
+      enable = mkEnableOption "Nvidia drivers";
+      legacy = mkEnableOption "Legacy drivers";
+    };
   };
 
   config = {
     hardware.bluetooth.enable = mkIf bluetooth true;
+ #   hardware.nvidia-container-toolkit.enable = nvidia.enable;
 
     services = {
-      ratbagd.enable = mkIf mouseSettings true;
-
-      logind = {
-        lidSwitch = mkIf lidIgnore "ignore";
-        extraConfig = "HandlePowerKey=suspend";
-      };
-
-      interception-tools = {
-        enable = mkIf keyboardBinds true;
-
-        plugins = with pkgs.interception-tools-plugins; [
-          dual-function-keys
-        ];
-
-        udevmonConfig = toJSON (singleton {
-          JOB = # bash
-            ''
-              ${pkgs.interception-tools}/bin/intercept -g $DEVNODE |
-              ${getExe pkgs.interception-tools-plugins.dual-function-keys} -c /etc/${dualFunctionKeysConfig} |
-              ${pkgs.interception-tools}/bin/uinput -d $DEVNODE
-            '';
-
-          DEVICE = {
-            EVENTS = {
-              EV_KEY = [
-                "KEY_CAPSLOCK"
-                "KEY_ESC"
-              ];
-            };
-          };
-        });
-      };
+      blueman.enable = mkIf bluetooth true;
     };
 
-    environment = {
-      systemPackages = mkIf mouseSettings (
-        with pkgs;
-        [
-          piper
-        ]
-      );
-
-      etc.${dualFunctionKeysConfig}.text = toJSON {
-        TIMING = [
-          { TAP_MILLISEC = 1000; }
-          { DOUBLE_TAP_MILLISEC = 0; }
-          { SYNTHETIC_KEYS_PAUSE_MILLISEC = 0; }
-        ];
-
-        MAPPINGS = [
-          {
-            KEY = "KEY_CAPSLOCK";
-            TAP = "KEY_ESC";
-            HOLD = "KEY_LEFTCTRL";
-          }
-        ];
-      };
-    };
+    environment.systemPackages = [
+      (
+        if nvidia.enable
+        then (pkgs.zenith-nvidia)
+        else (pkgs.zenith)
+      )
+    ];
   };
 }

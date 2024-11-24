@@ -38,9 +38,8 @@ in
             static const int showbar = 1;
             static const int topbar = 1;
             static const char *fonts[] = {
-              "Maple Mono:size=10",
-              "Noto Sans Mono CJK JP:size=10",
-              "Noto Color Emoji:size=10",
+              "Maple Mono:size=13",
+              "Noto Color Emoji:size=13",
             };
 
             static const char *colors[][3] = {
@@ -57,13 +56,10 @@ in
               "xset", "r", "rate", "300", "50", NULL,
               "xset", "-dpms", NULL,
               "fish", "${homeDirectory}/.config/${barScript}", NULL,
-              "fish", "${homeDirectory}/.config/${wallpaperScript}", NULL,
-              "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1", NULL,
+              "feh", "--no-fehbg", "--bg-scale", "${config.stylix.image}", NULL,
               NULL
             };
-
             static const unsigned int baralpha = 243;
-
             static const unsigned int alphas[][3] = {
               [SchemeNorm] = { OPAQUE, baralpha, baralpha },
               [SchemeSel] = { OPAQUE, baralpha, baralpha },
@@ -72,7 +68,7 @@ in
             static const char *tags[] = { "⬤", "⬤", "⬤", "⬤", "⬤", "⬤" };
 
             static const Rule rules[] = {
-              { "librewolf", NULL, NULL, 0, 1, -1 },
+              { "firefox", NULL, NULL, 0, 1, -1 },
             };
 
             static const float mfact = 0.55;
@@ -192,7 +188,6 @@ in
       text = # bash
         ''
           #!/usr/bin/env sh
-
           export XDG_SESSION_TYPE=x11
           export GDK_BACKEND=x11
           export XDG_CURRENT_DESKTOP=dwm
@@ -204,7 +199,6 @@ in
           export GTK_CSD=0
           export QT_QPA_PLATFORMTHEME=qt5ct
           export QT_STYLE_OVERRIDE=kvantum
-
           while true; do
             dbus-launch --sh-syntax --exit-with-session dwm
           done
@@ -224,13 +218,11 @@ in
             (random choice (fd . ${osu-backgrounds}/2024-10-09-Autumn-2024-Fanart-Contest-All-Entries --follow -e jpg -e png))
         '';
     };
-
     ${barScript} = {
       executable = true;
       text = # fish
         ''
           #!/usr/bin/env fish
-
           function get_icon
             if test "$argv" -gt 90
               echo " "
@@ -244,7 +236,6 @@ in
               echo " "
             end
           end
-
           function update_bar
             set VOL $(wpctl get-volume @DEFAULT_AUDIO_SINK@)
             set MUTE $(echo "$VOL" | awk '{print $3}' | sed -e 's/\[MUTED\]/（ミュート）/' | tr --delete '\n')

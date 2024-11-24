@@ -239,12 +239,8 @@ in
       };
 
       firewall = {
-        allowedUDPPorts = [
-          67
-          68
-        ] ++ optional allowSRB2Port [ 5029 ];
-
-        allowedTCPPorts = mkIf allowDevPort [ 3000 ];
+        allowedUDPPorts = [67 68] ++ optional allowSRB2Port [5029];
+        allowedTCPPorts = mkIf allowDevPort [3000];
       };
     };
 
@@ -258,20 +254,12 @@ in
 
       openssh = {
         enable = true;
-
         settings = {
           PasswordAuthentication = false;
           KbdInteractiveAuthentication = false;
         };
       };
     };
-
-    environment = {
-      systemPackages = with pkgs; [ (pass.withExtensions (ext: with ext; [ pass-otp ])) ];
-      defaultPackages = [ ];
-      gnome.excludePackages = with pkgs; [ gnome-tour ];
-    };
-
     programs.command-not-found.enable = false;
   };
 }
