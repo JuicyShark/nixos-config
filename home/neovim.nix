@@ -1,19 +1,20 @@
 {
-  nix-config,
+  inputs,
+  config,
+  nixosConfig,
   pkgs,
   ...
 }: let
+  inherit (nixosConfig._module.specialArgs) nix-config;
   inherit (nix-config.packages.${pkgs.system}) vim-hypr-nav;
+
 in {
-  # having a condition against config causes infinite recursion?
-  imports = [
-    nix-config.inputs.nixvim.homeManagerModules.nixvim
-  ];
+  imports = [ nix-config.inputs.nixvim.homeManagerModules.nixvim ];
   home.packages = with pkgs; [
     alejandra
   ];
 
-  stylix.targets.neovim.plugin = "base16-nvim";
+
   programs.nixvim = {
     enable = true;
     defaultEditor = true;

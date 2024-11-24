@@ -9,7 +9,6 @@
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
     nix-config.inputs.disko.nixosModules.default
-    ./disko.nix
   ];
   hardware.keyboard.zsa.enable = true;
   hardware.logitech.wireless.enable = true;
@@ -22,7 +21,6 @@
     };
 
     kernelModules = ["kvm-intel" "nfs"];
-    kernelPackages = pkgs.linuxKernel.packages.linux_xanmod;
     kernelParams = [
       "intel_pstate=active"
       "module_blacklist=i915"

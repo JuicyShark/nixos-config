@@ -52,7 +52,7 @@ in
               "mpDris2", NULL,
               "dunst", NULL,
               "picom", NULL,
-              "fcitx5", NULL,
+              "foot", NULL,
               "xset", "r", "rate", "300", "50", NULL,
               "xset", "-dpms", NULL,
               "fish", "${homeDirectory}/.config/${barScript}", NULL,
@@ -71,7 +71,7 @@ in
               { "firefox", NULL, NULL, 0, 1, -1 },
             };
 
-            static const float mfact = 0.55;
+            static const float mfact = 0.48;
             static const int nmaster = 1;
             static const int resizehints = 1;
             static const int lockfullscreen = 1;
@@ -82,11 +82,11 @@ in
 
             #define MODKEY Mod4Mask
 
-            static char dmenumon[2] = "0";
+            static char dmenumon[2] = "1";
             static const char *dmenucmd[] = { "rofi", "-show", NULL };
             static const char *quitcmd[] = { "kill", "xinit", NULL };
-            static const char *termcmd[] = { "kitty", NULL };
-            static const char *explorercmd[] = { "kitty", "yazi", NULL };
+            static const char *termcmd[] = { "foot", NULL };
+            static const char *explorercmd[] = { "foot", "yazi", NULL };
             static const char *brighter[] = { "${dunst-scripts}/bin/mb-up", NULL };
             static const char *dimmer[] = { "${dunst-scripts}/bin/mb-down", NULL };
             static const char *print[] = { "scrot", NULL };
@@ -115,8 +115,8 @@ in
               { 0, XF86XK_AudioForward, spawn, {.v = audio_forward } },
               { 0, XF86XK_AudioRewind, spawn, {.v = audio_rewind } },
               { 0, XK_Print, spawn, {.v = print } },
-              { MODKEY, XK_bracketleft, spawn, {.v = dmenucmd } },
-              { MODKEY, XK_bracketright, spawn, {.v = explorercmd } },
+              { MODKEY, XK_r, spawn, {.v = dmenucmd } },
+              { MODKEY, XK_y, spawn, {.v = explorercmd } },
               { MODKEY, XK_o, togglebar, {0} },
               { MODKEY, XK_f, togglefullscr, {0} },
               { MODKEY, XK_v, togglefloating, {0} },
@@ -191,10 +191,6 @@ in
           export XDG_SESSION_TYPE=x11
           export GDK_BACKEND=x11
           export XDG_CURRENT_DESKTOP=dwm
-          export GTK_IM_MODULE=fcitx
-          export QT_IM_MODULE=fcitx
-          export XMODIFIERS=@im=fcitx
-          export SDL_IM_MODULE=fcitx
           export GLFW_IM_MODULE=ibus
           export GTK_CSD=0
           export QT_QPA_PLATFORMTHEME=qt5ct
@@ -223,19 +219,6 @@ in
       text = # fish
         ''
           #!/usr/bin/env fish
-          function get_icon
-            if test "$argv" -gt 90
-              echo " "
-            else if test "$argv" -gt 60
-              echo " "
-            else if test "$argv" -gt 30
-              echo " "
-            else if test "$argv" -gt 10
-              echo " "
-            else
-              echo " "
-            end
-          end
           function update_bar
             set VOL $(wpctl get-volume @DEFAULT_AUDIO_SINK@)
             set MUTE $(echo "$VOL" | awk '{print $3}' | sed -e 's/\[MUTED\]/（ミュート）/' | tr --delete '\n')
@@ -243,10 +226,7 @@ in
 
             set TIME "$(date '+%x（%a）%R')"
 
-            set capacity "$(cat /sys/class/power_supply/BAT0/capacity)"
-            set BATTERY "$(get_icon $capacity)$capacity%"
-
-            xsetroot -name " $MUTE$VOLUME・$BATTERY・$TIME "
+            xsetroot -name " $MUTE$VOLUME・$TIME "
           end
 
           while pidof dwm

@@ -1,5 +1,5 @@
 {
-  nix-config,
+  nixosConfig,
   osConfig,
   config,
   pkgs,
@@ -7,6 +7,7 @@
   ...
 }: let
   inherit (lib) mkForce;
+  inherit (nixosConfig._module.specialArgs) nix-config;
   inherit (nix-config.packages.${pkgs.system}) osu-backgrounds dunst-scripts;
   inherit (nix-config.packages.${pkgs.system}) vim-hypr-nav;
   inherit (nix-config.inputs.hyprland.packages.${pkgs.system}) hyprland;
@@ -213,7 +214,7 @@ in {
         "nodim,tag:games"
         "nodim,tag:media"
         "nodim,tag:games"
-        "nodim,workspace:m[HDMI-A-1]"
+      "nodim,workspace:m[HDMI-A-1]"
         "nodim,workspace:s[true]"
 
         "float,title:Picture-in-Picture"
@@ -224,8 +225,6 @@ in {
         "noborder, tag:media"
         "monitor DP-1, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
         "workspace 5, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
-        "fullscreenstate 1, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
-        "fullscreenstate -1 2, class:firefox"
         "tile, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
         "noborder 1, tag:games"
         "noblur 1, tag:games"

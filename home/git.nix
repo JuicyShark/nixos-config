@@ -1,5 +1,5 @@
 {pkgs, ...}: {
-  home.packages = with pkgs; [tig mgitstatus];
+  home.packages = with pkgs; [tig lazygit gh mgitstatus];
 
   xdg.configFile."tig/config".text = ''
     color cursor black green bold
