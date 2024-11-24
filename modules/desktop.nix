@@ -23,8 +23,6 @@
   rate = 48000;
   qr = "${toString quantum}/${toString rate}";
 in {
-  imports =
-    attrValues {inherit (nix-config.inputs.stylix.nixosModules) stylix;};
 
   options.modules.desktop = {
     opacity = mkOption {
@@ -43,8 +41,8 @@ in {
   };
 
   config = {
-    hardware.graphics.enable32Bit = (!isPhone) true;
-    hardware.xpadneo.enable = mkIf gaming true;
+    hardware.graphics.enable32Bit = !isPhone;
+   # hardware.xpadneo.enable = mkIf gaming true;
     systemd.extraConfig = mkIf gaming "DefaultLimitNOFILE=1048576";
 
     programs = {
