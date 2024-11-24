@@ -89,7 +89,7 @@
       );
 
       nixosConfigurations = {
-        nixos = nixosSystem {
+        leo = nixosSystem {
           system = "x86_64-linux";
           specialArgs.nix-config = self;
           modules = listFilesRecursive ./hosts/leo;

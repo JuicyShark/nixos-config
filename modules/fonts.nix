@@ -3,45 +3,30 @@
 let
   inherit (nix-config.packages.${pkgs.system}) aleo-fonts;
 in
-{
-  fonts = {
-    enableDefaultPackages = false;
+  {
+    fonts = {
+      enableDefaultPackages = false;
 
-    packages =
-      [
-        aleo-fonts
-      ]
-      ++ (with pkgs; [
+      packages = with pkgs; [
         noto-fonts
-        noto-fonts-cjk-serif
-        noto-fonts-cjk-sans
+        roboto-serif
         noto-fonts-emoji
         maple-mono
         font-awesome
-        (nerdfonts.override { fonts = [ "Noto" ]; })
-        kanji-stroke-order-font
+        (nerdfonts.override {fonts = ["Noto"];})
         liberation_ttf
-      ]);
+      ];
 
-    fontconfig = {
-      defaultFonts = {
-        serif = [
-          "Noto Serif CJK JP"
-          "Noto Serif"
-        ];
+      fontconfig = {
+        defaultFonts = {
 
-        sansSerif = [
-          "Noto Sans CJK JP"
-          "Noto Sans"
-        ];
 
-        monospace = [
-          "Noto Sans Mono CJK JP"
-          "Noto Sans Mono"
-        ];
+          serif = ["Roboto Serif"];
+          sansSerif = ["Noto Sans"];
+          monospace = ["Maple Mono"];
+        };
+
+        allowBitmaps = false;
       };
-
-      allowBitmaps = false;
     };
-  };
 }

@@ -17,76 +17,81 @@ let
 in
 {
   imports = with nix-config.inputs.stylix.nixosModules; [ stylix ];
-
   stylix = {
-    enable = true;
-    image = "${stylix-background}/wallpaper.png";
-    polarity = "dark";
+      enable = true;
+      autoEnable = false;
+      image = "${stylix-background}/wallpaper.png";
+      polarity = "dark";
 
-    base16Scheme = {
-      system = "base16";
-      name = "selenized-black";
-      author = "Jan Warchol (https://github.com/jan-warchol/selenized) / adapted to base16 by ali";
-      variant = "dark";
+      targets.chromium.enable = true;
+      #targets.console.enable = true;
+      targets.gtk.enable = true;
+      #targets.nixos-icons.enable = true;
+ targets.nixvim.enable = true;
+      base16Scheme = {
+        system = "base16";
+        name = "selenized-black";
+        author = "Jan Warchol (https://github.com/jan-warchol/selenized) / adapted to base16 by ali";
+        variant = "dark";
 
-      palette = {
-        base00 = "181818";
-        base01 = "252525";
-        base02 = "3b3b3b";
-        base03 = "777777";
-        base04 = "777777";
-        base05 = "b9b9b9";
-        base06 = "dedede";
-        base07 = "dedede";
-        base08 = "ed4a46";
-        base09 = "e67f43";
-        base0A = "dbb32d";
-        base0B = "70b433";
-        base0C = "3fc5b7";
-        base0D = "368aeb";
-        base0E = "a580e2";
-        base0F = "eb6eb7";
-      };
-    };
-
-    opacity = {
-      terminal = opacity;
-      popups = opacity;
-    };
-
-    cursor = {
-      package = pkgs.phinger-cursors;
-      name = "phinger-cursors";
-      size = 24;
-    };
-
-    fonts = {
-      serif = {
-        package = aleo-fonts;
-        name = "Aleo";
+        palette = {
+          base00 = "1e1e2e";
+          base01 = "181825";
+          base02 = "313244";
+          base03 = "45475a";
+          base04 = "585b70";
+          base05 = "cdd6f4";
+          base06 = "f5e0dc";
+          base07 = "b4befe";
+          base08 = "f38ba8";
+          base09 = "fab387";
+          base0A = "f9e2af";
+          base0B = "a6e3a1";
+          base0C = "94e2d5";
+          base0D = "89b4fa";
+          base0E = "cba6f7";
+          base0F = "f2cdcd";
+        };
       };
 
-      sansSerif = {
-        package = pkgs.noto-fonts-cjk-sans;
-        name = "Noto Sans CJK JP";
+      opacity = {
+        terminal = opacity;
+        popups = opacity + 2.5e-2;
       };
 
-      monospace = {
-        package = pkgs.maple-mono;
-        name = "Maple Mono";
+      cursor = {
+        package = pkgs.phinger-cursors;
+        name = "phinger-cursors";
+        size = 32;
       };
 
-      emoji = {
-        package = pkgs.noto-fonts-emoji;
-        name = "Noto Color Emoji";
-      };
+      fonts = {
+        serif = {
+          package = pkgs.roboto-serif;
+          name = "Roboto Serif";
+        };
 
-      sizes = {
-        applications = fontSize;
-        desktop = fontSize;
-        popups = fontSize;
-        terminal = fontSize;
+        sansSerif = {
+          package = pkgs.noto-fonts;
+          name = "Noto Sans";
+        };
+
+        monospace = {
+          package = pkgs.maple-mono;
+          name = "Maple Mono";
+        };
+
+        emoji = {
+          package = pkgs.noto-fonts-emoji;
+          name = "Noto Color Emoji";
+        };
+
+        sizes = {
+          applications = fontSize;
+          desktop = fontSize - 1;
+          popups = fontSize - 2;
+          terminal = fontSize + 1;
+        };
       };
-    };
   };
 }

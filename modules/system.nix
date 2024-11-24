@@ -29,7 +29,7 @@ in {
   options.modules.system = {
     username = mkOption {
       type = str;
-      default = "user";
+      default = "juicy";
     };
 
     hashedPassword = mkOption {
@@ -101,7 +101,8 @@ in {
       extraConfig = "DefaultTimeoutStopSec=10s";
       services.NetworkManager-wait-online.enable = false;
     };
-
+  nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.allowUnsupportedSystem = true;
     nix = {
       package = pkgs.nixVersions.latest;
 

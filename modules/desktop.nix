@@ -46,17 +46,11 @@ in {
     hardware.graphics.enable32Bit = (!isPhone) true;
     hardware.xpadneo.enable = mkIf gaming true;
     systemd.extraConfig = mkIf gaming "DefaultLimitNOFILE=1048576";
-    /*sakaya = {
-      enable = true;
-      openFirewall = true;
-      username = username;
-      port = 39889;
-    }; */
+
     programs = {
       hyprland.enable = mkIf (!isContainer) true;
       hyprland.package = hyprland;
       cdemu.enable = mkIf (!isPhone) true;
-      };
       steam = {
         enable = mkIf (gaming && !isContainer) true;
         extest.enable = false;
@@ -213,108 +207,5 @@ in {
       (mkIf gaming (with pkgs; [heroic ryujinx]))
       (with pkgs; [pulseaudio grim wl-clipboard-rs])
     ];
-
-    fonts = {
-      enableDefaultPackages = false;
-
-      packages = with pkgs; [
-        noto-fonts
-        roboto-serif
-        noto-fonts-emoji
-        maple-mono
-        font-awesome
-        (nerdfonts.override {fonts = ["Noto"];})
-        liberation_ttf
-      ];
-
-      fontconfig = {
-        defaultFonts = {
-
-
-          serif = ["Roboto Serif"];
-          sansSerif = ["Noto Sans"];
-          monospace = ["Maple Mono"];
-        };
-
-        allowBitmaps = false;
-      };
-    };
-
-    stylix = {
-      enable = true;
-      autoEnable = false;
-      #image = "${stylix-background}/wallpaper.png";
-      polarity = "dark";
-
-      targets.chromium.enable = true;
-      #targets.console.enable = true;
-      targets.gtk.enable = true;
-      #targets.nixos-icons.enable = true;
- targets.nixvim.enable = true;
-      base16Scheme = {
-        system = "base16";
-        name = "selenized-black";
-        author = "Jan Warchol (https://github.com/jan-warchol/selenized) / adapted to base16 by ali";
-        variant = "dark";
-
-        palette = {
-          base00 = "1e1e2e";
-          base01 = "181825";
-          base02 = "313244";
-          base03 = "45475a";
-          base04 = "585b70";
-          base05 = "cdd6f4";
-          base06 = "f5e0dc";
-          base07 = "b4befe";
-          base08 = "f38ba8";
-          base09 = "fab387";
-          base0A = "f9e2af";
-          base0B = "a6e3a1";
-          base0C = "94e2d5";
-          base0D = "89b4fa";
-          base0E = "cba6f7";
-          base0F = "f2cdcd";
-        };
-      };
-
-      opacity = {
-        terminal = opacity;
-        popups = opacity + 2.5e-2;
-      };
-
-      cursor = {
-        package = pkgs.phinger-cursors;
-        name = "phinger-cursors";
-        size = 32;
-      };
-
-      fonts = {
-        serif = {
-          package = pkgs.roboto-serif;
-          name = "Roboto Serif";
-        };
-
-        sansSerif = {
-          package = pkgs.noto-fonts;
-          name = "Noto Sans";
-        };
-
-        monospace = {
-          package = pkgs.maple-mono;
-          name = "Maple Mono";
-        };
-
-        emoji = {
-          package = pkgs.noto-fonts-emoji;
-          name = "Noto Color Emoji";
-        };
-
-        sizes = {
-          applications = fontSize;
-          desktop = fontSize - 1;
-          popups = fontSize - 2;
-          terminal = fontSize + 1;
-        };
-      };
-    };
+  };
 }
