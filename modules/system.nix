@@ -7,6 +7,7 @@
 }: let
   inherit (lib.types) nullOr str listOf;
   inherit (config.boot) isContainer;
+  inherit (nix-config.inputs.home-manager.nixosModules) home-manager;
 
   inherit (lib) mkOption mkEnableOption mkIf singleton optional;
 
@@ -24,7 +25,7 @@
 
   cfg = config.modules.system;
 in {
-  imports = with nix-config.inputs.home-manager.nixosModules; [home-manager];
+  imports = [home-manager];
 
   options.modules.system = {
     username = mkOption {
@@ -93,7 +94,7 @@ in {
         efi.canTouchEfiVariables = true;
       };
 
-      kernelPackages = pkgs.linuxPackages_latest;
+      kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_stable;
       blacklistedKernelModules = [ "floppy" ];
     };
 
@@ -159,20 +160,18 @@ in {
 
       sharedModules = singleton {
         home = {inherit (cfg) stateVersion;};
-
         programs.man.generateCaches = mkIf (!isPhone) true;
       };
 
       users.${username}.home = {
         inherit username;
-
         homeDirectory = "/home/${username}";
       };
     };
 
     virtualisation.vmVariant = {
       virtualisation = {
-        memorySize = 4096;
+        memorySize = 12096;
         cores = 4;
 
         sharedDirectories = {
@@ -182,12 +181,12 @@ in {
           };
         };
 
-        qemu.options = [
+        /*qemu.options = [
           "-device virtio-vga-gl"
           "-display sdl,gl=on,show-cursor=off"
           "-audio pa,model=hda"
           "-full-screen"
-        ];
+        ]; */
       };
 
       services.interception-tools.enable = lib.mkForce false;
