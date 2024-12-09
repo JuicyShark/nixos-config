@@ -8,21 +8,27 @@
 }: let
   inherit (lib) mkForce;
   inherit (nixosConfig._module.specialArgs) nix-config;
-  inherit (nix-config.packages.${pkgs.system}) osu-backgrounds dunst-scripts;
-  inherit (nix-config.packages.${pkgs.system}) vim-hypr-nav;
+  inherit (nix-config.packages.${pkgs.system}) osu-backgrounds dunst-scripts  vim-hypr-nav;
   inherit (nix-config.inputs.hyprland.packages.${pkgs.system}) hyprland;
   opacity = "0.95";
 
-  gapsScript = "hypr/gaps.fish";
-  randomBackgroundScript = "hypr/random-bg.fish";
-  swapBackgroundScript = "hypr/swap-bg.fish";
-  setBackgroundScript = "hypr/set-bg.fish";
+  dynamicGapsScript = "hypr/dynamicGapsScript.zsh";
+  gapsScript = "hypr/gaps.zsh";
+  randomBackgroundScript = "hypr/random-bg.zsh";
+  swapBackgroundScript = "hypr/swap-bg.zsh";
+  setBackgroundScript = "hypr/set-bg.zsh";
 
   super = "SUPER";
   appLaunchBind =
     if osConfig.hardware.keyboard.zsa.enable
     then "ALT SHIFT CTRL"
     else "SUPER";
+
+  toggle = program: let
+    prog = builtins.substring 0 14 program;
+  in "pkill ${prog} || uwsm app -- ${program}";
+
+  runOnce = program: "pgrep ${program} || uwsm app -- ${program}";
 
  workspaces = ["1" "2" "3" "4" "5" "6" "7" "8" "9"];
   # Map keys (arrows and hjkl) to hyprland directions (l, r, u, d)
@@ -47,12 +53,14 @@ in {
     mpvpaper
     wf-recorder
     playerctl
+    socat
   ];
-
+  home.programs.ags.enable = true;
   wayland.windowManager.hyprland = {
     enable = true;
     package = hyprland;
     systemd = {
+      enable = false;
       variables = ["--all"];
 
       extraCommands = [
@@ -63,7 +71,6 @@ in {
     settings = {
       env = [
         "BROWSER,firefox"
-        "GLFW_IM_MODULE,ibus"
         "SWWW_TRANSITION,grow"
         "SWWW_TRANSITION_STEP,200"
         "SWWW_TRANSITION_DURATION,1.5"
@@ -75,17 +82,15 @@ in {
 
       monitor = [",highrr,auto,1" "HDMI-A-1,highrr,auto-left,1"];
       exec = [
-        "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
-        "dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
         "xrandr --output DP-1 --primary"
       ];
       exec-once = [
+        "uwsm finalize"
         "sleep 0.1; swww-daemon"
-        "wpctl set-volume @DEFAULT_AUDIO_SINK@ 20%"
         "waybar"
+        "wpctl set-volume 88 40%"
         "hyprctl dispatch workspace 2"
-        "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
-        "hyprdim --no-dim-when-only --persist --ignore-leaving-special --dialog-dim"
+        "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent"
         "~/.config/${randomBackgroundScript}"
         "steam"
         "vesktop"
@@ -120,12 +125,17 @@ in {
         gaps_out = 0;
         border_size = 2;
         layout = "master";
+
         snap = {
           enabled = true;
-          window_gap = 25;
-          monitor_gap = 35;
+          window_gap = 50;
+          monitor_gap = 20;
           border_overlap = true;
         };
+      };
+
+      render = {
+        direct_scanout = true;
       };
 
       group = {
@@ -135,9 +145,8 @@ in {
         merge_groups_on_groupbar = true;
         groupbar = {
           font_size = 13;
-          gradients = false;
+          gradients = true;
           scrolling = false;
-
         };
       };
 
@@ -182,14 +191,15 @@ in {
       };
 
       master = {
-        mfact = 0.55;
+        mfact = 0.44;
         special_scale_factor = 0.8;
         allow_small_split = false;
-        new_status = "master";
+        new_status = "inherit";
         new_on_top = true;
         inherit_fullscreen = false;
         orientation = "center";
         always_center_master = true;
+        center_ignores_reserved = true;
       };
 
       gestures = {workspace_swipe = true;};
@@ -214,7 +224,7 @@ in {
         "nodim,tag:games"
         "nodim,tag:media"
         "nodim,tag:games"
-      "nodim,workspace:m[HDMI-A-1]"
+        "nodim,workspace:m[HDMI-A-1]"
         "nodim,workspace:s[true]"
 
         "float,title:Picture-in-Picture"
@@ -240,6 +250,7 @@ in {
         "opacity ${opacity} ${opacity},class:^(thunar)$"
         "pin,floating:1"
       ];
+
       workspace = [
         "1, monitor:DP-1, layoutopt:orientation:center"
         "2, monitor:DP-1, layoutopt:orientation:center, default:true"
@@ -255,6 +266,7 @@ in {
         "0, monitor:HDMI-A-1"
         "special:scratchpad, on-created-empty:[monitor DP-1;float;size 25% 35%; move 37.5% 100%;]foot"
       ];
+
       misc = {
         disable_hyprland_logo = true;
         focus_on_activate = true;
@@ -275,7 +287,7 @@ in {
           "${super}CONTROL, U, layoutmsg, mfact exact 0.65"
           "${super}CONTROL, L, layoutmsg, orientationleft"
           "${super}CONTROL, C, layoutmsg, orientationcenter"
-         "${super}CONTROL, T, layoutmsg, movetoroot active"
+          "${super}CONTROL, T, layoutmsg, movetoroot active"
           "${super}CONTROL, D, exec, hyprctl keyword general:layout dwindle"
           "${super}CONTROL, M, exec, hyprctl keyword general:layout master"
           "${super}, tab, changegroupactive, f"
@@ -297,19 +309,15 @@ in {
           "${super}SHIFT, P, pin"
 
           # Default Apps
-          "${appLaunchBind}, Return, exec, foot"
-          "${appLaunchBind}, T, exec, foot"
-          "${appLaunchBind}, E, exec, foot -c nvim"
-          "${appLaunchBind}, W, exec, firefox"
-          "${appLaunchBind}, Q, exec, qutebrowser"
-          "${appLaunchBind}, D, exec, vesktop"
-          "${appLaunchBind}, M, exec, tidal-hifi"
-          "${appLaunchBind}, S, exec, grimblast copy area"
-
-        ]
-        ++
+          "${appLaunchBind}, Return, exec, uwsm app -- foot"
+          "${appLaunchBind}SHIFT, Return, togglespecialworkspace, scratchpad"
+          "${appLaunchBind}, W, exec, uwsm app -- firefox"
+          "${appLaunchBind}, D, exec, uwsm app -- discord"
+          "${appLaunchBind}, M, exec, uwsm app -- tidal-hifi"
+          "${appLaunchBind}, S, exec, ${runOnce "grimblast"} --notify copysave area"
+        ] ++
         # Launcher
-        (["${appLaunchBind}, Space,  exec, killall rofi || rofi -show drun"]
+        (["${appLaunchBind}, Space,  exec, ${toggle "rofi"} -show drun"]
           ++ (let
             cliphist = lib.getExe config.services.cliphist.package;
           in
@@ -375,93 +383,196 @@ in {
         bind = ${super}ALT, BackSpace, submap, reset
         submap = reset
 
-        bind = ${super}, o, submap, openApps
-        submap = openApps
-          bind = , Return, exec, foot
-          bind = , T, exec, foot
-          bind = , E, exec, foot -c nvim
-          bind = , W, exec, firefox
-          bind = , Q, exec, qutebrowser
-          bind = , D, exec, discord
-          bind = , M, exec, tidal-hifi
-          bind = , S, exec, steam
+        bind = ${appLaunchBind}, T, submap, openTerminal
+        submap = openTerminal
+          bind = , Return, exec, uwsm app -- foot
+          bind = , T, exec, uwsm app -- foot
+          bind = , E, exec, uwsm app -- foot nvim
+          bind = , ., exec, uwsm app -- foot yazi
+          bind = , f, exec, uwsm app -- foot yazi
+          bind = , ?, exec, uwsm app -- foot zenith
         bind = , catchall, submap, reset
         submap = reset
       '';
   };
 
   xdg.configFile = {
-    ${gapsScript} = {
+    "${dynamicGapsScript}" = {
       executable = true;
-      text =
-        # fish
-        ''
-          #!/usr/bin/env fish
-
-          hyprctl keyword general:gaps_out $(math 10 - $(hyprctl getoption general:gaps_out -j | jq -r ".custom" | choose 1))
-          hyprctl keyword general:gaps_in $(math 5 - $(hyprctl getoption general:gaps_in -j | jq -r ".custom" | choose 1))
-          hyprctl keyword general:border_size $(math 2 - $(hyprctl getoption general:border_size -j | jq -r ".int"))
-          hyprctl keyword decoration:rounding $(math 8 - $(hyprctl getoption decoration:rounding -j | jq -r ".int"))
-        '';
+      text = ''
+        #!/usr/bin/env zsh
+        function handle() {
+          if [[ ''${1:0:10} == "focusedmon" ]]; then
+            if [[ ''${1:12:4} == "DP-1" ]]; then
+              hyprctl keyword general:gaps_in 0
+            else
+              hyprctl keyword general:gaps_in 45
+            fi
+          fi
+        }
+        socat - "UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock" | while read -r line; do
+          handle "$line"
+        done
+      '';
     };
 
-    ${setBackgroundScript} = {
+    "${gapsScript}" = {
       executable = true;
-      text =
-        # fish
-        ''
-          #!/usr/bin/env fish
+      text = ''
+        #!/usr/bin/env zsh
 
-          if [ (hyprctl getoption animations:enabled -j | jq -r ".int") = "1" ]
-            swww img \
-              --transition-type $(random choice grow wave outer) \
-              --transition-wave 80,40 \
-              --transition-angle $(random choice 45 90 135 225 270 315) \
-              --transition-pos $(random choice center top left right bottom top-left top-right bottom-left bottom-right) \
-              --transition-step 200 \
-              --transition-duration 1.5 \
-              --transition-fps 240 \
-              --outputs "$argv[1]" \
-              "$argv[2]"
-          else
-            swww img \
-              --transition-type simple \
-              --transition-step 255 \
-              --outputs "$argv[1]" \
-              "$argv[2]"
-          end
-        '';
+        # Function to toggle gaps and border settings
+        toggle_settings() {
+          local current_gaps_out=$(hyprctl getoption general:gaps_out -j | jq -r ".custom" | awk '{print $1}')
+          local current_gaps_in=$(hyprctl getoption general:gaps_in -j | jq -r ".custom" | awk '{print $1}')
+          local current_border_size=$(hyprctl getoption general:border_size -j | jq -r ".int")
+          local current_rounding=$(hyprctl getoption decoration:rounding -j | jq -r ".int")
+
+          # Toggle gaps_out
+          local new_gaps_out=$((10 - current_gaps_out))
+          hyprctl keyword general:gaps_out "$new_gaps_out"
+
+          # Toggle gaps_in
+          local new_gaps_in=$((5 - current_gaps_in))
+          hyprctl keyword general:gaps_in "$new_gaps_in"
+
+          # Toggle border_size
+          local new_border_size=$((2 - current_border_size))
+          hyprctl keyword general:border_size "$new_border_size"
+
+          # Toggle rounding
+          local new_rounding=$((8 - current_rounding))
+          hyprctl keyword decoration:rounding "$new_rounding"
+        }
+
+        toggle_settings
+      '';
     };
 
-    ${randomBackgroundScript} = {
+    "${setBackgroundScript}" = {
       executable = true;
-      text =
-        # fish
-        ''
-          #!/usr/bin/env fish
+      text = ''
+        #!/usr/bin/env zsh
 
-          for monitor in (hyprctl monitors -j | jq -r '.[].name')
-            ~/.config/${setBackgroundScript} "$monitor" "$(random choice $(fd . ${osu-backgrounds}/2024-10-09-Autumn-2024-Fanart-Contest-All-Entries --follow -e jpg -e png))"
-          end
-        '';
+        # Check if animations are enabled
+        local animations_enabled=$(hyprctl getoption animations:enabled -j | jq -r ".int")
+
+        # Array of transition types for animated transitions
+        local animated_transitions=(grow wave outer)
+        local transition_angles=(45 90 135 225 270 315)
+        local transition_positions=(center top left right bottom top-left top-right bottom-left bottom-right)
+
+        # Function to get a random array element
+        random_element() {
+          local arr=("$@")
+          echo "''${arr[RANDOM % ''${#arr[@]} + 1]}"
+        }
+
+        # Set background with transitions
+        if [[ "$animations_enabled" == "1" ]]; then
+          swww img \
+            --transition-type "$(random_element "''${animated_transitions[@]}")" \
+            --transition-wave 80,40 \
+            --transition-angle "$(random_element "''${transition_angles[@]}")" \
+            --transition-pos "$(random_element "''${transition_positions[@]}")" \
+            --transition-step 200 \
+            --transition-duration 1.5 \
+            --transition-fps 240 \
+            --outputs "$1" \
+            "$2"
+        else
+          swww img \
+            --transition-type simple \
+            --transition-step 255 \
+            --outputs "$1" \
+            "$2"
+        fi
+      '';
     };
 
-    ${swapBackgroundScript} = {
+    "${randomBackgroundScript}" = {
       executable = true;
-      text =
-        # fish
-        ''
-          #!/usr/bin/env fish
+      text = ''
+        #!/usr/bin/env zsh
 
-          set M "$(swww query | cut -d ':' -f 5)"
-          set M1 "$(echo "$M" | head -n 1 | awk '{$1=$1};1')"
-          set M2 "$(echo "$M" | tail -n 1 | awk '{$1=$1};1')"
+        # Get list of monitors
+        local monitors=($(hyprctl monitors -j | jq -r '.[].name'))
 
-          ~/.config/${setBackgroundScript} "$(swww query | choose 0 | choose -c 0..-1 | tail -n 1)" "$M1"
-          ~/.config/${setBackgroundScript} "$(swww query | choose 0 | choose -c 0..-1 | head -n 1)" "$M2"
-        '';
+        # Get list of background images
+        local backgrounds=($(fd . ${osu-backgrounds}/2024-10-09-Autumn-2024-Fanart-Contest-All-Entries --follow -e jpg -e png))
+
+        # Iterate through monitors and set random backgrounds
+        for monitor in "''${monitors[@]}"; do
+          local random_bg=$(echo "''${backgrounds[RANDOM % ''${#backgrounds[@]} + 1]}")
+          ~/.config/${setBackgroundScript} "$monitor" "$random_bg"
+        done
+      '';
+    };
+
+    "${swapBackgroundScript}" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env zsh
+
+        # Get current backgrounds
+        local backgrounds=($(swww query | cut -d ':' -f 5))
+        local M1="$(echo "''${backgrounds[1]}" | awk '{$1=$1};1')"
+        local M2="$(echo "''${backgrounds[2]}" | awk '{$1=$1};1')"
+
+        # Swap backgrounds
+        ~/.config/${setBackgroundScript} "$(swww query | choose 0 | choose -c 0..-1 | tail -n 1)" "$M1"
+        ~/.config/${setBackgroundScript} "$(swww query | choose 0 | choose -c 0..-1 | head -n 1)" "$M2"
+      '';
     };
   };
 
+  systemd.user = {
+    services = {
+      hyprland-dynamic-gaps = {
+        Unit = {
+          Description = "Hyprland Dynamic Gaps Script";
+          PartOf = [ "hyprland-session.target" ];
+        };
+
+        Service = {
+          ExecStart = "${pkgs.zsh}/bin/zsh ${config.home.homeDirectory}/.config/hypr/dynamic-gaps.zsh";
+          Restart = "on-failure";
+        };
+
+        Install = {
+          WantedBy = [ "hyprland-session.target" ];
+        };
+      };
+
+      hyprsunset = {
+        Unit = {
+          Description = "Hyprsunset - nighttime";
+        };
+        Service = {
+          Type = "oneshot";
+          ExecStart = "${lib.getExe pkgs.hyprsunset} -t 4750";
+        };
+      };
+    };
+
+    timers = {
+      # if after 8pm Hypersunset is active
+      hyprsunset= {
+        Unit = {
+          Description = "Hyprsunset - a blue-light filter";
+          PartOf = [ "hyprland-session.target" ];
+          After = [ "hyprland-session.target" ];
+        };
+        Timer = {
+          OnCalendar = "*-*-* 20:00:00";
+          Unit = "hyprsunset.service";
+          Persistent = true;
+        };
+        Install = {
+          WantedBy = [ "hyprland-session.target" ];
+        };
+      };
+    };
+  };
   services = {hyprpaper.enable = mkForce false;};
 }

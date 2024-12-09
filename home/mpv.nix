@@ -7,6 +7,7 @@
   inherit (config.home) homeDirectory;
   shaders_dir = "${pkgs.mpv-shim-default-shaders}/share/mpv-shim-default-shaders/shaders";
 in {
+  home.packages = with pkgs; [ jellyfin-mpv-shim ];
   programs.mpv = {
     enable = true;
 
@@ -60,6 +61,7 @@ in {
       thumbfast
       youtube-upnext
       sponsorblock
+      autocrop
     ];
   };
   programs.yt-dlp = {
@@ -71,4 +73,5 @@ in {
   home.file = {
     ".config/mpv/shaders/NVScaler.glsl".source = "${shaders_dir}/NVScaler.glsl";
   };
+
 }

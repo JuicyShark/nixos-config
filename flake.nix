@@ -16,7 +16,7 @@
       url = "github:danth/stylix";
 
     };
-
+    ags.url = "github:aylur/ags";
     sakaya = {
       url = "github:donovanglover/sakaya";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -31,11 +31,12 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
     hyprland = {
-      url = "github:hyprwm/Hyprland";
+      url = "github:hyprwm/Hyprland/10a9fec";
       #inputs.nixpkgs.follows = "nixpkgs";
-      #submodules = true;
     };
+
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -44,7 +45,7 @@
   };
 
   outputs =
-    { self, nixpkgs, ... }:
+    { self, nixpkgs, ... } @ inputs:
     let
       inherit (nixpkgs.lib) nixosSystem genAttrs replaceStrings;
       inherit (nixpkgs.lib.filesystem) packagesFromDirectoryRecursive listFilesRecursive;
@@ -91,6 +92,7 @@
       nixosConfigurations = {
         leo = nixosSystem {
           system = "x86_64-linux";
+          specialArgs = { inherit inputs; };
           specialArgs.nix-config = self;
           modules = listFilesRecursive ./hosts/leo;
         };
