@@ -1,4 +1,8 @@
 {
+    programs.nix-index = {
+      enable = true;
+      enableFishIntegration = true;
+    };
   programs.fish = {
     enable = true;
 
@@ -23,9 +27,6 @@
 
         fish_default_key_bindings
 
-        if string match -qe -- "/dev/pts/" (tty)
-          alias ssh="kitty +kitten ssh"
-        end
       '';
 
     shellAliases = {
@@ -77,11 +78,6 @@
       gt = "git tag";
       gts = "git tag -s";
 
-      tp = "trash put";
-      tl = "trash list";
-      tr = "trash restore";
-      te = "trash empty";
-
       nf = "nix flake";
       nfc = "nix flake check";
       nfu = "nix flake update";
@@ -107,22 +103,10 @@
 
       dl = "yt-dlp";
       vol = "wpctl set-volume '@DEFAULT_AUDIO_SINK@'";
-      jis = "recode shift_jis..utf8";
-      utf16 = "recode utf16..utf8";
-      jp = "LANG=ja_JP.UTF-8 LC_ALL=ja_JP.UTF-8";
       vm = "nixos-rebuild build-vm --flake . && ./result/bin/run-nixos-vm && trash put result nixos.qcow2";
       sw = "sudo nixos-rebuild switch --flake .";
-      mgs = "mgitstatus";
-      ncu = "ncu --interactive --format group";
 
       c = "clear";
-      e = "exit";
-      k = "kitty @ set-background-opacity";
-      l = "ls -l";
-      n = "nvim";
-      j = "yazi";
-      t = "tree";
-      z = "zathura";
     };
 
     functions = {

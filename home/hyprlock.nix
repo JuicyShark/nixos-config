@@ -1,8 +1,4 @@
-{ lib, ... }:
-
-let
-  inherit (lib) mkForce;
-in
+{ ... }:
 {
   programs.hyprlock = {
     enable = false;
@@ -13,7 +9,7 @@ in
         grace = 2;
       };
 
-      background = mkForce {
+      background = {
         color = "rgba(25, 20, 20, 1.0)";
         path = "screenshot";
         blur_passes = 2;

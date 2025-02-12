@@ -17,7 +17,7 @@ let
 in
 {
   services.dunst = {
-    enable = true;
+    enable = false;
 
     iconTheme = {
       package = pkgs.papirus-icon-theme;

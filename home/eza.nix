@@ -1,7 +1,7 @@
 {
   programs.eza = {
     enable = true;
-    enableZshIntegration = true;
+    enableFishIntegration = true;
     icons = "auto";
 
     extraOptions = ["--group-directories-first" "--no-quotes" "--git-ignore"];

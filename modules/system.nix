@@ -21,7 +21,6 @@
     allowDevPort
     ;
 
-  isPhone = config.programs.calls.enable;
 
   cfg = config.modules.system;
 in {
@@ -139,7 +138,6 @@ in {
 
         isNormalUser = true;
         uid = 1000;
-        password = mkIf (hashedPassword == null && !isContainer) (if isPhone then "1234" else username);
 
         extraGroups =
           if isContainer
@@ -160,40 +158,13 @@ in {
 
       sharedModules = singleton {
         home = {inherit (cfg) stateVersion;};
-        programs.man.generateCaches = mkIf (!isPhone) true;
+        programs.man.generateCaches = true;
       };
 
       users.${username}.home = {
         inherit username;
         homeDirectory = "/home/${username}";
       };
-    };
-
-    virtualisation.vmVariant = {
-      virtualisation = {
-        memorySize = 12096;
-        cores = 4;
-
-        sharedDirectories = {
-          tmp = {
-            source = "/tmp";
-            target = "/mnt";
-          };
-        };
-
-        /*qemu.options = [
-          "-device virtio-vga-gl"
-          "-display sdl,gl=on,show-cursor=off"
-          "-audio pa,model=hda"
-          "-full-screen"
-        ]; */
-      };
-
-      services.interception-tools.enable = lib.mkForce false;
-      networking.resolvconf.enable = lib.mkForce true;
-      zramSwap.enable = lib.mkForce false;
-
-      boot.enableContainers = false;
     };
 
     networking = {

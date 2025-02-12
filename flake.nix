@@ -1,4 +1,4 @@
-{
+ {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -6,9 +6,8 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
+    nixtheplanet.url = "github:matthewcroughan/nixtheplanet";
     stylix = {
-
       inputs = {
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
@@ -16,16 +15,11 @@
       url = "github:danth/stylix";
 
     };
-    ags.url = "github:aylur/ags";
-    sakaya = {
-      url = "github:donovanglover/sakaya";
+    quickshell = {
+      url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    mobile-nixos = {
-      url = "github:donovanglover/mobile-nixos";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    ags.url = "github:aylur/ags/v1";
 
     disko = {
       url = "github:nix-community/disko";
@@ -33,10 +27,13 @@
     };
 
     hyprland = {
-      url = "github:hyprwm/Hyprland/10a9fec";
-      #inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:hyprwm/Hyprland/";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-
+    hyprland-plugins = {
+      url = "github:hyprwm/hyprland-plugins";
+      inputs.hyprland.follows = "hyprland";
+    };
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -96,12 +93,7 @@
           specialArgs.nix-config = self;
           modules = listFilesRecursive ./hosts/leo;
         };
-
-        mobile-nixos = nixosSystem {
-          system = "aarch64-linux";
-          specialArgs.nix-config = self;
-          modules = listFilesRecursive ./hosts/phone;
-        };
+        # Extra Hosts here
       };
 
       formatter = forAllSystems (pkgs: pkgs.nixfmt-rfc-style);

@@ -1,8 +1,8 @@
 {pkgs, ...}: {
-  users.defaultUserShell = pkgs.zsh;
+  users.defaultUserShell = pkgs.fish;
 
   environment = {
-    shells = with pkgs; [fish zsh];
+    shells = with pkgs; [fish];
 
     systemPackages = with pkgs; [
       jq
@@ -25,13 +25,13 @@
       stress
       hdparm
       jpegoptim
-      sudachi-rs
       npm-check-updates
       microfetch
       onefetch
       asciiquarium-transparent
       cmatrix
       p7zip
+      peaclock
       unar
       rsync
       rclone
@@ -63,10 +63,9 @@
     ];
   };
 
-  environment.pathsToLink = ["/share/zsh"];
+  environment.pathsToLink = ["/share/fish"];
   programs = {
     fish.enable = true;
-    zsh.enable = true;
     neovim.enable = true;
 
     direnv = {

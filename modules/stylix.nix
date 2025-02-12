@@ -1,26 +1,26 @@
 {
   nix-config,
-  config,
   pkgs,
   ...
 }:
 
 let
-  inherit (nix-config.packages.${pkgs.system}) aleo-fonts;
-
-  stylix-background = nix-config.packages.${pkgs.system}.stylix-background.override {
-    color = config.lib.stylix.colors.base00;
-  };
-
   opacity = 0.95;
   fontSize = 11;
 in
 {
   imports = with nix-config.inputs.stylix.nixosModules; [ stylix ];
+  environment.systemPackages = with pkgs; [
+    gtk3
+  ];
   stylix = {
       enable = true;
       autoEnable = true;
-      image = "${stylix-background}/wallpaper.png";
+      #image = "${stylix-background}/wallpaper.png";
+      image = pkgs.fetchurl {
+    url = "https://www.pixelstalk.net/wp-content/uploads/2016/05/Epic-Anime-Awesome-Wallpapers.jpg";
+    sha256 = "enQo3wqhgf0FEPHj2coOCvo7DuZv+x5rL/WIo4qPI50=";
+  };
       polarity = "dark";
         base16Scheme = {
         system = "base16";
@@ -61,18 +61,18 @@ in
 
       fonts = {
         serif = {
-          package = pkgs.roboto-serif;
-          name = "Roboto Serif";
+          package = pkgs.nerd-fonts.mononoki;
+          name = "Mononoki Nerd Font Propo";
         };
 
         sansSerif = {
-          package = pkgs.noto-fonts;
-          name = "Noto Sans";
+          package = pkgs.nerd-fonts.iosevka;
+          name = "Iosevka Nerd Font Propo";
         };
 
         monospace = {
-          package = pkgs.maple-mono;
-          name = "Maple Mono";
+          package = pkgs.nerd-fonts.iosevka-term;
+          name = "Iosevka Terminal Nerd Font";
         };
 
         emoji = {

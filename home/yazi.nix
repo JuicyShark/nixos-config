@@ -17,10 +17,15 @@
 	    return ui.Span(ya.user_name() .. "@" .. ya.host_name() .. ":"):fg("blue")
     end, 500, Header.LEFT)
   '';
+  home.packages = with pkgs; [
+    p7zip
+    jq
+    poppler
+  ];
 
   programs.yazi = {
     enable = true;
-    enableZshIntegration = true;
+    enableFishIntegration = true;
     shellWrapperName = "y";
 
     settings = {
@@ -44,26 +49,30 @@
       opener = {
 
         pdf = [
-	        { run = "zathura '$@'"; desc = "zathura"; block = false; }
+	        { run = "zathura $@"; desc = "zathura"; block = false; }
 ];
 image = [
-    { run = "timg '$0'"; desc = "timg"; block = false; }
-    { run = "gimp '$@'"; desc = "gimp"; block = false; }
+    { run = "timg $0"; desc = "timg"; block = false; }
+    { run = "gimp $@"; desc = "gimp"; block = false; }
 ];
 text = [
-    { run = "less '$0'"; desc = "less"; block = true; }
-    { run = "bat '$0'"; desc = "bat"; block = true; }
+    { run = "less $0"; desc = "less"; block = true; }
+    { run = "bat $0"; desc = "bat"; block = true; }
 
 ];
 edit = [
-    { run = "nvim '$@'"; desc = "nvim"; block = true; }
+    { run = "$EDITOR $@"; block = true; for = "unix"; }
+
 ];
 video = [
-    { run = "${config.programs.mpv.package}/bin/umpv $1'"; desc = "mpv"; block = false; }
+    { run = "${config.programs.mpv.package}/bin/umpv $1"; desc = "mpv"; block = false; }
 ];
 audio = [
-    { run = "${config.programs.mpv.package}/bin/umpv --force-window '$1'"; desc = "mpv"; block = false; }
-];
+    { run = "${config.programs.mpv.package}/bin/umpv --force-window $1"; desc = "mpv"; block = false; }
+  ];
+  unzip = [
+    { run = "7z x -y $@"; for = "unix"; }
+  ];
       };
 
       open = {
@@ -89,12 +98,13 @@ audio = [
   { name = "*.yml"; use = "edit"; }
   { name = "*.lua"; use = ["edit" "text"]; }
   { name = "*.log"; use = "text"; }
-  { name = "*.rs"; use = ["edit" "text"]; }
-  { name = "*.js"; use = ["edit" "text"]; }
-  { name = "*.ts"; use = ["edit" "text"]; }
+  { name = "*.rs"; use = "edit"; }
+  { name = "*.js"; use = "edit"; }
+  { name = "*.ts"; use = "edit"; }
   { name = "*.mp3"; use = "audio"; }
   { name = "*.wav"; use = "audio"; }
   { name = "*.ogg"; use = "audio"; }
+  { name = "*.zip"; use = "unzip"; }
 ];
 
       };

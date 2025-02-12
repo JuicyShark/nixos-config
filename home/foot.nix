@@ -16,7 +16,7 @@
         locked-title = "no";
         term = "foot-direct";
         pad = "2x0";
-        shell = "zsh";
+        shell = "fish";
 
         resize-delay-ms = 25;
 

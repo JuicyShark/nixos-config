@@ -1,32 +1,25 @@
-{ nix-config, pkgs, ... }:
-
-let
-  inherit (nix-config.packages.${pkgs.system}) aleo-fonts;
-in
+{ pkgs, ... }:
   {
-    fonts = {
+  /*  fonts = {
       enableDefaultPackages = false;
 
       packages = with pkgs; [
-        noto-fonts
+        nerd-fonts.iosevka
+        nerd-fonts.iosevka-term
+        nerd-fonts.mononoki
         roboto-serif
-        noto-fonts-emoji
-        maple-mono
-        font-awesome
-
         liberation_ttf
       ];
 
       fontconfig = {
         defaultFonts = {
 
-
-          serif = ["Roboto Serif"];
-          sansSerif = ["Noto Sans"];
-          monospace = ["Maple Mono"];
+          serif = ["JetBrainsMonoNL Nerd Font"];
+          sansSerif = ["JetBrainsMonoNL Nerd Font Propo"];
+          monospace = ["Iosevka Nerd Font Mono"];
         };
 
         allowBitmaps = false;
       };
-    };
+    };*/
 }

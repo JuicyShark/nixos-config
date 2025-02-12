@@ -426,6 +426,7 @@ in {
       gitsigns.enable = true;
       notify = {
         enable = true;
+        settings = {
         fps = 120;
         level = "info";
         maxHeight = 42;
@@ -434,6 +435,7 @@ in {
         render = "default";
         timeout = 3750;
         topDown = true;
+      };
       };
       nix.enable = true;
       illuminate.enable = true;
@@ -494,7 +496,6 @@ in {
         };
       };
       cmp-rg.enable = true;
-      cmp-zsh.enable = true;
       cmp-nvim-lsp.enable = true;
 
       # LSP
@@ -554,7 +555,7 @@ in {
       lualine.enable = false;
       auto-save.enable = true;
       auto-save.settings.debounce_delay = 100000;
-      nvim-colorizer.enable = true;
+
 
       dap.enable = true;
     };

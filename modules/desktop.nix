@@ -1,5 +1,4 @@
-{
-  nix-config,
+{ nix-config,
   pkgs,
   config,
   lib,
@@ -9,14 +8,12 @@
   inherit (config.modules.system) username;
   inherit (config.boot) isContainer;
   inherit (builtins) attrValues;
-  inherit (nix-config.inputs.sakaya.packages.${pkgs.system}) sakaya;
   inherit (nix-config.inputs.hyprland.packages.${pkgs.system}) hyprland xdg-desktop-portal-hyprland;
   inherit (lib) mkEnableOption mkIf mkMerge mkOption;
   hypr-pkgs = nix-config.inputs.hyprland.inputs.nixpkgs.legacyPackages.${pkgs.system};
 
   inherit (cfg) bloat gaming streaming opacity fontSize;
 
-  isPhone = config.programs.calls.enable;
 
   cfg = config.modules.desktop;
 
@@ -24,7 +21,9 @@
   rate = 48000;
   qr = "${toString quantum}/${toString rate}";
 in {
-
+    imports = [
+      nix-config.inputs.nixtheplanet.nixosModules.macos-ventura
+    ];
   options.modules.desktop = {
     opacity = mkOption {
       type = float;
@@ -39,20 +38,36 @@ in {
     bloat = mkEnableOption "GUI applications";
     streaming = mkEnableOption "Streaming Apps";
     gaming = mkEnableOption "Steam + Proton";
+    llm = mkEnableOption "Llama llm model runner";
   };
 
   config = {
+    qt = {
+      enable = true;
+      platformTheme = "qt5ct";
+    };
     hardware.graphics = {
       package = hypr-pkgs.mesa.drivers;
       package32 = hypr-pkgs.pkgsi686Linux.mesa.drivers;
-      enable32Bit = !isPhone;
+      enable32Bit = true;
 
 
     };
+ environment.sessionVariables.NIXOS_OZONE_WL = "1";
+users.groups.libvirtd.members = [username];
+
+virtualisation.libvirtd.enable = true;
+
+virtualisation.spiceUSBRedirection.enable = true;
    # hardware.xpadneo.enable = mkIf gaming true;
     systemd.extraConfig = mkIf gaming "DefaultLimitNOFILE=1048576";
 
-    programs = {
+  users.users.juicy.extraGroups = [ "libvirtd" ];
+   programs = {
+    ssh = {
+      enableAskPassword = true;
+      askPassword = lib.getExe pkgs.lxqt.lxqt-openssh-askpass;
+    };
     uwsm.enable = mkIf (!isContainer) true;
 
       hyprland = {
@@ -62,36 +77,55 @@ in {
         withUWSM = true;
       };
 
-      cdemu.enable = mkIf (!isPhone) true;
+      sway = {
+        enable = mkIf (!isContainer) true;
+        wrapperFeatures.gtk = true;
+        extraOptions = [
+          "--unsupported-gpu"
+        ];
+        extraPackages = with pkgs; [
+          swayr
+          swayrbar
+        ];
+      };
+
+      cdemu.enable = true;
       steam = {
         enable = mkIf (gaming && !isContainer) true;
         extest.enable = false;
         localNetworkGameTransfers.openFirewall = true;
         dedicatedServer.openFirewall = true;
         remotePlay.openFirewall = true;
-        extraCompatPackages = with pkgs; [proton-ge-bin sakaya];
+        extraCompatPackages = with pkgs; [proton-ge-bin];
       };
 
       thunar = {
-        enable = mkIf (!isPhone) true;
+        enable =  true;
 
         plugins = with pkgs.xfce; [thunar-volman];
       };
       gnupg = {
         agent = {
           enable = true;
-          pinentryPackage = pkgs.pinentry-curses;
+          pinentryPackage = pkgs.pinentry-qt;
           enableSSHSupport = true;
         };
       };
     };
     xdg.portal = {
       enable = mkIf (!isContainer) true;
-      extraPortals = with pkgs; [xdg-desktop-portal-gtk];
+      extraPortals = with pkgs; [xdg-desktop-portal-gtk xdg-desktop-portal-wlr];
     };
 
     services = {
-      udisks2 = mkIf (!isPhone) {
+      ollama.enable = true;
+    /*  macos-ventura = {
+        enable = true;
+        package = pkgs.makeDarwinImage { diskSizeBytes = 50000000000; };
+        openFirewall = true;
+        vncListenAddr = "0.0.0.";
+      };*/
+      udisks2 =  {
         enable = true;
         mountOnMedia = true;
       };
@@ -113,12 +147,12 @@ in {
         displayManager.startx.enable = mkIf (!isContainer) true;
       };
 
-      pipewire = mkIf (!isPhone) {
+      pipewire =  {
         enable = true;
         alsa.enable = true;
         alsa.support32Bit = true;
         pulse.enable = true;
-    };
+        };
 
 
 
@@ -127,7 +161,8 @@ in {
         restart = true;
         settings = {
           default_session = {
-            command = "${lib.getExe config.programs.uwsm.package} start hyprland-uwsm.desktop";
+            command = "${pkgs.greetd.tuigreet}/bin/tuigreet";
+           # command = "${lib.getExe config.programs.uwsm.package} start hyprland-uwsm.desktop";
             user = "juicy";
           };
         };
@@ -166,6 +201,7 @@ in {
       KERNEL=="hpet", GROUP="audio"
     '';
 
+
     environment.systemPackages = mkMerge [
       (mkIf bloat (with pkgs; [
         audacity
@@ -174,18 +210,20 @@ in {
         element-desktop
         signal-desktop
         telegram-desktop
+        #bambu-studio
         pwvucontrol
         discord
         youtube-music
         zathura
-        xournal
+        lxqt.pavucontrol-qt
+        virt-manager
       ]))
 
-      (mkIf (pkgs.system == "x86_64-linux") [sakaya])
       (mkIf config.hardware.keyboard.zsa.enable (with pkgs; [keymapp]))
-      (mkIf streaming (with pkgs; [obs-studio chatterino2 streamlink]))
+      (mkIf streaming (with pkgs; [obs-studio streamlink]))
       (mkIf gaming (with pkgs; [heroic ryujinx]))
-      (with pkgs; [pulseaudio grim wl-clipboard-rs])
+      (with pkgs; [pulseaudio grim wl-clipboard-rs gparted qt6.qtwayland pciutils libmtp])
+
     ];
   };
 }

@@ -20,13 +20,18 @@
       kernelModules = [];
     };
 
-    kernelModules = ["kvm-intel" "nfs"];
+    kernelModules = [
+      "kvm-intel"
+      "nfs"
+    ];
     kernelParams = [
       "intel_pstate=active"
+      "acpi_enforce_resources=lax" # Fix ACPI BIOS errors
+      "processor.max_cstate=1" # Already present, keep for stability
+      "nvidia.NVreg_PreserveVideoMemoryAllocations=1" # Keep NVIDIA memory
       "module_blacklist=i915"
       "intel_iommu=on"
       "nouveau.modeset=0"
-      "processor.max_cstate=1"
     ];
     supportedFilesystems = ["ntfs" "btrfs" "nfs"];
     extraModulePackages = [];

@@ -8,21 +8,16 @@
 }: let
   inherit (lib) mkForce;
   inherit (nixosConfig._module.specialArgs) nix-config;
-  inherit (nix-config.packages.${pkgs.system}) osu-backgrounds dunst-scripts  vim-hypr-nav;
+  inherit (nix-config.packages.${pkgs.system})  vim-hypr-nav;
   inherit (nix-config.inputs.hyprland.packages.${pkgs.system}) hyprland;
+  inherit (nix-config.inputs.quickshell.packages.${pkgs.system}) quickshell;
   opacity = "0.95";
-
-  dynamicGapsScript = "hypr/dynamicGapsScript.zsh";
-  gapsScript = "hypr/gaps.zsh";
-  randomBackgroundScript = "hypr/random-bg.zsh";
-  swapBackgroundScript = "hypr/swap-bg.zsh";
-  setBackgroundScript = "hypr/set-bg.zsh";
 
   super = "SUPER";
   appLaunchBind =
     if osConfig.hardware.keyboard.zsa.enable
     then "ALT SHIFT CTRL"
-    else "SUPER";
+    else super;
 
   toggle = program: let
     prog = builtins.substring 0 14 program;
@@ -43,58 +38,48 @@
     j = down;
   };
 in {
+  imports = [ nix-config.inputs.ags.homeManagerModules.default ];
   home.packages = with pkgs; [
     hyprsunset
     hyprpolkitagent
     hyprpicker
-    vesktop
-    swww
     grimblast
     mpvpaper
     wf-recorder
     playerctl
     socat
-  ];
-  home.programs.ags.enable = true;
+    inotify-tools
+    sassc
+    gnome-bluetooth
+    qt6.qtimageformats # amog
+    qt6.qt5compat # shader fx
+  ] ++ [ quickshell ];
+  programs.ags.enable = true;
   wayland.windowManager.hyprland = {
     enable = true;
     package = hyprland;
-    systemd = {
-      enable = false;
-      variables = ["--all"];
-
-      extraCommands = [
-        "systemctl --user stop graphical-session.target"
-        "systemctl --user start hyprland-session.target"
-      ];
-    };
+    /*plugins = [
+      nix-config.inputs.hyprland-plugins.packages.${pkgs.system}.hyprbars
+      nix-config.inputs.hyprland-plugins.packages.${pkgs.system}.xtra-dispatchers
+    ];*/
     settings = {
       env = [
         "BROWSER,firefox"
-        "SWWW_TRANSITION,grow"
-        "SWWW_TRANSITION_STEP,200"
-        "SWWW_TRANSITION_DURATION,1.5"
-        "SWWW_TRANSITION_FPS,120"
-        "SWWW_TRANSITION_WAVE,80,40"
-        "QT_QPA_PLATFORMTHEME,qt5ct"
-        "QT_STYLE_OVERRIDE,kvantum"
+        "PULSE_LATENCY_MSEC,60" # fix audio static in xwayland games
       ];
 
-      monitor = [",highrr,auto,1" "HDMI-A-1,highrr,auto-left,1"];
+      monitor = ["DP-1,5120x1440@120,auto,1" "DP-2,1920x1080,auto-left,1"];
       exec = [
+        "${toggle "ags"}"
+        "hyprctl dispatch workspace 2"
         "xrandr --output DP-1 --primary"
       ];
       exec-once = [
         "uwsm finalize"
-        "sleep 0.1; swww-daemon"
-        "waybar"
-        "wpctl set-volume 88 40%"
-        "hyprctl dispatch workspace 2"
-        "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent"
-        "~/.config/${randomBackgroundScript}"
-        "steam"
-        "vesktop"
-        "firefox"
+        "systemctl --user start hyprpolkitagent"
+        "wpctl set-volume @DEFAULT_SINK@ 40%"
+        "steam [workspace 1 silent]"
+        "firefox [workspace 3 silent"
       ];
 
       input = {
@@ -122,8 +107,8 @@ in {
 
       general = {
         gaps_in = 0;
-        gaps_out = 0;
-        border_size = 2;
+        gaps_out = "-3";
+        border_size = 3;
         layout = "master";
 
         snap = {
@@ -144,8 +129,9 @@ in {
         merge_groups_on_drag = false;
         merge_groups_on_groupbar = true;
         groupbar = {
-          font_size = 13;
-          gradients = true;
+          height = 20;
+          font_size = 15;
+          gradients = false;
           scrolling = false;
         };
       };
@@ -198,7 +184,9 @@ in {
         new_on_top = true;
         inherit_fullscreen = false;
         orientation = "center";
-        always_center_master = true;
+        #always_center_master = true;
+        slave_count_for_center_master = 2;
+        center_master_slaves_on_right = false;
         center_ignores_reserved = true;
       };
 
@@ -209,13 +197,18 @@ in {
       layerrule = ["blur,ironbar" "blur,rofi" "blur,notifications"];
 
       windowrulev2 = [
-
+        "noborder, fullscreenstate:0 1"
         "tag +terminal, class:terminal"
 
         "tag media, class:mpv"
         "tag media, title:Picture-in-Picture"
+        "suppressevent activatefocus, title:Picture-in-Picture"
+
+        # Specific Game / Launcher Rules
         "tag games, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
         "tag games, title:^(UNDERTALE)$"
+        "tag launcher, initialTitle:Battle.net"
+
 
 
         #"nomaxsize,class:^(winecfg.exe|osu.exe)$"
@@ -224,10 +217,11 @@ in {
         "nodim,tag:games"
         "nodim,tag:media"
         "nodim,tag:games"
-        "nodim,workspace:m[HDMI-A-1]"
+        "nodim,workspace:m[DP-2]"
         "nodim,workspace:s[true]"
 
         "float,title:Picture-in-Picture"
+        "pin,title:Picture-in-Picture"
         "noinitialfocus,title:Picture-in-Picture"
         "move 100%-99%,title:Picture-in-Picture"
 
@@ -235,7 +229,12 @@ in {
         "noborder, tag:media"
         "monitor DP-1, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
         "workspace 5, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
-        "tile, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
+        "tile, class:^(steam_app.*)$, floating:1, workspace:5"
+        "float, tag:launcher"
+        "size 1680 1080, tag:launcher"
+        "workspace unset, tag:launcher"
+        "fullscreenstate 1 2, initialTitle:(World of Warcraft)"
+
         "noborder 1, tag:games"
         "noblur 1, tag:games"
         "xray 1, tag:games"
@@ -248,7 +247,7 @@ in {
         "move onscreen 100% 0%, class:^(com.saivert.pwvucontrol)$"
         "tile,class:^(.qemu-system-x86_64-wrapped)$"
         "opacity ${opacity} ${opacity},class:^(thunar)$"
-        "pin,floating:1"
+
       ];
 
       workspace = [
@@ -258,12 +257,12 @@ in {
         "4, monitor:DP-1, layoutopt:orientation:right"
         "5, monitor:DP-1, layoutopt:orientation:left"
 
-        "m[HDMI-A-1], layoutopt:orientation:left, decorate:false, shadow:false"
-        "6, monitor:HDMI-A-1, default:true"
-        "7, monitor:HDMI-A-1"
-        "8, monitor:HDMI-A-1"
-        "9, monitor:HDMI-A-1"
-        "0, monitor:HDMI-A-1"
+        "m[DP-2], layoutopt:orientation:left, decorate:false, shadow:false"
+        "6, monitor:DP-2, default:true"
+        "7, monitor:DP-2"
+        "8, monitor:DP-2"
+        "9, monitor:DP-2"
+        "0, monitor:DP-2"
         "special:scratchpad, on-created-empty:[monitor DP-1;float;size 25% 35%; move 37.5% 100%;]foot"
       ];
 
@@ -294,42 +293,36 @@ in {
           "${super}SHIFT, tab, changegroupactive, b"
 
           # Discord
-          "${super}SHIFT, M, sendshortcut, CONTROLSHIFT, M, ^(discord)$"
+      /*  "${super}SHIFT, M, sendshortcut, CONTROLSHIFT, M, ^(discord)$"
           "${super}SHIFT, D, sendshortcut, CONTROLSHIFT, D, ^(discord)$"
           "${super}CONTROL, Q, pass, ^(discord)$"
-          "${super}, V, pass, ^(discord)$"
+          "${super}, V, pass, ^(discord)$"  */
 
+          # Bar
+          "${super}CONTROL, B, exec, ${toggle "ags"}"
           ##window management
           "${super}SHIFT, Q, killactive,"
           "${super}SHIFT, L, lockactivegroup, toggle"
 
           "${super}SHIFT, F, togglefloating"
           "${super}CONTROL, F, fullscreen"
-          "${super}, space, togglespecialworkspace, scratchpad"
-          "${super}SHIFT, P, pin"
 
-          # Default Apps
-          "${appLaunchBind}, Return, exec, uwsm app -- foot"
-          "${appLaunchBind}SHIFT, Return, togglespecialworkspace, scratchpad"
-          "${appLaunchBind}, W, exec, uwsm app -- firefox"
-          "${appLaunchBind}, D, exec, uwsm app -- discord"
-          "${appLaunchBind}, M, exec, uwsm app -- tidal-hifi"
-          "${appLaunchBind}, S, exec, ${runOnce "grimblast"} --notify copysave area"
+          "${super}SHIFT, P, pin"
         ] ++
         # Launcher
-        (["${appLaunchBind}, Space,  exec, ${toggle "rofi"} -show drun"]
+        /* (["${appLaunchBind}, Space,  exec, ${toggle "rofi"} -show drun"]
           ++ (let
             cliphist = lib.getExe config.services.cliphist.package;
           in
             lib.optionals config.services.cliphist.enable [
               "${appLaunchBind}, C, exec, ${cliphist} list | rofi -dmenu | ${cliphist} decode | wl-copy"
             ]))
-        ++
+        ++ */
         # Change workspace//
-        (map (n: "${super},${n},workspace,name:${n}") workspaces)
+        (map (n: "${super},${n},workspace,${n}") workspaces)
         ++
         # Move window to workspace
-        (map (n: "$Hu{super}SHIFT,${n},movetoworkspacesilent,name:${n}")
+        (map (n: "${super}SHIFT,${n},movetoworkspacesilent,${n}")
           workspaces)
         ++
         # Move focus
@@ -349,24 +342,21 @@ in {
         # Change Split Ratio for new splits
         "${super},minus,splitratio,-0.05"
         "${super}SHIFT,minus,splitratio,-0.125"
-        "${super},equal,splitratio,0.05"
-        "${super}SHIFT,equal,splitratio,0.125"
+        "${super},plus,splitratio,0.05"
+        "${super}SHIFT,plus,splitratio,0.125"
+
         # Resize windows with mainMod + SUPER + arrow keys
         "${super}ALTSHIFT, left, resizeactive, 75 0"
         "${super}ALTSHIFT, right, resizeactive, -75 0"
         "${super}ALTSHIFT, up, resizeactive, 0 -75"
         "${super}ALTSHIFT, down, resizeactive, 0 75"
-        ", XF86AudioRaiseVolume, exec, ${dunst-scripts}/bin/mv-up"
-        ", XF86AudioLowerVolume, exec, ${dunst-scripts}/bin/mv-down"
+        ", XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_SINK@ 5%+"
+        ", XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_SINK@ 5%-"
         ", XF86AudioForward, exec, playerctl -p playerctld position 10+"
         ", XF86AudioRewind, exec, playerctl -p playerctld position 10-"
       ];
 
       bindl = [
-        ", XF86AudioMute, exec, ${dunst-scripts}/bin/mv-mute"
-        ", XF86AudioMicMute, exec, ${dunst-scripts}/bin/mv-mic"
-        ", XF86MonBrightnessDown, exec, ${dunst-scripts}/bin/mb-down"
-        ", XF86MonBrightnessUp, exec, ${dunst-scripts}/bin/mb-up"
         ", XF86AudioPrev, exec, playerctl -p playerctld previous"
         ", XF86AudioNext, exec, playerctl -p playerctld next"
         ", XF86AudioPlay, exec, playerctl -p playerctld play"
@@ -383,196 +373,78 @@ in {
         bind = ${super}ALT, BackSpace, submap, reset
         submap = reset
 
-        bind = ${appLaunchBind}, T, submap, openTerminal
+          bind = ${super}, A, submap, openApps
+        submap = openApps
+          bind = , Return, exec, uwsm app -- foot
+          bind = , Return ,submap, reset
+          bind = , W, exec, uwsm app -- firefox
+          bind = , W,submap, reset
+          bind = , D, exec, uwsm app -- discord
+          bind = , D,submap, reset
+          bind = , S, exec, ${runOnce "grimblast"} --notify copysave area
+          bind = , S,submap, reset
+          bind = , Space, exec, ${runOnce "ags -t launcher"}
+          bind = , Space ,submap, reset
+          bind = , N, exec, ${runOnce "ags -t panel"}
+          bind = , N,submap, reset
+          bind = , C, exec, ${runOnce "ags -t calendarbox"}
+          bind = , C,submap, reset
+          bind = , B, exec, ${runOnce "ags -t bar"}
+          bind = , B,submap, reset
+          bind = , V, exec, uwsm app -- pwvucontrol-qt
+          bind = , V,submap, reset
+          bind = , T, submap, openTerminal
+          bind = , catchall, submap, reset
+          submap = reset
+        bind = ${super}, T, submap, openTerminal
         submap = openTerminal
           bind = , Return, exec, uwsm app -- foot
+          bind = , Return ,submap, reset
           bind = , T, exec, uwsm app -- foot
+          bind = , T,submap, reset
           bind = , E, exec, uwsm app -- foot nvim
+          bind = , E,submap, reset
           bind = , ., exec, uwsm app -- foot yazi
-          bind = , f, exec, uwsm app -- foot yazi
+          bind = , .,submap, reset
+          bind = , F, exec, uwsm app -- foot yazi
+          bind = , F,submap, reset
           bind = , ?, exec, uwsm app -- foot zenith
-        bind = , catchall, submap, reset
-        submap = reset
+          bind = , ?,submap, reset
+          bind = , catchall, submap, reset
+          submap = reset
       '';
   };
 
-  xdg.configFile = {
-    "${dynamicGapsScript}" = {
-      executable = true;
-      text = ''
-        #!/usr/bin/env zsh
-        function handle() {
-          if [[ ''${1:0:10} == "focusedmon" ]]; then
-            if [[ ''${1:12:4} == "DP-1" ]]; then
-              hyprctl keyword general:gaps_in 0
-            else
-              hyprctl keyword general:gaps_in 45
-            fi
-          fi
-        }
-        socat - "UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock" | while read -r line; do
-          handle "$line"
-        done
-      '';
+  services = {
+    hyprpaper = {
+      enable = true;
+      settings = {
+        ipc = "on";
+        splash = false;
+        splash_offset = 2.0;
+
+        preload = [ "${config.xdg.userDirs.pictures}/wallpaper/32:9/pixel-horizon.png" ];
+
+        wallpaper = [
+          "DP-1, ~/media/pictures/wallpaper/32:9/pixel-horizon.png"
+          "DP-2,${config.xdg.userDirs.pictures}/wallpaper/32:9/pixel-horizon.png"
+          ];
+        };
+       };
     };
 
-    "${gapsScript}" = {
-      executable = true;
-      text = ''
-        #!/usr/bin/env zsh
-
-        # Function to toggle gaps and border settings
-        toggle_settings() {
-          local current_gaps_out=$(hyprctl getoption general:gaps_out -j | jq -r ".custom" | awk '{print $1}')
-          local current_gaps_in=$(hyprctl getoption general:gaps_in -j | jq -r ".custom" | awk '{print $1}')
-          local current_border_size=$(hyprctl getoption general:border_size -j | jq -r ".int")
-          local current_rounding=$(hyprctl getoption decoration:rounding -j | jq -r ".int")
-
-          # Toggle gaps_out
-          local new_gaps_out=$((10 - current_gaps_out))
-          hyprctl keyword general:gaps_out "$new_gaps_out"
-
-          # Toggle gaps_in
-          local new_gaps_in=$((5 - current_gaps_in))
-          hyprctl keyword general:gaps_in "$new_gaps_in"
-
-          # Toggle border_size
-          local new_border_size=$((2 - current_border_size))
-          hyprctl keyword general:border_size "$new_border_size"
-
-          # Toggle rounding
-          local new_rounding=$((8 - current_rounding))
-          hyprctl keyword decoration:rounding "$new_rounding"
-        }
-
-        toggle_settings
-      '';
-    };
-
-    "${setBackgroundScript}" = {
-      executable = true;
-      text = ''
-        #!/usr/bin/env zsh
-
-        # Check if animations are enabled
-        local animations_enabled=$(hyprctl getoption animations:enabled -j | jq -r ".int")
-
-        # Array of transition types for animated transitions
-        local animated_transitions=(grow wave outer)
-        local transition_angles=(45 90 135 225 270 315)
-        local transition_positions=(center top left right bottom top-left top-right bottom-left bottom-right)
-
-        # Function to get a random array element
-        random_element() {
-          local arr=("$@")
-          echo "''${arr[RANDOM % ''${#arr[@]} + 1]}"
-        }
-
-        # Set background with transitions
-        if [[ "$animations_enabled" == "1" ]]; then
-          swww img \
-            --transition-type "$(random_element "''${animated_transitions[@]}")" \
-            --transition-wave 80,40 \
-            --transition-angle "$(random_element "''${transition_angles[@]}")" \
-            --transition-pos "$(random_element "''${transition_positions[@]}")" \
-            --transition-step 200 \
-            --transition-duration 1.5 \
-            --transition-fps 240 \
-            --outputs "$1" \
-            "$2"
-        else
-          swww img \
-            --transition-type simple \
-            --transition-step 255 \
-            --outputs "$1" \
-            "$2"
-        fi
-      '';
-    };
-
-    "${randomBackgroundScript}" = {
-      executable = true;
-      text = ''
-        #!/usr/bin/env zsh
-
-        # Get list of monitors
-        local monitors=($(hyprctl monitors -j | jq -r '.[].name'))
-
-        # Get list of background images
-        local backgrounds=($(fd . ${osu-backgrounds}/2024-10-09-Autumn-2024-Fanart-Contest-All-Entries --follow -e jpg -e png))
-
-        # Iterate through monitors and set random backgrounds
-        for monitor in "''${monitors[@]}"; do
-          local random_bg=$(echo "''${backgrounds[RANDOM % ''${#backgrounds[@]} + 1]}")
-          ~/.config/${setBackgroundScript} "$monitor" "$random_bg"
-        done
-      '';
-    };
-
-    "${swapBackgroundScript}" = {
-      executable = true;
-      text = ''
-        #!/usr/bin/env zsh
-
-        # Get current backgrounds
-        local backgrounds=($(swww query | cut -d ':' -f 5))
-        local M1="$(echo "''${backgrounds[1]}" | awk '{$1=$1};1')"
-        local M2="$(echo "''${backgrounds[2]}" | awk '{$1=$1};1')"
-
-        # Swap backgrounds
-        ~/.config/${setBackgroundScript} "$(swww query | choose 0 | choose -c 0..-1 | tail -n 1)" "$M1"
-        ~/.config/${setBackgroundScript} "$(swww query | choose 0 | choose -c 0..-1 | head -n 1)" "$M2"
-      '';
-    };
-  };
-
-  systemd.user = {
-    services = {
-      hyprland-dynamic-gaps = {
-        Unit = {
-          Description = "Hyprland Dynamic Gaps Script";
-          PartOf = [ "hyprland-session.target" ];
-        };
-
-        Service = {
-          ExecStart = "${pkgs.zsh}/bin/zsh ${config.home.homeDirectory}/.config/hypr/dynamic-gaps.zsh";
-          Restart = "on-failure";
-        };
-
-        Install = {
-          WantedBy = [ "hyprland-session.target" ];
-        };
-      };
-
-      hyprsunset = {
-        Unit = {
-          Description = "Hyprsunset - nighttime";
-        };
-        Service = {
-          Type = "oneshot";
-          ExecStart = "${lib.getExe pkgs.hyprsunset} -t 4750";
-        };
-      };
-    };
-
-    timers = {
-      # if after 8pm Hypersunset is active
-      hyprsunset= {
-        Unit = {
-          Description = "Hyprsunset - a blue-light filter";
-          PartOf = [ "hyprland-session.target" ];
-          After = [ "hyprland-session.target" ];
-        };
-        Timer = {
-          OnCalendar = "*-*-* 20:00:00";
-          Unit = "hyprsunset.service";
-          Persistent = true;
-        };
-        Install = {
-          WantedBy = [ "hyprland-session.target" ];
-        };
-      };
-    };
-  };
-  services = {hyprpaper.enable = mkForce false;};
+    # Make Monitor default sink as defaults to TV
+    home.file.".config/wireplumber/main.lua.d/51-default-sink.lua".text = ''
+      default_sink = {
+        matches = {
+          {
+            { "node.name", "matches", "alsa_output.pci-0000_01_00.1.hdmi-stereo-extra1" },
+          },
+        },
+        apply_properties = {
+          ["default.sink"] = true,
+        },
+      }
+      table.insert(alsa_monitor.rules, default_sink)
+    '';
 }
