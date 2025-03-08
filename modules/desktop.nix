@@ -12,7 +12,7 @@ lib,
   inherit (lib) mkEnableOption mkIf mkMerge mkOption;
   hypr-pkgs = nix-config.inputs.hyprland.inputs.nixpkgs.legacyPackages.${pkgs.system};
 
-  inherit (cfg) bloat gaming streaming opacity fontSize;
+  inherit (cfg) apps opacity fontSize;
 
 
   cfg = config.modules.desktop;
@@ -44,7 +44,7 @@ in {
   };
   };
 
-  config = mkIf cfg.modules.desktop.enable {
+  config = mkIf cfg.enable {
     qt = {
       enable = true;
       platformTheme = "qt5ct";
@@ -61,8 +61,8 @@ in {
     #virtualisation.waydroid.enable = mkIf gaming true;
     #virtualisation.libvirtd.enable = true;
     #virtualisation.spiceUSBRedirection.enable = true;
-    hardware.xpadneo.enable = mkIf gaming true;
-    systemd.extraConfig = mkIf gaming "DefaultLimitNOFILE=1048576";
+    hardware.xpadneo.enable = mkIf apps.gaming true;
+    systemd.extraConfig = mkIf apps.gaming "DefaultLimitNOFILE=1048576";
 
     users.users.juicy.extraGroups = [ "libvirtd" ];
     programs = {
@@ -90,7 +90,7 @@ in {
 
       cdemu.enable = true;
       steam = {
-        enable = mkIf (gaming && !isContainer) true;
+        enable = mkIf (apps.gaming && !isContainer) true;
         extest.enable = false;
         localNetworkGameTransfers.openFirewall = true;
         dedicatedServer.openFirewall = true;
@@ -102,7 +102,7 @@ in {
         enable =  true;
         plugins = with pkgs.xfce; [thunar-volman];
       };
-      appimage.binfmt = mkIf bloat true;
+      appimage.binfmt = mkIf apps.bloat true;
       gnupg = {
         agent = {
           enable = false;
@@ -134,7 +134,7 @@ in {
     };
 
     services = {
-      ollama.enable = true;
+      ollama.enable = mkIf apps.llm true;
       udisks2 =  {
         enable = true;
         mountOnMedia = true;
@@ -210,7 +210,7 @@ in {
 
 
     environment.systemPackages = mkMerge [
-      (mkIf bloat (with pkgs; [
+      (mkIf apps.bloat (with pkgs; [
         audacity
         moonlight-qt
         iamb
@@ -233,8 +233,8 @@ in {
       ]))
 
       (mkIf config.hardware.keyboard.zsa.enable (with pkgs; [keymapp]))
-      (mkIf streaming (with pkgs; [obs-studio streamlink]))
-      (mkIf gaming (with pkgs; [heroic ryujinx dolphin-emu osu-lazer-bin wowup-cf]))
+      (mkIf apps.streaming (with pkgs; [obs-studio streamlink]))
+      (mkIf apps.gaming (with pkgs; [heroic ryujinx dolphin-emu osu-lazer-bin wowup-cf]))
       (with pkgs; [pulseaudio grim wl-clipboard-rs gparted qt6.qtwayland pciutils libmtp])
 
     ];

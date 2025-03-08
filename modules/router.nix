@@ -11,8 +11,8 @@
       };
     };
   };
-  config = lib.mkIf cfg.enable {
 
+  config = lib.mkIf cfg.enable {
     networking = {
       networkmanager.enable = false;
       nameservers = ["1.1.1.1"];
@@ -181,4 +181,7 @@
       ];
     };
   };
+};
+};
 }
+

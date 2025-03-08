@@ -54,4 +54,5 @@ in
       inactive_tab_background ${base00}
     '';
   };
+
 }
