@@ -9,6 +9,9 @@
     "x-scheme-handler/http" = ["firefox.desktop"];
     "x-scheme-handler/https" = ["firefox.desktop"];
   };
+  home.sessionVariables = {
+    "MOZ_DISABLE_RDD_SANDBOX" = "1";
+  };
 
  # xdg.configFile."ff2mpv-rust.json".text = lib.optionals config.programs.mpv.enable ''
  #   "player_command": "${config.programs.mpv.package}/bin/umpv",
@@ -20,7 +23,7 @@
 
     languagePacks = [ "en-GB" ];
 
-    nativeMessagingHosts = with pkgs; [tridactyl-native];
+ #   nativeMessagingHosts = with pkgs; [tridactyl-native];
 
       policies = {
         DontCheckDefaultBrowser = true;
@@ -144,6 +147,8 @@
         "media.cache_resume_threshold" = 6000;
         "media.ffmpeg.vaapi.enabled" = true;
         "media.av1.enabled" = false;
+        "media.rdd-ffmpeg.enabled" = true;
+        "widget.dmabup.force-enabled" = true;
         # * BROWSER CACHE *
         "browser.cache.disk.smart_size.enabled" = false;
         "browser.cache.disk.capacity" = 1024000;
@@ -437,7 +442,7 @@
 {:root #nav-bar{padding: 0 5px 0 5px!important; height: calc(var(--NavbarHeightSmall) * 1px) !important} toolbarspring{display: none !important;} #TabsToolbar, #nav-bar{transition: margin-top .25s !important}}
 #nav-bar, #PersonalToolbar{background-color: #0000 !important;background-image: none !important; box-shadow: none !important} #nav-bar{margin-left: 3px;} .tab-background, .tab-stack { min-height: calc(var(--TabsHeight) * 1px) !important}
 
-/*  Removes urlbar border/background  
+/*  Removes urlbar border/background
 #urlbar-background {
   border: none !important;
   outline: none !important;

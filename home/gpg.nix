@@ -1,6 +1,6 @@
 {pkgs, ...}: {
   programs.gpg = {
-    enable = true;
+    enable = false;
 
     settings = {
       personal-digest-preferences = "SHA512";
@@ -15,7 +15,7 @@
   };
 
   services.gpg-agent = {
-    enable = true;
+    enable = false;
     pinentryPackage = pkgs.pinentry-curses;
     defaultCacheTtl = 43200;
     maxCacheTtl = 43200;

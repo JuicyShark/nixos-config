@@ -4,7 +4,7 @@
   xdg.configFile."xfce4/helpers.rc".text =
     # ini
     ''
-      TerminalEmulator=foot
+      TerminalEmulator=kitty
       TerminalEmulatorDismissed=true
     '';
 }

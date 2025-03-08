@@ -107,6 +107,7 @@
       sw = "sudo nixos-rebuild switch --flake .";
 
       c = "clear";
+      unzip = "7z -x";
     };
 
     functions = {

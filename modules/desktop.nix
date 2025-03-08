@@ -1,8 +1,8 @@
 { nix-config,
-  pkgs,
-  config,
-  lib,
-  ...
+pkgs,
+config,
+lib,
+...
 }: let
   inherit (lib.types) float int;
   inherit (config.modules.system) username;
@@ -21,10 +21,11 @@
   rate = 48000;
   qr = "${toString quantum}/${toString rate}";
 in {
-    imports = [
-      nix-config.inputs.nixtheplanet.nixosModules.macos-ventura
-    ];
+  imports = [
+    # nix-config.inputs.nixtheplanet.nixosModules.macos-ventura
+  ];
   options.modules.desktop = {
+    enable = mkEnableOption "Enable Desktop Environment";
     opacity = mkOption {
       type = float;
       default = 0.95;
@@ -34,41 +35,40 @@ in {
       type = int;
       default = 13;
     };
-
+    apps = {
+    emacs = mkEnableOption "Emacs";
     bloat = mkEnableOption "GUI applications";
     streaming = mkEnableOption "Streaming Apps";
     gaming = mkEnableOption "Steam + Proton";
     llm = mkEnableOption "Llama llm model runner";
   };
+  };
 
-  config = {
+  config = mkIf cfg.modules.desktop.enable {
     qt = {
       enable = true;
       platformTheme = "qt5ct";
     };
+
     hardware.graphics = {
       package = hypr-pkgs.mesa.drivers;
       package32 = hypr-pkgs.pkgsi686Linux.mesa.drivers;
       enable32Bit = true;
-
-
     };
- environment.sessionVariables.NIXOS_OZONE_WL = "1";
-users.groups.libvirtd.members = [username];
+    environment.sessionVariables.NIXOS_OZONE_WL = "1";
+    users.groups.libvirtd.members = [username];
 
-virtualisation.libvirtd.enable = true;
-
-virtualisation.spiceUSBRedirection.enable = true;
-   # hardware.xpadneo.enable = mkIf gaming true;
+    #virtualisation.waydroid.enable = mkIf gaming true;
+    #virtualisation.libvirtd.enable = true;
+    #virtualisation.spiceUSBRedirection.enable = true;
+    hardware.xpadneo.enable = mkIf gaming true;
     systemd.extraConfig = mkIf gaming "DefaultLimitNOFILE=1048576";
 
-  users.users.juicy.extraGroups = [ "libvirtd" ];
-   programs = {
-    ssh = {
-      enableAskPassword = true;
-      askPassword = lib.getExe pkgs.lxqt.lxqt-openssh-askpass;
-    };
-    uwsm.enable = mkIf (!isContainer) true;
+    users.users.juicy.extraGroups = [ "libvirtd" ];
+    programs = {
+      firefox.enable = true;
+      ladybird.enable = true;  # Keep an eye on, independant web browser
+      uwsm.enable = mkIf (!isContainer) true;
 
       hyprland = {
         enable = mkIf (!isContainer) true;
@@ -85,7 +85,6 @@ virtualisation.spiceUSBRedirection.enable = true;
         ];
         extraPackages = with pkgs; [
           swayr
-          swayrbar
         ];
       };
 
@@ -101,12 +100,12 @@ virtualisation.spiceUSBRedirection.enable = true;
 
       thunar = {
         enable =  true;
-
         plugins = with pkgs.xfce; [thunar-volman];
       };
+      appimage.binfmt = mkIf bloat true;
       gnupg = {
         agent = {
-          enable = true;
+          enable = false;
           pinentryPackage = pkgs.pinentry-qt;
           enableSSHSupport = true;
         };
@@ -114,17 +113,28 @@ virtualisation.spiceUSBRedirection.enable = true;
     };
     xdg.portal = {
       enable = mkIf (!isContainer) true;
-      extraPortals = with pkgs; [xdg-desktop-portal-gtk xdg-desktop-portal-wlr];
+      wlr.enable = true;
+      config = {
+        common = {
+          default = [
+            "gtk"
+          ];
+        };
+        hyprland = {
+          default = [
+            "hyprland"
+            "gtk"
+
+          ];
+        };
+
+      };
+
+      #extraPortals = with pkgs; [xdg-desktop-portal-wlr];
     };
 
     services = {
       ollama.enable = true;
-    /*  macos-ventura = {
-        enable = true;
-        package = pkgs.makeDarwinImage { diskSizeBytes = 50000000000; };
-        openFirewall = true;
-        vncListenAddr = "0.0.0.";
-      };*/
       udisks2 =  {
         enable = true;
         mountOnMedia = true;
@@ -152,9 +162,7 @@ virtualisation.spiceUSBRedirection.enable = true;
         alsa.enable = true;
         alsa.support32Bit = true;
         pulse.enable = true;
-        };
-
-
+      };
 
       greetd = mkIf (!isContainer) {
         enable = true;
@@ -162,7 +170,7 @@ virtualisation.spiceUSBRedirection.enable = true;
         settings = {
           default_session = {
             command = "${pkgs.greetd.tuigreet}/bin/tuigreet";
-           # command = "${lib.getExe config.programs.uwsm.package} start hyprland-uwsm.desktop";
+            # command = "${lib.getExe config.programs.uwsm.package} start hyprland-uwsm.desktop";
             user = "juicy";
           };
         };
@@ -170,14 +178,13 @@ virtualisation.spiceUSBRedirection.enable = true;
       dbus.implementation = lib.mkForce "dbus";
       tumbler.enable = true;
       gvfs.enable = true;
-      gnome.gnome-keyring.enable = true;
       upower.enable = true;
     };
 
     users.extraGroups.audio.members = [ username ];
     security.rtkit.enable = true;
 
-   boot = {
+    boot = {
       kernel.sysctl."vm.swappiness" = 10;
       kernelModules = [ "snd-seq" "snd-rawmidi" ];
       kernelParams = [ "threadirqs" ];
@@ -193,7 +200,7 @@ virtualisation.spiceUSBRedirection.enable = true;
       { domain = "@audio"; item = "rtprio"; type = "-"; value = "99"; }
       { domain = "@audio"; item = "nofile"; type = "soft"; value = "99999"; }
       { domain = "@audio"; item = "nofile"; type = "hard"; value = "99999"; }
-  { domain = "@users"; item = "rtprio"; type = "-"; value = 1;  }
+      { domain = "@users"; item = "rtprio"; type = "-"; value = 1;  }
     ];
 
     services.udev.extraRules = ''
@@ -205,23 +212,29 @@ virtualisation.spiceUSBRedirection.enable = true;
     environment.systemPackages = mkMerge [
       (mkIf bloat (with pkgs; [
         audacity
+        moonlight-qt
+        iamb
         obsidian
         gimp
         element-desktop
         signal-desktop
         telegram-desktop
+        keepassxc
+        keepass-keeagent
+
         #bambu-studio
         pwvucontrol
         discord
         youtube-music
         zathura
-        lxqt.pavucontrol-qt
-        virt-manager
+        pavucontrol
+        appimage-run
+        #virt-manager
       ]))
 
       (mkIf config.hardware.keyboard.zsa.enable (with pkgs; [keymapp]))
       (mkIf streaming (with pkgs; [obs-studio streamlink]))
-      (mkIf gaming (with pkgs; [heroic ryujinx]))
+      (mkIf gaming (with pkgs; [heroic ryujinx dolphin-emu osu-lazer-bin wowup-cf]))
       (with pkgs; [pulseaudio grim wl-clipboard-rs gparted qt6.qtwayland pciutils libmtp])
 
     ];

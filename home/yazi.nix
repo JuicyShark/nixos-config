@@ -61,7 +61,7 @@ text = [
 
 ];
 edit = [
-    { run = "$EDITOR $@"; block = true; for = "unix"; }
+    { run = "kitty +kitten edit-in-kitty $@"; block = true; for = "unix"; }
 
 ];
 video = [
@@ -72,6 +72,9 @@ audio = [
   ];
   unzip = [
     { run = "7z x -y $@"; for = "unix"; }
+  ];
+  app-image = [
+    { run = "appimage-run $0"; for = "unix"; }
   ];
       };
 
@@ -105,6 +108,7 @@ audio = [
   { name = "*.wav"; use = "audio"; }
   { name = "*.ogg"; use = "audio"; }
   { name = "*.zip"; use = "unzip"; }
+  { name = "*.AppImage"; use = "app-image"; }
 ];
 
       };

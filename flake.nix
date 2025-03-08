@@ -6,6 +6,11 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agenix.url = "github:ryantm/agenix";
+    agenix.inputs.nixpkgs.follows = "nixpkgs";
+    # optionally choose not to download darwin deps (saves some resources on Linux)
+    agenix.inputs.darwin.follows = "";
+
     nixtheplanet.url = "github:matthewcroughan/nixtheplanet";
     stylix = {
       inputs = {
@@ -27,8 +32,12 @@
     };
 
     hyprland = {
-      url = "github:hyprwm/Hyprland/";
+      url = "git+https://github.com/hyprwm/Hyprland?submodules=1&ref=v0.47.2-b";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hy3 = {
+      url = "github:outfoxxed/hy3?ref=hl0.47.0-1";
+      inputs.hyprland.follows = "hyprland";
     };
     hyprland-plugins = {
       url = "github:hyprwm/hyprland-plugins";
@@ -38,7 +47,9 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
+    retro-ports.url = "github:nadiaholmquist/pc-ports.nix";
+    emacs-overlay.url = "github:nix-community/emacs-overlay";
+    emacs-overlay.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =

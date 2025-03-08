@@ -17,7 +17,6 @@
 
     extraConfig = {
       include.path = "~/.gituser";
-      #commit.gpgsign = true;
 
       diff.lockb = {
         textconv = "bun";

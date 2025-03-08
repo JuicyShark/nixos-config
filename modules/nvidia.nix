@@ -7,17 +7,10 @@
   config = lib.mkIf config.modules.hardware.nvidia.enable {
     nixpkgs.config.nvidia.acceptLicense = true;
 
-    environment.systemPackages = with pkgs; [
-      libva
-    ];
-
     hardware = {
       nvidia = {
-        # Explicit Sync is here
-        package =
-          if config.modules.hardware.nvidia.legacy
-          then config.boot.kernelPackages.nvidiaPackages.legacy_470
-          else config.boot.kernelPackages.nvidiaPackages.beta;
+        package = config.boot.kernelPackages.nvidiaPackages.beta;
+
         modesetting.enable = true;
         nvidiaPersistenced = false;
         powerManagement.enable = true;
@@ -38,11 +31,9 @@
     services.xserver.videoDrivers = lib.mkDefault ["nvidia"];
 
     boot.extraModulePackages = [
-      (
-        if config.modules.hardware.nvidia.legacy
-        then config.boot.kernelPackages.nvidia_x11_legacy470
-        else config.boot.kernelPackages.nvidiaPackages.beta
-      )
+
+        config.boot.kernelPackages.nvidiaPackages.beta
+
     ];
     boot.kernelParams = [ "nvidia-drm.fbdev=1" ];
     environment.sessionVariables = {

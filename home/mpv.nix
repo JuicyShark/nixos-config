@@ -59,7 +59,6 @@ in {
       mpris
       uosc
       thumbfast
-      youtube-upnext
       sponsorblock
       autocrop
     ];

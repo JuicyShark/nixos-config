@@ -7,7 +7,7 @@
     defaultApplications = {"x-scheme-handler/terminal" = "foot.desktop";};
   };
   programs.foot = {
-    enable = true;
+    enable = false;
     server.enable = true;
     settings = {
       main = {

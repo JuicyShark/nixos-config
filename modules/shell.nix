@@ -2,10 +2,11 @@
   users.defaultUserShell = pkgs.fish;
 
   environment = {
-    shells = with pkgs; [fish];
+    shells = with pkgs; [fish zsh];
 
     systemPackages = with pkgs; [
       jq
+      shell-gpt
       fd
       xh
       file

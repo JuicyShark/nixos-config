@@ -10,10 +10,6 @@
 
 in {
   imports = [ nix-config.inputs.nixvim.homeManagerModules.nixvim ];
-  home.packages = with pkgs; [
-    alejandra
-  ];
-
 
   programs.nixvim = {
     enable = true;
@@ -74,7 +70,7 @@ in {
       vscode-langservers-extracted
 
       prettierd
-      alejandra
+      nixfmt-rfc-style
       stylua
     ];
     extraPlugins = [
@@ -295,7 +291,7 @@ in {
           pickers.find_files.hidden = true;
         };
       };
-
+      neorg.enable = true;
       harpoon = {
         enable = false;
         enableTelescope = true;
@@ -342,7 +338,7 @@ in {
         cmdline.view = "cmdline";
 
         notify = {
-          enabled = true;
+          enabled = false;
           view = "notify";
         };
 
@@ -373,7 +369,7 @@ in {
             view = "mini";
           };
           message = {
-            enabled = true;
+            enabled = false;
             view = "notify";
           };
         };
@@ -425,7 +421,7 @@ in {
       };
       gitsigns.enable = true;
       notify = {
-        enable = true;
+        enable = false;
         settings = {
         fps = 120;
         level = "info";
@@ -522,7 +518,7 @@ in {
           nil_ls = {
             enable = true;
             settings = {
-              formatting.command = ["alejandra"];
+              formatting.command = ["nixfmt"];
             };
           };
           lua_ls.enable = false;

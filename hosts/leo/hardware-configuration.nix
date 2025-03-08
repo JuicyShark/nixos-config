@@ -10,8 +10,8 @@
     (modulesPath + "/installer/scan/not-detected.nix")
     nix-config.inputs.disko.nixosModules.default
   ];
-  hardware.keyboard.zsa.enable = true;
-  hardware.logitech.wireless.enable = true;
+  #hardware.keyboard.zsa.enable = true;
+  #hardware.logitech.wireless.enable = true;
 
   boot = {
     initrd = {
@@ -42,6 +42,6 @@
   networking.hostName = "leo";
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.amd.updateMicrocode =
+  hardware.cpu.intel.updateMicrocode =
     lib.mkDefault config.hardware.enableRedistributableFirmware;
 }

@@ -8,6 +8,7 @@
   inherit (lib.types) nullOr str listOf;
   inherit (config.boot) isContainer;
   inherit (nix-config.inputs.home-manager.nixosModules) home-manager;
+  inherit (nix-config.inputs.agenix.packages.${pkgs.system}) agenix;
 
   inherit (lib) mkOption mkEnableOption mkIf singleton optional;
 
@@ -24,7 +25,7 @@
 
   cfg = config.modules.system;
 in {
-  imports = [home-manager];
+  imports = [home-manager nix-config.inputs.agenix.nixosModules.default];
 
   options.modules.system = {
     username = mkOption {
@@ -70,6 +71,20 @@ in {
   };
 
   config = {
+
+    age.secrets."${username}-keepass-master" = {
+      file = ../secrets/${username}-keepass-master.age;
+      owner = username;
+    };
+
+    environment = {
+      defaultPackages = lib.mkForce [];
+      systemPackages = [ agenix ];
+      variables = {
+        EDITOR =  "nvim";
+        VISUAL =  "nvim";
+      };
+    };
     boot = {
       tmp =
         if iHaveLotsOfRam
@@ -105,7 +120,8 @@ in {
   nixpkgs.config.allowUnsupportedSystem = true;
     nix = {
       package = pkgs.nixVersions.latest;
-
+      gc.automatic = true;
+      optimise.automatic = true;
       settings = {
         auto-optimise-store = true;
         warn-dirty = false;
@@ -134,7 +150,8 @@ in {
       allowNoPasswordLogin = mkIf isContainer true;
 
       users.${username} = {
-        inherit hashedPassword;
+        #inherit hashedPassword;
+        password = "juicy";#config.age.secrets.juicy-password.path;
 
         isNormalUser = true;
         uid = 1000;
@@ -158,7 +175,7 @@ in {
 
       sharedModules = singleton {
         home = {inherit (cfg) stateVersion;};
-        programs.man.generateCaches = true;
+        #programs.man.generateCaches = true;
       };
 
       users.${username}.home = {
@@ -169,9 +186,12 @@ in {
 
     networking = {
       inherit (cfg) hostName;
+      defaultGateway = lib.mkDefault config.modules.router.networking.ipv4;
+      nameservers = lib.mkDefault [config.modules.router.networking.ipv4];
+      enableIPv6 = lib.mkDefault true;
 
       networkmanager = {
-        enable = true;
+        enable = lib.mkDefault true;
         wifi.macAddress = "random";
         ethernet.macAddress = "random";
 
@@ -184,14 +204,35 @@ in {
 
       nat = mkIf mullvad {
         enable = true;
-        internalInterfaces = [ "ve-+" ];
-        externalInterface = "wg0-mullvad";
+        internalInterfaces = lib.mkDefault [ "ve-+" ];
+        externalInterface = lib.mkDefault "wg0-mullvad";
       };
 
       firewall = {
         allowedUDPPorts = [67 68] ++ optional allowSRB2Port [5029];
         allowedTCPPorts = mkIf allowDevPort [3000];
       };
+      /*wireguard.interfaces.wg0-mullvad = mkIf mullvad {
+          privateKey = "OB8oklFPX+ZHnTLj09l058y8HY4Xg/z57m1Idut4vkM=";
+          ips = [
+            "10.73.64.1/32"
+            "fc00:bbbb:bbbb:bb01::a:4000/128"
+          ];
+          peers = [
+            # Leo
+            {
+              publicKey = "1H/gj8SVNebAIEGlvMeUVC5Rnf274dfVKbyE+v5G8HA=";
+              allowedIPs = ["0.0.0.0/0""::0/0"];
+              endpoint = "[2404:f780:4:deb::f001]:51820";
+            }
+            # Dante
+            {
+              publicKey = "6vgsf3fnpiMELuHKOV4IXkufW34lzTaJGTC1BMcu/FY=";
+              allowedIPs = ["192.168.54.60"];
+              #endpiont = "192.168.54.60/0";
+            }
+          ];
+      };*/
     };
 
     services = {
@@ -211,5 +252,16 @@ in {
       };
     };
     programs.command-not-found.enable = false;
+
+    programs.ssh = {
+      startAgent = true;
+     };
+
+  security.pam.sshAgentAuth = {
+    enable = true;
+    authorizedKeysFiles = [
+      "/etc/ssh/authorized_keys.d/%u"
+    ];
+  };
   };
 }
