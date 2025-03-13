@@ -7,7 +7,7 @@
   inherit (config.home) homeDirectory;
   shaders_dir = "${pkgs.mpv-shim-default-shaders}/share/mpv-shim-default-shaders/shaders";
 in {
-  home.packages = with pkgs; [ jellyfin-mpv-shim ];
+  home.packages = with pkgs; [jellyfin-mpv-shim];
   programs.mpv = {
     enable = true;
 
@@ -21,7 +21,7 @@ in {
       fullscreen = false;
       keep-open = true;
       sub-auto = "fuzzy";
-      sub-font = "Noto Sans Medium";
+      #sub-font = "Noto Sans Medium"; stylix now covers
       sub-blur = 10;
 
       screenshot-format = "png";
@@ -72,5 +72,4 @@ in {
   home.file = {
     ".config/mpv/shaders/NVScaler.glsl".source = "${shaders_dir}/NVScaler.glsl";
   };
-
 }

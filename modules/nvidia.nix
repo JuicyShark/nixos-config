@@ -2,8 +2,11 @@
   pkgs,
   config,
   lib,
+  nix-config,
   ...
-}: {
+}: let
+pkgs-hypr = nix-config.inputs.hyprland.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+in {
   config = lib.mkIf config.modules.hardware.nvidia.enable {
     nixpkgs.config.nvidia.acceptLicense = true;
 
@@ -22,7 +25,9 @@
 
       graphics = {
         enable = true;
-        enable32Bit = true;
+            package = lib.mkIf config.programs.hyprland.enable (lib.mkForce pkgs-hypr.mesa.drivers);
+            enable32Bit = true;
+            package32 = lib.mkIf config.programs.hyprland.enable (lib.mkForce pkgs-hypr.pkgsi686Linux.mesa.drivers);
         extraPackages = [ pkgs.nvidia-vaapi-driver ];
       };
     };

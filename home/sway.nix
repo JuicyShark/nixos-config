@@ -1,15 +1,13 @@
-{ config, lib, pkgs, osConfig, ... }:
-with pkgs;
-let
-
-    mario64Rom = pkgs.fetchurl {
-    url = "https://ipfs.io/ipfs/QmWGw3Qu72FYoPpBTKMDJqsmhBnieBsXGkimGRd5bRBUDe";
-    hash = "sha256-F84Hc0PGEz+Mny1tbZpKtiyM0qpXxArqH0kLTIuyHZE=";
-  };
-
+{
+  config,
+  lib,
+  pkgs,
+  osConfig,
+  ...
+}:
+with pkgs; let
   mod = "Mod4";
   appMod = "Mod1+Shift+Control";
-
 
   # Define workspaces dynamically
   workspaces = map toString (lib.range 1 9);
@@ -26,44 +24,40 @@ let
   commonKeybindings = lib.listToAttrs (
     # Change workspace
     (map (n: {
-      name = "${mod}+${n}";
-      value = "workspace number ${n}";
-    }) workspaces)
+        name = "${mod}+${n}";
+        value = "workspace number ${n}";
+      })
+      workspaces)
     ++
     # Move window to workspace
     (map (n: {
-      name = "${mod}+Shift+${n}";
-      value = "move container to workspace number ${n}";
-    }) workspaces)
+        name = "${mod}+Shift+${n}";
+        value = "move container to workspace number ${n}";
+      })
+      workspaces)
     ++
     # Move focus
     (lib.mapAttrsToList (key: direction: {
-      name = "${mod}+${key}";
-      value = "focus ${direction}";
-    }) directions)
+        name = "${mod}+${key}";
+        value = "focus ${direction}";
+      })
+      directions)
     ++
     # Move windows
     (lib.mapAttrsToList (key: direction: {
-      name = "${mod}+Shift+${key}";
-      value = "move ${direction}";
-    }) directions)
+        name = "${mod}+Shift+${key}";
+        value = "move ${direction}";
+      })
+      directions)
   );
-in  {
+in {
   home.sessionVariables = {
-    MOZ_ENABLE_WAYLAND = "1";
-    MOZ_USE_XINPUT2 = "1";
-    XDG_SESSION_TYPE = "wayland";
     XDG_CURRENT_DESKTOP = "sway";
-    SDL_VIDEODRIVER = "wayland,x11";
-    QT_QPA_PLATFORM = "wayland";
-    QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
-    _JAVA_AWT_WM_NONREPARENTING = "1";
-    GDK_BACKEND = "wayland";
     #WLR_NO_HARDWARE_CURSORS = "1"; Nvidia doesnt require no hadware cursors now
-    PULSE_LATENCY_MSEC = "60";
   };
   home.packages = with pkgs; [
-    vulkan-volk
+    /*
+      vulkan-volk
     (sm64ex.overrideAttrs (attrs: {
       makeFlags = attrs.makeFlags ++ [ "BETTERCAMERA=1" ];
       preBuild = ''
@@ -71,66 +65,13 @@ in  {
         ln -s ${mario64Rom} ./baserom.us.z64
       '';
     }))
+    */
   ];
 
-
-  programs = {
-    /*sm64ex = {
-      enable = true;
-      package =
-      baserom = "/home/juicy/tmp/sm64.v64";
-      region = "us";
-    };*/
-    /* swayr = {
-      enable = true;
-      settings = {
-        menu = {
-          executable = "${wofi}/bin/wofi";
-          args = [
-            "--show=dmenu"
-            "--allow-markup"
-            "--allow-images"
-            "--insensitive"
-            "--cache-file=/dev/null"
-            "--parse-search"
-            "--height=40%"
-            "--prompt={prompt}"
-          ];
-        };
-
-
-        layout = {
-          auto_tile = true;
-          auto_tile_min_window_width_per_output_width = [
-            [ 1920 920 ]
-            [ 3440 1200 ]
-            [ 5120 920 ]
-          ];
-        };
-      };
-    };*/
-
-    swaylock = {
-      enable = true;
-    };
-  };
-  services = {
-   /* swayidle = {
-      enable = false;
-      timeouts = [
-        { timeout = 900; command = "${pkgs.swaylock}/bin/swaylock -fF"; }
-        { timeout = 960; command = "${pkgs.systemd}/bin/systemctl suspend"; resumeCommand = ''swaymsg "output * dpms on" ; xrandr --output $(xrandr | grep "XWAYLAND.*5120" | awk "\"'{ print $1 }'\'") --primary'';}
-      ];
-      events = [
-        { event = "before-sleep"; command = "${pkgs.swaylock}/bin/swaylock -fF"; }
-        { event = "lock"; command = "lock"; }
-      ];
-    };*/
-  };
   wayland.windowManager.sway = {
     enable = true;
     xwayland = true;
-    systemd.enable = true;
+    systemd.enable = false;
 
     # can't discover my custom layout
     checkConfig = false;
@@ -144,9 +85,8 @@ in  {
     ];
 
     config = {
-
       fonts = {
-        names = [ "Isoveka Term Nerd Font" ];
+        names = ["Isoveka Term Nerd Font"];
         style = "Bold Semi-Condensed";
         size = lib.mkForce 11.0;
       };
@@ -182,8 +122,8 @@ in  {
             criteria.class = "^(steam_app.*)$";
           }
           {
-          command = "floating enable, sticky enable, border pixel";
-          criteria.title = "Picture-in-Picture";
+            command = "floating enable, sticky enable, border pixel";
+            criteria.title = "Picture-in-Picture";
           }
         ];
       };
@@ -194,7 +134,7 @@ in  {
         followMouse = true;
         newWindow = "smart";
       };
-      bars = [ ];
+      bars = [];
       defaultWorkspace = "2";
       workspaceLayout = "default";
       workspaceOutputAssign = [
@@ -205,31 +145,36 @@ in  {
         {
           output = "DP-1";
           workspace = "2";
-        }         {
+        }
+        {
           output = "DP-1";
           workspace = "3";
-        }         {
+        }
+        {
           output = "DP-1";
           workspace = "4";
         }
         {
           output = "DP-1";
           workspace = "5";
-        }         {
+        }
+        {
           output = "DP-2";
           workspace = "6";
-        }         {
+        }
+        {
           output = "DP-2";
           workspace = "7";
-        }         {
+        }
+        {
           output = "DP-2";
           workspace = "8";
-        }         {
+        }
+        {
           output = "DP-2";
           workspace = "9";
         }
       ];
-
 
       floating = {
         modifier = "Mod4";
@@ -237,20 +182,19 @@ in  {
         border = 3;
         # Apps to spawn floating
         criteria = [
-          { window_role = "pop-up"; }
+          {window_role = "pop-up";}
           {
             title = "Battle.net";
             class = "steam_app_0";
           }
 
-          { title = "^(Extension: (Bitwarden - Free Password Manager).*)$"; }
-          { app_id = "udiskie"; }
-          { app_id = "dmenu.*"; }
-          { app_id = "qalculate-gtk"; }
-          { app_id = "mpv"; }
+          {title = "^(Extension: (Bitwarden - Free Password Manager).*)$";}
+          {app_id = "udiskie";}
+          {app_id = "dmenu.*";}
+          {app_id = "qalculate-gtk";}
+          {app_id = "mpv";}
         ];
       };
-
 
       # Workspace rules
       assigns = {
@@ -268,7 +212,7 @@ in  {
 
       bindkeysToCode = true;
 
-      keybindings =  lib.mkMerge [
+      keybindings = lib.mkMerge [
         {
           # Window Management
           "${mod}+Shift+q" = "kill";
@@ -309,10 +253,6 @@ in  {
           "${mod}+Control+4" = "mark --add 4";
           "${mod}+Control+5" = "mark --add 5";
 
-
-
-
-
           # Toggle Fullscreen or Floating Windows
           "${mod}+Control+f" = "floating toggle";
           "${mod}+Control+m" = "fullscreen toggle"; # maximized apps on 32:9 feels odd, may as well use fullscreen when wanting for games
@@ -327,7 +267,6 @@ in  {
           "XF86AudioMute" = "exec ${wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
           "XF86AudioLowerVolume" = "exec ${wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- -l 1.2";
           "XF86AudioRaiseVolume" = "exec ${wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.2";
-
         }
         commonKeybindings
       ];
@@ -369,7 +308,7 @@ in  {
           "Control+c" = "mode default";
           "Escape" = "mode default";
         };
-        quick_swap_mode ={
+        quick_swap_mode = {
           "a" = "swap container with quickmark & swaymsg mode default";
           "1" = "swap container with 1 & swaymsg mode default";
           "2" = "swap container with 2 & swaymsg mode default";
@@ -407,14 +346,17 @@ in  {
       };
 
       startup = [
-
         {
           command = "xrandr --output DP-1 --primary";
           always = true;
         }
         {
+          command = "uwsm finalize";
+        }
+        {
           command = "waybar";
-        }       {
+        }
+        {
           command = "swaync";
         }
         {
@@ -434,9 +376,6 @@ in  {
         }
         {
           command = "emacs";
-        }
-        {
-          command = "cat ${osConfig.age.secrets.juicy-keepass-master.path} | keepassxc --pw-stdin --keyfile '/home/juicy/.ssh/keepass_juicy' '/home/juicy/documents/Passwords.kdbx'";
         }
         {
           command = "swaymsg workspace number 4";

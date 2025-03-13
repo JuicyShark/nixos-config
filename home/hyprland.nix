@@ -6,13 +6,11 @@
   lib,
   ...
 }:
-with pkgs;
-  let
-  style = config.lib.stylix.colors.withHashtag;
-  inherit (lib) mkForce;
+with pkgs; let
   inherit (nixosConfig._module.specialArgs) nix-config;
-  inherit (nix-config.packages.${pkgs.system})  vim-hypr-nav;
-  inherit (nix-config.inputs.quickshell.packages.${pkgs.system}) quickshell;
+  inherit (nixosConfig._module.specialArgs.nix-config.inputs) hyprsunset hyprpicker hyprland-hy3 hyprland-plugins quickshell;
+  stylix = config.lib.stylix.colors;
+  inherit (nix-config.packages.${pkgs.system}) vim-hy3-nav;
   opacity = "0.95";
 
   mod = "SUPER";
@@ -23,7 +21,7 @@ with pkgs;
 
   runOnce = program: "pgrep ${program} || uwsm app -- ${program}";
 
- workspaces = ["1" "2" "3" "4" "5" "6" "7" "8" "9"];
+  workspaces = ["1" "2" "3" "4" "5" "6" "7" "8" "9"];
   # Map keys (arrows and hjkl) to hyprland directions (l, r, u, d)
   directions = rec {
     left = "l";
@@ -36,48 +34,38 @@ with pkgs;
     j = down;
   };
 in {
-  imports = [ nix-config.inputs.ags.homeManagerModules.default ];
+  imports = [
+    ../quickshell
+  ];
   home.packages = with pkgs; [
-    hyprsunset
+    hyprpicker.packages.${pkgs.system}.hyprpicker
+    hyprsunset.packages.${pkgs.system}.hyprsunset
+    quickshell.packages.${pkgs.system}.quickshell
     hyprpolkitagent
-    hyprpicker
-    grimblast
     mpvpaper
     wf-recorder
     playerctl
     socat
     inotify-tools
-    sassc
-    gnome-bluetooth
-    qt6.qtimageformats # amog
-    qt6.qt5compat # shader fx
-    gowall
+    grimblast
+  ];
+  #
 
-  ] ++ [ quickshell ];
-  programs.ags.enable = true;
   wayland.windowManager.hyprland = {
     enable = true;
-    package = osConfig.programs.hyprland.package;
-    portalPackage = osConfig.programs.hyprland.portalPackage;
+    package = null;
+    portalPackage = null;
+
     plugins = [
- #     nix-config.inputs.hyprland-plugins.packages.${pkgs.system}.hyprbars
-      #nix-config.inputs.hy3.packages.${pkgs.system}.hy3
+      hyprland-plugins.packages.${pkgs.system}.hyprbars
+      hyprland-hy3.packages.${pkgs.system}.hy3
     ];
+
     settings = {
       env = [
         "BROWSER,firefox"
-        "PULSE_LATENCY_MSEC,60" # fix audio static in xwayland games
-        # Wayland
-  	"GDK_BACKEND,wayland,x11,*"
-  	"QT_QPA_PLATFORM,wayland;xcb"
-  	"SDL_VIDEODRIVER,wayland"
-
-  	# XDG
-  	"XDG_CURRENT_DESKTOP,Hyprland"
-  	"XDG_SESSION_TYPE,wayland"
-  	"XDG_SESSION_DESKTOP,Hyprland"
-
-  	"HYPRSHOT_DIR,/home/${config.home.username}/pictures/screenshots"
+        "XDG_CURRENT_DESKTOP,Hyprland"
+        "XDG_SESSION_DESKTOP,Hyprland"
       ];
 
       monitor = [
@@ -87,19 +75,27 @@ in {
 
       exec = [
         "xrandr --output DP-1 --primary"
-        "hyprctl reload"
+        "pkill quickshell && quickshell"
       ];
 
       exec-once = [
         "uwsm finalize"
+        "mullvad connect"
+
         "systemctl --user start hyprpolkitagent"
-        "${toggle "ags"}"
         "wpctl set-volume @DEFAULT_SINK@ 40%"
-        "[workspace 1 silent] keepassxc"
-        "[workspace 1 silent] steam"
+        "[workspace 1 silent; float] youtube-music"
+        "[workspace 1 silent; float] bitwarden"
+
         "[workspace 2 silent] firefox"
+
         "[workspace 3 silent] emacs --fg-daemon"
         "[workspace 3 silent] kitty"
+
+        "[workspace 4 silent; float ] steam"
+        "[workspace 4 silent; float] discord"
+        "[workspace 4 silent; float] signal-desktop"
+        "[workspace 4 silent; float] telegram-desktop"
         "hyprctl dispatch workspace 2"
       ];
 
@@ -129,9 +125,9 @@ in {
 
       general = {
         gaps_in = 0;
-        gaps_out = "-3";
-        border_size = 3;
-        layout = "dwindle";
+        gaps_out = "-4";
+        border_size = 4;
+        layout = "hy3";
 
         snap = {
           enabled = true;
@@ -149,11 +145,11 @@ in {
         rounding = 0;
         dim_special = "0.0";
 
-      shadow = {
-        enabled = true;
-        range = 30;
-        render_power = 3;
-      };
+        shadow = {
+          enabled = true;
+          range = 30;
+          render_power = 3;
+        };
 
         blur = {
           enabled = true;
@@ -177,10 +173,34 @@ in {
         ];
       };
 
+      dwindle = {
+        preserve_split = false;
+        default_split_ratio = "1";
+        split_width_multiplier = "1";
+        special_scale_factor = 1;
+        split_bias = 1;
+      };
+
+      master = {
+        mfact = 0.44;
+        special_scale_factor = 0.8;
+        allow_small_split = false;
+        new_status = "inherit";
+        new_on_top = true;
+        inherit_fullscreen = false;
+        orientation = "center";
+        #always_center_master = true;
+        slave_count_for_center_master = 2;
+        center_master_slaves_on_right = false;
+        center_ignores_reserved = true;
+      };
+
       plugin = {
-  /*      hyprbars = {
-          bar_height = 25;
+        hyprbars = {
+          bar_height = 30;
           bar_text_size = 13;
+          bar_color = "rgb(${stylix.base01})";
+          bar_text_font = config.wayland.windowManager.hyprland.settings.misc.font_family;
 
           hyprbars-button = [
             "rgb(ff4040), 10, 󰖭, hyprctl dispatch killactive"
@@ -188,19 +208,39 @@ in {
           ];
         };
 
-     /*   hy3 = {
+        hy3 = {
           no_gaps_when_only = 1;
           node_collapse_policy = 1;
           group_inset = 0;
           tab_first_window = false;
 
           tabs = {
-            height = 45;
-            text_height = 14;
-            radius = 0; # config.windowManger.hyprland.settings.decoration.rounding;
-            border_width =  6; #config.windowManger.hyprland.settings.general.border_size;
-            text_font = "IosevkaTerm Nerd Font"; # config.windowManager.hyprland.settings.misc.font_family;
+            height = 38;
+            padding = 0;
+            text_height = 13;
+            radius = config.wayland.windowManager.hyprland.settings.decoration.rounding;
+            border_width = config.wayland.windowManager.hyprland.settings.general.border_size;
+            text_font = config.wayland.windowManager.hyprland.settings.misc.font_family;
+            opacity = "0.9";
+            # TODO use stylix
+            "col.active" = "rgba(${stylix.base02}ff)"; # default: rgba(50a0e0ff)
+            "col.active.border" = config.wayland.windowManager.hyprland.settings.group."col.border_active";
+            "col.active.text" = "rgba(${stylix.base0B}ff)"; # default: rgba(ffffffff)
 
+            # focused tab bar segment colors (focused node in unfocused container)
+            "col.focused" = "rgba(${stylix.base00}f2)";
+            "col.focused.border" = config.wayland.windowManager.hyprland.settings.group."col.border_active";
+            "col.focused.text" = "rgba(${stylix.base0B}ff)"; # default: rgba(ffffffff)
+
+            # inactive tab bar segment colors
+            "col.inactive" = "rgba(${stylix.base00}f2)"; # default: rgba(30303050)
+            "col.inactive.border" = config.wayland.windowManager.hyprland.settings.group."col.border_inactive";
+            "col.inactive.text" = "rgba(${stylix.base04}ff)"; # default: rgba(ffffffff)
+
+            # urgent tab bar segment colors
+            "col.urgent" = "rgba(${stylix.base0E}f2)"; # default: rgba(ff4f4fff)
+            "col.urgent.border" = "rgba(${stylix.base0E}ff)"; # default: rgba(ff8080ff)
+            "col.urgent.text" = "rgba(${stylix.base02}ff)"; # default: rgba(ffffffff)
           };
           # Based on a 5120x1440, 32:9 display
           autotile = {
@@ -209,7 +249,7 @@ in {
             trigger_width = 1150;
             trigger_height = 525;
           };
-        };*/
+        };
       };
 
       gestures = {workspace_swipe = true;};
@@ -220,61 +260,66 @@ in {
 
       windowrulev2 = [
         "plugin:hyprbars:nobar, floating:0"
-        "noborder, fullscreenstate:0 1"
-        "tag +terminal, class:terminal"
-
+        "tag +terminal, class:kitty"
 
         # Specific Game / Launcher Rules
-        "tag games, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
-        "tag games, title:^(UNDERTALE)$"
-        "tag launcher, initialTitle:Battle.net"
-
-
+        "content game, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
+        "content game, title:^(UNDERTALE)$"
 
         #"nomaxsize,class:^(winecfg.exe|osu.exe)$"
-        "opaque,class:^(terminal)$"
-        "noblur,class:^(terminal)$"
-        "nodim,tag:games"
-        "nodim,tag:media"
-        "nodim,tag:games"
+        "nodim,content:game"
+        "nodim,content:video"
         #"nodim,workspace:m[DP-2]"
         #"nodim,workspace:s[true]"
 
-        "tag media, class:mpv"
-        "tag media, title:Picture-in-Picture"
-        "suppressevent activatefocus, title:Picture-in-Picture"
-        "float,title:Picture-in-Picture"
-        "pin,title:Picture-in-Picture"
-        "noinitialfocus,title:Picture-in-Picture"
-        "move 100%-99%,title:Picture-in-Picture"
+        # Classify Video content and picture in picture tags
+        "content video, class:mpv"
+        "content video, title:Picture-in-Picture"
+        "tag +pip, title:Picture-in-Picture"
 
-        "idleinhibit always, tag:media"
-        "noborder, tag:media"
-        "monitor DP-1, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
-        "workspace 5, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
-        "tile, class:^(steam_app.*)$, floating:0, workspace:5"
+        # Video Content Rules
+        "idleinhibit always, content:video"
+        "noborder, content:video"
+
+        # Picture in picture specific rules
+        "suppressevent activatefocus, content:video, tag:pip"
+        "float, content:video, tag:pip"
+        "pin, content:video, tag:pip"
+        "noinitialfocus, content:video, tag:pip"
+        "move 100%-99%, content:video, tag:pip"
+
+        # Tag Launchers
+        "tag +launcher, initialTitle:Battle.net"
+
+        # Launchers
         "float, tag:launcher"
         "size 1680 1080, tag:launcher"
         "workspace unset, tag:launcher"
+
+        # Game Content Rules
+        "monitor DP-1, content:game"
+        "workspace 5, content:game"
+        "noborder 1, content:game"
+        "noblur 1, content:game"
+        "xray 1, content:game"
+        "noanim 1, content:game"
+        "group deny, content:game"
+        "idleinhibit always, content:game"
+
+        # Game Specific Rules
         "fullscreenstate 1 2, initialTitle:(World of Warcraft)"
 
-        "noborder 1, tag:games"
-        "noblur 1, tag:games"
-        "xray 1, tag:games"
-        "noanim 1, tag:games"
-        "group deny, tag:games"
-        "idleinhibit always, tag:games"
-        "float, class:^(thunar|com.saivert.pwvucontrol|RimPy)$"
-
+        # Misc Windows
         "float, title:^(Extension: (Bitwarden - Free Password Manager).*)$"
-
+        "float, title:^(KeePassXC -  Access Request)$"
+        "float, title:^(Unlock Database - KeePassXC)$"
+        "float, class:^(thunar|com.saivert.pwvucontrol|RimPy)$"
         "float, class:(org.keepassxc.KeePassXC)"
         "float, title:^(Sign In - Google Accounts.*)$"
 
         "move onscreen 100% 0%, class:^(com.saivert.pwvucontrol)$"
         "tile,class:^(.qemu-system-x86_64-wrapped)$"
         "opacity ${opacity} ${opacity},class:^(thunar)$"
-
       ];
 
       workspace = [
@@ -293,6 +338,11 @@ in {
         "special:scratchpad, on-created-empty:[monitor DP-1;float;size 25% 35%; move 37.5% 100%;]kitty"
       ];
 
+      ecosystem = {
+        no_update_news = true;
+        no_donation_nag = true;
+      };
+
       misc = {
         disable_hyprland_logo = true;
         focus_on_activate = true;
@@ -304,7 +354,7 @@ in {
         font_family = "IosevkaTerm Nerd Font";
       };
 
-      /*bind =
+      bind =
         [
           # Hy3 Groups
           "${mod}CONTROL, G, hy3:changegroup, toggletab"
@@ -317,77 +367,93 @@ in {
           "${mod}CONTROL, up, hy3:makegroup, v"
 
           # Bar
-          "${mod}CONTROL, B, exec, ${toggle "ags"}"
+          #"${mod}CONTROL, B, exec, ${toggle "waybar"}"
+
           ##window management
           "${mod}SHIFT, Q, killactive,"
 
-          "${mod}SHIFT, F, togglefloating"
-          "${mod}CONTROL, F, fullscreen"
+          "${mod}CONTROL, F, togglefloating"
+          "${mod}CONTROL, P, pin"
+          "${mod}CONTROL, M, fullscreen"
 
-          "${mod}SHIFT, P, pin"
+          # Search
+          "${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
+          "${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
+          "${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
 
-          "${mod}, d, exec, ${toggle "${wofi}/bin/wofi  --show drun"}"
-          "${mod}, Space, exec, ${toggle "${wofi}/bin/wofi  --show drun"}"
-          "${mod}, c, exec, ${cliphist}/bin/cliphist list | ${toggle "${wofi}/bin/wofi --show dmenu"} | ${cliphist}/bin/cliphist decode | ${wl-clipboard}/bin/wl-copy"
-          "${mod}, p, exec, ${toggle "${wofi-pass}/bin/wofi-pass"}"
-          "${mod}, e, exec, ${toggle "${wofi-emoji}/bin/wofi-emoji"}"
+          "${mod}, Space, exec, quickshell ipc call launcher toggle"
+          #"${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
+          "${mod}, Return, exec, uwsm app -- kitty"
 
-        ] ++
-        # Change workspace//
+          #"${mod}, c, exec, ${cliphist}/bin/cliphist list | ${toggle "${wofi}/bin/wofi --show dmenu"} | ${cliphist}/bin/cliphist decode | ${wl-clipboard}/bin/wl-copy"
+        ]
+        ++
+        # Change focused workspace
         (map (n: "${mod},${n},workspace,${n}") workspaces)
         ++
         # Move window to workspace
         (map (n: "${mod}SHIFT,${n},hy3:movetoworkspace,${n}, silent")
           workspaces)
         ++
-        # Move focus
-        (lib.mapAttrsToList (key: direction: "${mod},${key},hy3:movefocus,${direction}, visible")
-          directions)
+        # Move focus to Hy3 Tab
+        (map (n: "${mod}ALT,${n},hy3:focustab, index, ${n}")
+          workspaces)
         ++
-        # Move windows
+        # Move focus in a direction
+        (lib.mapAttrsToList (key: direction: "${mod},${key},exec,vim-hy3-nav ${direction}") directions)
+        #(lib.mapAttrsToList (key: direction: "${mod},${key},hy3:movefocus,${direction}, visible") directions)
+        ++
+        # Move windows between visible nodes
         (lib.mapAttrsToList (key: direction: "${mod}SHIFT,${key},hy3:movewindow,${direction},once,visible") directions)
+        ++
+        # Move windows between invisible nodes (tabs)
+        (lib.mapAttrsToList (key: direction: "${mod}SHIFTCONTROL,${key},hy3:movewindow,${direction},once") directions)
         ++
         # Open next window in given direction
         (lib.mapAttrsToList (key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}")
-        directions);*/
-
+          directions);
+      /*
 
       bind =
         [
           # Group Settings
           "${mod}CONTROL, G, togglegroup"
+          # Dwindle Layout Messages
           "${mod}CONTROL, S, layoutmsg, togglesplit"
-          "${mod}CONTROL, R, layoutmsg, swapsplit"
+          "${mod}CONTROL, Space, layoutmsg, swapsplit"
+          "${mod}CONTROL, R, layoutmsg, movetoroot active"
+          # Master Layout Messages
           "${mod}CONTROL, R, layoutmsg, mfact exact 0.5"
           "${mod}CONTROL, U, layoutmsg, mfact exact 0.65"
           "${mod}CONTROL, L, layoutmsg, orientationleft"
           "${mod}CONTROL, C, layoutmsg, orientationcenter"
-          "${mod}CONTROL, T, layoutmsg, movetoroot active"
-          #"${mod}CONTROL, D, exec, hyprctl keyword general:layout dwindle"
-          #"${mod}CONTROL, M, exec, hyprctl keyword general:layout master"
+
           "${mod}, tab, changegroupactive, f"
           "${mod}SHIFT, tab, changegroupactive, b"
 
           # Bar
-          "${mod}CONTROL, B, exec, ${toggle "ags"}"
+          "${mod}CONTROL, B, exec, ${toggle "waybar"}"
           ##window management
           "${mod}SHIFT, Q, killactive,"
           "${mod}SHIFT, L, lockactivegroup, toggle"
 
-          "${mod}CONTROL, F, togglefloating"
           "${mod}CONTROL, M, fullscreen"
-
+          "${mod}CONTROL, F, togglefloating"
           "${mod}CONTROL, P, pin"
-        ] ++
-        # Launcher
-        /* (["${appLaunchBind}, Space,  exec, ${toggle "rofi"} -show drun"]
-          ++ (let
-            cliphist = lib.getExe config.services.cliphist.package;
-          in
-            lib.optionals config.services.cliphist.enable [
-              "${appLaunchBind}, C, exec, ${cliphist} list | rofi -dmenu | ${cliphist} decode | wl-copy"
-            ]))
-        ++ */
+
+          # Swap Layouts
+          "${mod}CONTROL, D, exec, hyprctl keyword general:layout dwindle"
+          "${mod}CONTROL, M, exec, hyprctl keyword general:layout master"
+
+          # Search
+          "${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
+          "${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
+          "${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
+
+          "${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
+          "${mod}, Return, exec, uwsm app -- kitty"
+        ]
+        ++
         # Change workspace//
         (map (n: "${mod},${n},workspace,${n}") workspaces)
         ++
@@ -395,17 +461,17 @@ in {
         (map (n: "${mod}SHIFT,${n},movetoworkspacesilent,${n}")
           workspaces)
         ++
-        # Move focus
+        # Move focus, changes focus of nvim windows too
         (lib.mapAttrsToList (key: direction: "${mod},${key},exec, ${vim-hypr-nav}/bin/vim-hypr-nav ${direction}")
           directions)
         ++
         # Move windows
         (lib.mapAttrsToList (key: direction: "${mod}SHIFT,${key},movewindoworgroup,${direction}") directions)
         ++
-        # Open next window in given direction
+        # Open next window in given direction in dwindle
         (lib.mapAttrsToList (key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}")
           directions);
-
+      */
       bindm = ["SUPER, mouse:272, movewindow" "SUPER, mouse:273, resizewindow"];
 
       binde = [
@@ -416,10 +482,10 @@ in {
         "${mod}SHIFT,plus,splitratio,0.125"
 
         # Resize windows with mainMod + SUPER + arrow keys
-        "${mod}ALTSHIFT, left, resizeactive, 75 0"
-        "${mod}ALTSHIFT, right, resizeactive, -75 0"
-        "${mod}ALTSHIFT, up, resizeactive, 0 -75"
-        "${mod}ALTSHIFT, down, resizeactive, 0 75"
+        "${mod}ALT, left, resizeactive, 75 0"
+        "${mod}ALT, right, resizeactive, -75 0"
+        "${mod}ALT, up, resizeactive, 0 -75"
+        "${mod}ALT, down, resizeactive, 0 75"
         ", XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_SINK@ 5%+"
         ", XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_SINK@ 5%-"
         ", XF86AudioForward, exec, playerctl -p playerctld position 10+"
@@ -451,16 +517,10 @@ in {
           bind = , W,submap, reset
           bind = , D, exec, uwsm app -- discord
           bind = , D,submap, reset
-          bind = , S, exec, ${runOnce "grimblast"} --notify copysave area
+          bind = , S, exec, quickshell ipc call screenshot takeScreenshot
           bind = , S,submap, reset
-          bind = , Space, exec, ${toggle "${wofi}/bin/wofi --show drun"}
+          bind = , Space, exec, quickshell ipc call launcher toggle"
           bind = , Space ,submap, reset
-          bind = , N, exec, ${runOnce "ags -t panel"}
-          bind = , N,submap, reset
-          bind = , C, exec, ${runOnce "ags -t calendarbox"}
-          bind = , C,submap, reset
-          bind = , B, exec, ${runOnce "ags -t bar"}
-          bind = , B,submap, reset
           bind = , V, exec, uwsm app -- pwvucontrol
           bind = , V,submap, reset
           bind = , T, submap, openTerminal
@@ -493,36 +553,77 @@ in {
         splash = false;
         splash_offset = 2.0;
 
-        preload = [ "${config.xdg.userDirs.pictures}/wallpaper/32:9/pixel-horizon.png" ];
+        preload = ["${config.xdg.userDirs.pictures}/wallpaper/32:9/pixel-horizon.png"];
 
         wallpaper = [
           "DP-1, ~/media/pictures/wallpaper/32:9/pixel-horizon.png"
           "DP-2,${config.xdg.userDirs.pictures}/wallpaper/32:9/pixel-horizon.png"
-          ];
-        };
-       };
+        ];
+      };
     };
+  };
+  services.hypridle = {
+    enable = true;
 
-    # Make Monitor default sink as defaults to TV
-    home.file.".config/gowall/config.yml".text = ''
-    themes:
-      - name: "stylix"
-        colors:
-          - "${style.base00}"
-          - "${style.base01}"
-          - "${style.base02}"
-          - "${style.base03}"
-          - "${style.base04}"
-          - "${style.base05}"
-          - "${style.base06}"
-          - "${style.base07}"
-          - "${style.base08}"
-          - "${style.base09}"
-          - "${style.base0A}"
-          - "${style.base0B}"
-          - "${style.base0C}"
-          - "${style.base0D}"
-          - "${style.base0E}"
-          - "${style.base0F}"
-    '';
+    settings = {
+      general = {
+        lock_cmd = "pidof hyprlock || hyprlock";
+        before_sleep_cmd = "loginctl lock-session";
+        after_sleep_cmd = "hyprctl dispatch dpms on";
+      };
+
+      listener = [
+        {
+          timeout = 900;
+          on-timeout = "loginctl lock-session";
+        }
+        {
+          timeout = 1280;
+          on-timeout = "hyprctl dispatch dpms off";
+          on-resume = "hyprctl dispatch dpms on";
+        }
+        {
+          timeout = 4800;
+          on-timeout = "systemctl suspend";
+        }
+      ];
+    };
+  };
+  systemd.user.services.hypridle.Unit.After = lib.mkForce "graphical-session.target";
+  programs.hyprlock = {
+    enable = true;
+
+    settings = {
+      general = {
+        hide_cursor = true;
+        grace = 2;
+      };
+
+      background = {
+        #color = "rgba(25, 20, 20, 1.0)";
+        #path = "screenshot";
+        blur_passes = 2;
+        brightness = 0.5;
+      };
+
+      label = {
+        text = "Welcome";
+        #color = "rgba(222, 222, 222, 1.0)";
+        font_size = 50;
+        font_family = "Noto Sans";
+        position = "0, 70";
+        halign = "center";
+        valign = "center";
+      };
+
+      input-field = {
+        size = "50, 50";
+        dots_size = 0.33;
+        dots_spacing = 0.15;
+        #outer_color = "rgba(25, 20, 20, 0)";
+        #inner_color = "rgba(25, 20, 20, 0)";
+        #font_color = "rgba(222, 222, 222, 1.0)";
+      };
+    };
+  };
 }

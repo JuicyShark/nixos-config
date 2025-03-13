@@ -61,17 +61,22 @@
       nix-inspect
       sherlock
       remind
+      zoxide
     ];
   };
 
   environment.pathsToLink = ["/share/fish"];
+  environment.variables = {
+    SSH_AUTH_SOCK = "$(gpgconf --list-dirs agent-ssh-socket)";
+  };
   programs = {
     fish.enable = true;
     neovim.enable = true;
 
     direnv = {
       enable = true;
-      silent = true;
+      nix-direnv.enable = true;
+      #silent = true;
     };
   };
 }

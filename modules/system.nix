@@ -22,7 +22,6 @@
     allowDevPort
     ;
 
-
   cfg = config.modules.system;
 in {
   imports = [home-manager nix-config.inputs.agenix.nixosModules.default];
@@ -71,18 +70,12 @@ in {
   };
 
   config = {
-
-    age.secrets."${username}-keepass-master" = {
-      file = ../secrets/${username}-keepass-master.age;
-      owner = username;
-    };
-
     environment = {
       defaultPackages = lib.mkForce [];
-      systemPackages = [ agenix ];
+      systemPackages = [agenix];
       variables = {
-        EDITOR =  "nvim";
-        VISUAL =  "nvim";
+        EDITOR = "nvim";
+        VISUAL = "nvim";
       };
     };
     boot = {
@@ -95,7 +88,7 @@ in {
           cleanOnBoot = true;
         };
 
-      binfmt.emulatedSystems = mkIf (pkgs.system == "x86_64-linux") [ "aarch64-linux" ];
+      binfmt.emulatedSystems = mkIf (pkgs.system == "x86_64-linux") ["aarch64-linux"];
 
       loader = {
         systemd-boot = mkIf (pkgs.system != "aarch64-linux") {
@@ -109,15 +102,15 @@ in {
       };
 
       kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_stable;
-      blacklistedKernelModules = [ "floppy" ];
+      blacklistedKernelModules = ["floppy"];
     };
 
     systemd = {
       extraConfig = "DefaultTimeoutStopSec=10s";
       services.NetworkManager-wait-online.enable = false;
     };
-  nixpkgs.config.allowUnfree = true;
-  nixpkgs.config.allowUnsupportedSystem = true;
+    nixpkgs.config.allowUnfree = true;
+    nixpkgs.config.allowUnsupportedSystem = true;
     nix = {
       package = pkgs.nixVersions.latest;
       gc.automatic = true;
@@ -151,7 +144,7 @@ in {
 
       users.${username} = {
         #inherit hashedPassword;
-        password = "juicy";#config.age.secrets.juicy-password.path;
+        password = "juicy"; #config.age.secrets.juicy-password.path;
 
         isNormalUser = true;
         uid = 1000;
@@ -186,8 +179,8 @@ in {
 
     networking = {
       inherit (cfg) hostName;
-      defaultGateway = lib.mkDefault config.modules.router.networking.ipv4;
-      nameservers = lib.mkDefault [config.modules.router.networking.ipv4];
+      defaultGateway = lib.mkDefault "192.168.1.1";
+      nameservers = lib.mkDefault ["1.1.1.1" "8.8.8.8"];
       enableIPv6 = lib.mkDefault true;
 
       networkmanager = {
@@ -204,7 +197,7 @@ in {
 
       nat = mkIf mullvad {
         enable = true;
-        internalInterfaces = lib.mkDefault [ "ve-+" ];
+        internalInterfaces = lib.mkDefault ["ve-+"];
         externalInterface = lib.mkDefault "wg0-mullvad";
       };
 
@@ -212,7 +205,8 @@ in {
         allowedUDPPorts = [67 68] ++ optional allowSRB2Port [5029];
         allowedTCPPorts = mkIf allowDevPort [3000];
       };
-      /*wireguard.interfaces.wg0-mullvad = mkIf mullvad {
+      /*
+        wireguard.interfaces.wg0-mullvad = mkIf mullvad {
           privateKey = "OB8oklFPX+ZHnTLj09l058y8HY4Xg/z57m1Idut4vkM=";
           ips = [
             "10.73.64.1/32"
@@ -232,7 +226,8 @@ in {
               #endpiont = "192.168.54.60/0";
             }
           ];
-      };*/
+      };
+      */
     };
 
     services = {
@@ -253,15 +248,14 @@ in {
     };
     programs.command-not-found.enable = false;
 
-    programs.ssh = {
-      startAgent = true;
-     };
+    programs.ssh.startAgent = false;
 
-  security.pam.sshAgentAuth = {
-    enable = true;
-    authorizedKeysFiles = [
-      "/etc/ssh/authorized_keys.d/%u"
-    ];
-  };
+    security.pam.services."greetd".gnupg.enable = true;
+    security.pam.sshAgentAuth = {
+      enable = true;
+      authorizedKeysFiles = [
+        "/etc/ssh/authorized_keys.d/%u"
+      ];
+    };
   };
 }

@@ -2,9 +2,8 @@
   pkgs,
   osConfig,
   ...
-}:
-
-{
+}: {
+  home.packages = with pkgs; [gsettings-desktop-schemas];
   gtk = {
     enable = true;
 
@@ -17,9 +16,9 @@
       gtk-recent-files-enabled = false;
     };
 
-    /* iconTheme = {
-      package = pkgs.fluent-icon-theme;
-      name = "Fluent-dark";
-    }; */
+    iconTheme = {
+      package = pkgs.adwaita-icon-theme;
+      name = "Adwaita-dark";
+    };
   };
 }

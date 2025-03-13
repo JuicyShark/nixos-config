@@ -14,7 +14,7 @@ in {
 
   config = lib.mkIf cfg {
     nixpkgs.overlays = [
-      nix-config.inputs.emacs-overlay.overlays.default
+      #nix-config.inputs.emacs-overlay.overlays.default
     ];
 
     environment.systemPackages = with pkgs; [
@@ -22,7 +22,7 @@ in {
 
       ## Emacs itself
       binutils            # native-comp needs 'as', provided by this
-      emacs               # HEAD + native-comp
+      emacs-pgtk
 
       ## Doom dependencies
       git

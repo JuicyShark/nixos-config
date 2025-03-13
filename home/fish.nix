@@ -1,19 +1,13 @@
 {
-    programs.nix-index = {
-      enable = true;
-      enableFishIntegration = true;
-    };
+  programs.nix-index = {
+    enable = true;
+    enableFishIntegration = true;
+  };
   programs.fish = {
     enable = true;
 
-    loginShellInit = # fish
-      ''
-        if test (tty) = /dev/tty2
-          exec startx
-        end
-      '';
-
-    shellInit = # fish
+    shellInit =
+      # fish
       ''
         set -U fish_greeting ""
 
@@ -33,6 +27,8 @@
       tree = "eza --all --long --tree";
       mv = "mv -i";
       cp = "cp -ia";
+      #    cd = "zoxide";
+      #     z = "zoxide";
     };
 
     shellAbbrs = {
@@ -111,7 +107,8 @@
     };
 
     functions = {
-      wav2flac = # fish
+      wav2flac =
+        # fish
         ''
           set ORIGINAL_SIZE (du -hs | cut -f1)
 
@@ -123,7 +120,8 @@
           echo "Done. Reduced file size from $ORIGINAL_SIZE to $NEW_SIZE"
         '';
 
-      opus = # fish
+      opus =
+        # fish
         ''
           set ORIGINAL_SIZE (du -hs | cut -f1)
 
@@ -135,7 +133,8 @@
           echo "Done. Reduced file size from $ORIGINAL_SIZE to $NEW_SIZE"
         '';
 
-      ex = # fish
+      ex =
+        # fish
         ''
           if string match -qe -- ".part1." "$argv";
             set BASE (string split -f 1 ".part1." "$argv")
@@ -150,7 +149,8 @@
           end
         '';
 
-      mullvad-init = # fish
+      mullvad-init =
+        # fish
         ''
           mullvad auto-connect set on
           mullvad lan set allow

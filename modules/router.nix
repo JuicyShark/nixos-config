@@ -6,15 +6,15 @@
     enable = lib.mkEnableOption "Enable Router Config";
     networking = {
       ipv4 = lib.mkOption {
-        type = lib.types.str;
-        default = "192.168.54.99";
+        type = lib.types.string;
+        default = lib.mkForce "192.168.1.99";
       };
     };
   };
 
   config = lib.mkIf cfg.enable {
     networking = {
-      networkmanager.enable = false;
+      networkmanager.enable = true;
       nameservers = ["1.1.1.1"];
       wlanInterfaces.wlan.device = "enp1s0";
       defaultGateway = {

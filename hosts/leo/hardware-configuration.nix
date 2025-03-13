@@ -10,8 +10,8 @@
     (modulesPath + "/installer/scan/not-detected.nix")
     nix-config.inputs.disko.nixosModules.default
   ];
-  #hardware.keyboard.zsa.enable = true;
-  #hardware.logitech.wireless.enable = true;
+  hardware.keyboard.zsa.enable = true;
+  hardware.logitech.wireless.enable = true;
 
   boot = {
     initrd = {

@@ -10,9 +10,10 @@ in {
   home-manager.sharedModules = attrValues nix-config.homeModules;
   environment.systemPackages = attrValues nix-config.packages.${pkgs.system};
   environment.sessionVariables.FLAKE = "/home/juicy/projects/nix-config";
-    age.secrets.juicy-password = {
-      file = ../../secrets/juicy-password.age;
-    };
+  age.secrets.juicy-password = {
+    file = ../../secrets/juicy-password.age;
+  };
+
   modules = {
     router.enable = false;
     hardware = {

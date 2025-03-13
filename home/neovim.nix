@@ -6,11 +6,12 @@
   ...
 }: let
   inherit (nixosConfig._module.specialArgs) nix-config;
-  inherit (nix-config.packages.${pkgs.system}) vim-hypr-nav;
-
+  inherit (nix-config.packages.${pkgs.system}) vim-hy3-nav;
 in {
-  imports = [ nix-config.inputs.nixvim.homeManagerModules.nixvim ];
-
+  imports = [nix-config.inputs.nixvim.homeManagerModules.nixvim];
+  home.packages = with pkgs; [
+    alejandra
+  ];
   programs.nixvim = {
     enable = true;
     defaultEditor = true;
@@ -75,8 +76,8 @@ in {
     ];
     extraPlugins = [
       (pkgs.vimUtils.buildVimPlugin {
-        name = "vim-hypr-nav";
-        src = vim-hypr-nav;
+        name = "vim-hy3-nav";
+        src = vim-hy3-nav;
       })
       pkgs.vimPlugins.neorg-telescope
     ];
@@ -335,63 +336,63 @@ in {
       noice = {
         enable = true;
         settings = {
-        cmdline.view = "cmdline";
+          cmdline.view = "cmdline";
 
-        notify = {
-          enabled = false;
-          view = "notify";
-        };
-
-        lsp = {
-          override = {
-            "cmp.entry.get_documentation" = true;
-            "vim.lsp.util.convert_input_to_markdown_lines" = true;
-            "vim.lsp.util.stylize_markdown" = true;
-          };
-          documentation = {
-            opts = {
-              format = ["{message}"];
-              lang = "markdown";
-              render = "plain";
-              replace = true;
-              win_options = {
-                concealcursor = "n";
-                conceallevel = 3;
-              };
-            };
-            view = "hover";
-          };
-          progress = {
-            enabled = true;
-            format = "lsp_progress";
-            formatDone = "lsp_progress";
-            throttle = 1000 / 30;
-            view = "mini";
-          };
-          message = {
+          notify = {
             enabled = false;
             view = "notify";
           };
-        };
-        markdown = {
-          highlights = {
-            "@%S+" = "@parameter";
-            "^%s*(Parameters:)" = "@text.title";
-            "^%s*(Return:)" = "@text.title";
-            "^%s*(See also:)" = "@text.title";
-            "{%S-}" = "@parameter";
-            "|%S-|" = "@text.reference";
+
+          lsp = {
+            override = {
+              "cmp.entry.get_documentation" = true;
+              "vim.lsp.util.convert_input_to_markdown_lines" = true;
+              "vim.lsp.util.stylize_markdown" = true;
+            };
+            documentation = {
+              opts = {
+                format = ["{message}"];
+                lang = "markdown";
+                render = "plain";
+                replace = true;
+                win_options = {
+                  concealcursor = "n";
+                  conceallevel = 3;
+                };
+              };
+              view = "hover";
+            };
+            progress = {
+              enabled = true;
+              format = "lsp_progress";
+              formatDone = "lsp_progress";
+              throttle = 1000 / 30;
+              view = "mini";
+            };
+            message = {
+              enabled = false;
+              view = "notify";
+            };
           };
-          hover = {
-            "%[.-%]%((%S-)%)" = {__raw = "require('noice.util').open";};
-            "|(%S-)|" = {__raw = "vim.cmd.help";};
+          markdown = {
+            highlights = {
+              "@%S+" = "@parameter";
+              "^%s*(Parameters:)" = "@text.title";
+              "^%s*(Return:)" = "@text.title";
+              "^%s*(See also:)" = "@text.title";
+              "{%S-}" = "@parameter";
+              "|%S-|" = "@text.reference";
+            };
+            hover = {
+              "%[.-%]%((%S-)%)" = {__raw = "require('noice.util').open";};
+              "|(%S-)|" = {__raw = "vim.cmd.help";};
+            };
+          };
+          popupmenu = {
+            enabled = true;
+            backend = "nui";
           };
         };
-        popupmenu = {
-          enabled = true;
-          backend = "nui";
-        };
-      };
       };
 
       headlines = {
@@ -420,18 +421,19 @@ in {
         };
       };
       gitsigns.enable = true;
+
       notify = {
         enable = false;
         settings = {
-        fps = 120;
-        level = "info";
-        maxHeight = 42;
-        maxWidth = 35;
-        minimumWidth = 200;
-        render = "default";
-        timeout = 3750;
-        topDown = true;
-      };
+          fps = 120;
+          level = "info";
+          maxHeight = 42;
+          maxWidth = 35;
+          minimumWidth = 200;
+          render = "default";
+          timeout = 3750;
+          topDown = true;
+        };
       };
       nix.enable = true;
       illuminate.enable = true;
@@ -493,7 +495,7 @@ in {
       };
       cmp-rg.enable = true;
       cmp-nvim-lsp.enable = true;
-
+      lsp-format.enable = true;
       # LSP
       lsp = {
         enable = true;
@@ -518,7 +520,7 @@ in {
           nil_ls = {
             enable = true;
             settings = {
-              formatting.command = ["nixfmt"];
+              formatting.command = ["alejandra"];
             };
           };
           lua_ls.enable = false;
@@ -530,7 +532,6 @@ in {
           };
         };
       };
-      lsp-format.enable = false;
       lspkind = {
         enable = true;
         cmp = {
@@ -551,7 +552,6 @@ in {
       lualine.enable = false;
       auto-save.enable = true;
       auto-save.settings.debounce_delay = 100000;
-
 
       dap.enable = true;
     };
