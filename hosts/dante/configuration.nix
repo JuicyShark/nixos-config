@@ -175,6 +175,35 @@ in
       port = 5055;
       openFirewall = true;
     };
+    # Subtitles
+    bazarr = {
+      enable = true;
+      group = "media";
+      openFirewall = true;
+    };
+    # Indexer
+    prowlarr = {
+      enable = true;
+      openFirewall = true;
+    };
+    # TV Shows
+    sonarr = {
+      enable = true;
+      group = "media";
+      openFirewall = true;
+    };
+    # Movies
+    radarr = {
+      enable = true;
+      group = "media";
+      openFirewall = true;
+    };
+    # Music
+    lidarr = {
+      enable = true;
+      group = "media";
+      openFirewall = true;
+    };
 
     matrix-synapse = {
       enable = true;
