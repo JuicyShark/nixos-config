@@ -69,19 +69,19 @@ in {
                 template = "https://www.youtube.com/results?search_query={searchTerms}";
               }
             ];
-            iconUpdateURL = "https://www.youtube.com/favicon.ico";
+            icon = "https://www.youtube.com/favicon.ico";
             updateInterval = 24 * 60 * 60 * 1000;
             definedAliases = ["@yt"];
           };
-          "Google" = {
+          "google" = {
             urls = [{template = "http://google.com.au/search?q={searchTerms}";}];
-            iconUpdateURL = "http://google.com.au/favicon.ico";
+            icon = "http://google.com.au/favicon.ico";
             updateInterval = 24 * 60 * 60 * 1000;
             definedAliases = ["@g"];
           };
         };
         force = true;
-        default = "Google";
+        default = "google";
       };
 
       settings = {

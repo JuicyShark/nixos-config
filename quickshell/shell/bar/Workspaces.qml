@@ -41,7 +41,7 @@ FullwidthMouseArea {
 		spacing: 0
 		anchors {
 			fill: parent;
-			topMargin: 5;
+
       margins: 0;
 
 		}
@@ -54,7 +54,8 @@ FullwidthMouseArea {
 				onPressed: Hyprland.dispatch(`workspace ${wsIndex}`);
 
 				Layout.fillWidth: true
-        implicitHeight: 85
+        implicitHeight: animHeight + 5
+        //topMargin: 15
 
 
 
@@ -84,32 +85,23 @@ FullwidthMouseArea {
 					}
 				}
 
-				property real animActive: active ? 1 : 0
-				Behavior on animActive { NumberAnimation { duration: 150 } }
-
-				property real animExists: exists ? 1 : 0
-        Behavior on animExists { NumberAnimation { duration: 100 } }
-
-        property real animHeight: exists ? 85 : 30
+        property real animHeight: active ? 125 : (exists ? 75 : 40)
         Behavior on animHeight { NumberAnimation { duration: 150 } }
 
-
 				Rectangle {
-					anchors.centerIn: parent
-					height: 75
-					width: parent.width / 3.5
+          anchors.centerIn: parent
+
+					height: animHeight
+					width: parent.width / 3
 					//scale: 1 + wsItem.animActive * 0.3
 					radius: height / 2
-					border.color: ShellGlobals.colors.widgetOutline
+					border.color: active ? ShellGlobals.colors.base0E : ShellGlobals.colors.base0D;
 					border.width: 1
 
           // Color logic
-          color: exists
-              ? (active
-                  ? ShellGlobals.colors.barOutline
-                  : ShellGlobals.colors.widgetActive)
-                  : ShellGlobals.colors.widget;
-          //ShellGlobals.interpolateColors(animExists, ShellGlobals.colors.widget, ShellGlobals.colors.widgetActive);
+          color: exists ? (active ? ShellGlobals.colors.base0D
+            : ShellGlobals.colors.widgetOutlineSeparate)
+            : ShellGlobals.colors.widgetActive;
 				}
 			}
 		}

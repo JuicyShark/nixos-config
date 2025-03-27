@@ -51,11 +51,13 @@ ShellRoot {
 				screen: modelData
 			}
 
+      //Background Overlay
 			PanelWindow {
 				id: window
 
 				screen: modelData
-
+        color: "transparent"
+        visible: true
 				exclusionMode: ExclusionMode.Ignore
 				WlrLayershell.layer: WlrLayer.Background
 				WlrLayershell.namespace: "shell:background"
@@ -65,12 +67,13 @@ ShellRoot {
 					bottom: true
 					left: true
 					right: true
-				}
+        }
 
-				Background.BackgroundImage {
-					anchors.fill: parent
-					screen: window.screen
-				}
+        Text {
+
+          text: "Hey"
+          color: "black"
+        }
 			}
 		}
 	}

@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import "root:bar"
 
+import "root:."
+
 BarWidgetInner {
 	id: root
 	required property var bar;
@@ -99,7 +101,7 @@ BarWidgetInner {
 					anchors.margins: 5
 					radius: width * 0.5
 					antialiasing: true
-					color: "#60ffffff"
+					color: ShellGlobals.colors.widget;
 					opacity: closeArea.containsMouse ? 1 : 0
 					Behavior on opacity { SmoothedAnimation { velocity: 8 } }
 				}

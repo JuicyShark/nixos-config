@@ -10,7 +10,7 @@ Rectangle {
 	required property Notification notif;
 	required property var backer;
 
-	color: notif.urgency == NotificationUrgency.Critical ? "#30ff2030" : "#30c0ffff"
+	color: notif.urgency == NotificationUrgency.Critical ? "#30ff2030" : ShellGlobals.colors.widget
 	radius: 5
 	implicitWidth: 450
 	implicitHeight: c.implicitHeight

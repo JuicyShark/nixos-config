@@ -63,7 +63,7 @@ MouseArea {
 
 			Text {
 				text: entry.text
-				color: entry.enabled ? "white" : "#bbbbbb"
+				color: entry.enabled ? ShellGlobals.colors.text : "#bbbbbb"
 			}
 
 			Item {

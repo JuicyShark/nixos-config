@@ -26,7 +26,8 @@ BarWidgetInner {
 			sourceComponent: AudioControl {
 				bar: root.bar;
 				node: Pipewire.defaultAudioSink;
-				image: `image://icon/${node.audio.muted ? "audio-volume-muted-symbolic" : "audio-volume-high-symbolic"}`
+        image: node.audio.muted ? "root:icons/speaker-slash.svg" : "root:icons/speaker-high.svg"
+        //image: `image://icon/${node.audio.muted ? "audio-volume-muted-symbolic" : "audio-volume-high-symbolic"}`
 			}
 		}
 

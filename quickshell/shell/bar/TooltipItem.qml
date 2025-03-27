@@ -66,6 +66,8 @@ Item {
 	implicitHeight: contentItem.implicitHeight + contentItem.anchors.leftMargin + contentItem.anchors.rightMargin
 	implicitWidth: contentItem.implicitWidth + contentItem.anchors.leftMargin + contentItem.anchors.rightMargin
 
+
+
 	readonly property Item item: contentItem;
 
 	Loader {

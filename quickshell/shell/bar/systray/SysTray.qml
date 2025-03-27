@@ -32,7 +32,7 @@ BarWidgetInner {
 				property bool targetMenuOpen: false;
 
 				Layout.fillWidth: true
-				implicitHeight: width
+				implicitHeight: width / 1.75
 
 				ClickableIcon {
 					id: mouseArea
@@ -48,7 +48,7 @@ BarWidgetInner {
 					image: item.modelData.icon
 					showPressed: item.targetMenuOpen || (pressedButtons & ~Qt.RightButton)
 					fillWindowWidth: true
-					extraVerticalMargin: column.spacing / 2
+					extraVerticalMargin: column.spacing / 4
 
 					onClicked: event => {
 						event.accepted = true;

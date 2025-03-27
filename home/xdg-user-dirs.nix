@@ -1,11 +1,10 @@
-{ config, nixosConfig, ... }:
-
-let
-  inherit (config.home) homeDirectory;
-
-in
 {
-
+  config,
+  nixosConfig,
+  ...
+}: let
+  inherit (config.home) homeDirectory;
+in {
   xdg = {
     userDirs = {
       enable = true;

@@ -5,8 +5,8 @@ import QtQuick.Controls
 import Quickshell
 import "systray" as SysTray
 import "audio" as Audio
-//import "mpris" as Mpris
-//import "power" as Power
+import "mpris" as Mpris
+import "power" as Power
 import "root:notifications" as Notifs
 
 BarContainment {
@@ -28,7 +28,11 @@ BarContainment {
 			Notifs.NotificationWidget {
 				Layout.fillWidth: true
 				bar: root
-			}
+      }
+	  	Mpris.Players {
+		  	bar: root
+			  Layout.fillWidth: true
+		  }
 		}
 	}
 
@@ -76,22 +80,15 @@ BarContainment {
 			bottom: parent.bottom
 		}
 
-
-
-		Audio.AudioControls {
-			bar: root
-			Layout.fillWidth: true
-		}
-
 		SysTray.SysTray {
 			bar: root
 			Layout.fillWidth: true
 		}
 
-		/*Power.Power {
+    Audio.AudioControls {
 			bar: root
 			Layout.fillWidth: true
-		}*/
+		}
 
 		ClockWidget {
 			bar: root

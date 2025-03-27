@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import ".."
 import "root:/"
 
 Scope {
@@ -112,19 +113,19 @@ Scope {
 				}
 			}
 
-			/*Rectangle {
-				color: "#10ff0000"
-				//y: tooltipItem.highestAnimY
-				height: tooltipItem.lowestAnimY - tooltipItem.highestAnimY
-				width: parent.width
-			}
+		//	Rectangle {
+		//		color: "#10ff0000"
+		//		//y: tooltipItem.highestAnimY
+		//		height: tooltipItem.lowestAnimY - tooltipItem.highestAnimY
+		//		width: parent.width
+		//	}
 
-			Rectangle {
-				color: "#1000ff00"
-				//y: tooltipItem.highestAnimY
-				height: popup.height
-				width: parent.width
-			}*/
+		//  Rectangle {
+		//		color: "#1000ff00"
+		//		//y: tooltipItem.highestAnimY
+		//		height: popup.height
+		//		width: parent.width
+		//	}
 
 			Item {
 				id: tooltipItem
@@ -137,7 +138,7 @@ Scope {
 					//highestAnimY = targetY - targetHeight / 2;
 					//lowestAnimY = targetY + targetHeight / 2;
 				}
-
+      // Ensure text inside TooltipItem is white
 				transform: Scale {
 					origin.x: 0
 					origin.y: tooltipItem.height / 2
@@ -150,7 +151,7 @@ Scope {
 				// bkg
 				BarWidgetInner {
 					anchors.fill: parent
-					color: ShellGlobals.colors.bar
+					color: ShellGlobals.colors.widgetOutlineSeparate
 				}
 
 				readonly property var targetWidth: shownItem?.implicitWidth ?? 0;

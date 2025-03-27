@@ -75,7 +75,6 @@ in {
 
       exec = [
         "xrandr --output DP-1 --primary"
-        "pkill quickshell && quickshell"
       ];
 
       exec-once = [
@@ -84,6 +83,7 @@ in {
 
         "systemctl --user start hyprpolkitagent"
         "wpctl set-volume @DEFAULT_SINK@ 40%"
+        "quickshell"
         "[workspace 1 silent; float] youtube-music"
         "[workspace 1 silent; float] bitwarden"
 
@@ -517,9 +517,9 @@ in {
           bind = , W,submap, reset
           bind = , D, exec, uwsm app -- discord
           bind = , D,submap, reset
-          bind = , S, exec, quickshell ipc call screenshot takeScreenshot
+          bind = , S, exec, grimblast copy area
           bind = , S,submap, reset
-          bind = , Space, exec, quickshell ipc call launcher toggle"
+          bind = , Space, exec, quickshell ipc call launcher toggle
           bind = , Space ,submap, reset
           bind = , V, exec, uwsm app -- pwvucontrol
           bind = , V,submap, reset

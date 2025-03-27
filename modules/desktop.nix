@@ -149,6 +149,8 @@ in {
     };
 
     services = {
+      playerctld.enable = true;
+
       ollama.enable = mkIf apps.llm true;
       udisks2 = {
         enable = true;

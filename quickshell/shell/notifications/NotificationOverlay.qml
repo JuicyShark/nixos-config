@@ -21,7 +21,7 @@ PanelWindow {
 
 		anchors.fill: parent
 
-		stack.y: 5 + 55//(NotificationManager.showTrayNotifs ? 55 : 0)
+		stack.y: 5 + (NotificationManager.showTrayNotifs ? 55 : 0)
 		stack.x: 72
 	}
 

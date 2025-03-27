@@ -15,7 +15,7 @@ PanelWindow {
 		bottom: true
 	}
 
-	width: 65
+	width: 55
 	margins.left: Lock.Controller.locked ? -width : 0
 	exclusiveZone: width - margins.left
 

@@ -37,8 +37,8 @@ BarWidgetInner {
    				const minutes = clock.minutes.toString().padStart(2, '0')
    				return `${hours}\n${minutes}`
    			}
-   			font.pointSize: 18
-   			color: "white"
+   			font.pointSize: 22
+   			color: ShellGlobals.colors.text
    		}
    	}
 	}

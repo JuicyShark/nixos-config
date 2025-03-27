@@ -12,11 +12,11 @@ import "../.."
 FullwidthMouseArea {
 	id: root
 	hoverEnabled: true
-	fillWindowWidth: true
+	//fillWindowWidth: true
 
 	required property var bar;
 	implicitHeight: column.implicitHeight + 10
-
+  width: bar.BarContainment.width - 8
 	PersistentProperties {
 		id: persist
 		reloadableId: "MusicWidget";
