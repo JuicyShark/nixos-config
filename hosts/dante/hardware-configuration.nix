@@ -4,6 +4,7 @@
     imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
     inputs.disko.nixosModules.default
+    ./disko.nix
   ];
 
   boot.kernelModules = ["kvm-intel" "ip6table_filter" "ip_set"];
