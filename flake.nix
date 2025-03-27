@@ -114,6 +114,13 @@
         modules = listFilesRecursive ./hosts/leo;
       };
       # Extra Hosts here
+      dante = nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = {inherit inputs;};
+        specialArgs.nix-config = self;
+        modules = listFilesRecursive ./hosts/dante;
+      };
+
     };
 
     formatter = forAllSystems (pkgs: pkgs.alejandra);
