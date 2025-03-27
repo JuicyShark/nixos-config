@@ -1,10 +1,12 @@
 {
   pkgs,
   osConfig,
+  lib,
   ...
-}: {
-  home.packages = with pkgs; [gsettings-desktop-schemas];
-  gtk = {
+}:
+{
+  home.packages = with pkgs; lib.mkIf osConfig.modules.desktop.enable [ gsettings-desktop-schemas ];
+  gtk = lib.mkIf osConfig.modules.desktop.enable {
     enable = true;
 
     gtk3.extraConfig = {

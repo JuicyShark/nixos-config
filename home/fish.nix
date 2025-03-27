@@ -1,3 +1,4 @@
+{ config, ... }:
 {
   programs.nix-index = {
     enable = true;
@@ -104,6 +105,8 @@
 
       c = "clear";
       unzip = "7z -x";
+      edit = "$VISUAL:-$EDITOR:-vi";
+
     };
 
     functions = {

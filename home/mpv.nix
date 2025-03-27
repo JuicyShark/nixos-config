@@ -1,14 +1,18 @@
 {
   pkgs,
   config,
+  lib,
+  osConfig,
   ...
-}: let
+}:
+let
   inherit (config.xdg.userDirs) videos;
   inherit (config.home) homeDirectory;
   shaders_dir = "${pkgs.mpv-shim-default-shaders}/share/mpv-shim-default-shaders/shaders";
-in {
-  home.packages = with pkgs; [jellyfin-mpv-shim];
-  programs.mpv = {
+in
+{
+  home.packages = with pkgs; lib.mkIf osConfig.modules.desktop.enable [ jellyfin-mpv-shim ];
+  programs.mpv = lib.mkIf osConfig.modules.desktop.enable {
     enable = true;
 
     config = {
@@ -53,7 +57,9 @@ in {
       autofit = "65%";
     };
 
-    bindings = {"ctrl+a" = "script-message osc-visibility cycle";};
+    bindings = {
+      "ctrl+a" = "script-message osc-visibility cycle";
+    };
 
     scripts = with pkgs.mpvScripts; [
       mpris
@@ -69,7 +75,7 @@ in {
       -o ${videos}/youtube/%(title)s.%(ext)s
     '';
   };
-  home.file = {
+  home.file = lib.mkIf osConfig.modules.desktop.enable {
     ".config/mpv/shaders/NVScaler.glsl".source = "${shaders_dir}/NVScaler.glsl";
   };
 }

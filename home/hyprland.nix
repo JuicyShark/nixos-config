@@ -6,22 +6,37 @@
   lib,
   ...
 }:
-with pkgs; let
+with pkgs;
+let
   inherit (nixosConfig._module.specialArgs) nix-config;
   inherit (nixosConfig._module.specialArgs.nix-config.inputs) quickshell;
   stylix = config.lib.stylix.colors;
+  desktop = osConfig.modules.desktop.enable;
   inherit (nix-config.packages.${pkgs.system}) vim-hy3-nav;
   opacity = "0.95";
 
   mod = "SUPER";
 
-  toggle = program: let
-    prog = builtins.substring 0 14 program;
-  in "pkill ${prog} || uwsm app -- ${program}";
+  toggle =
+    program:
+    let
+      prog = builtins.substring 0 14 program;
+    in
+    "pkill ${prog} || uwsm app -- ${program}";
 
   runOnce = program: "pgrep ${program} || uwsm app -- ${program}";
 
-  workspaces = ["1" "2" "3" "4" "5" "6" "7" "8" "9"];
+  workspaces = [
+    "1"
+    "2"
+    "3"
+    "4"
+    "5"
+    "6"
+    "7"
+    "8"
+    "9"
+  ];
   # Map keys (arrows and hjkl) to hyprland directions (l, r, u, d)
   directions = rec {
     left = "l";
@@ -33,23 +48,26 @@ with pkgs; let
     k = up;
     j = down;
   };
-in {
+in
+{
   imports = [
     ../quickshell
   ];
-  home.packages = with pkgs; [
-    quickshell.packages.${pkgs.system}.quickshell
-    hyprpolkitagent
-    mpvpaper
-    wf-recorder
-    playerctl
-    socat
-    inotify-tools
-    grimblast
-  ];
+  home.packages =
+    with pkgs;
+    lib.mkIf desktop [
+      quickshell.packages.${pkgs.system}.quickshell
+      hyprpolkitagent
+      mpvpaper
+      wf-recorder
+      playerctl
+      socat
+      inotify-tools
+      grimblast
+    ];
   #
 
-  wayland.windowManager.hyprland = {
+  wayland.windowManager.hyprland = lib.mkIf desktop {
     enable = true;
     package = null;
     portalPackage = null;
@@ -251,11 +269,18 @@ in {
         };
       };
 
-      gestures = {workspace_swipe = true;};
+      gestures = {
+        workspace_swipe = true;
+      };
 
-      binds = {allow_workspace_cycles = true;};
+      binds = {
+        allow_workspace_cycles = true;
+      };
 
-      layerrule = ["blur,wofi" "blur,notifications"];
+      layerrule = [
+        "blur,wofi"
+        "blur,notifications"
+      ];
 
       windowrulev2 = [
         "plugin:hyprbars:nobar, floating:0"
@@ -389,91 +414,96 @@ in {
           #"${mod}, c, exec, ${cliphist}/bin/cliphist list | ${toggle "${wofi}/bin/wofi --show dmenu"} | ${cliphist}/bin/cliphist decode | ${wl-clipboard}/bin/wl-copy"
         ]
         ++
-        # Change focused workspace
-        (map (n: "${mod},${n},workspace,${n}") workspaces)
+          # Change focused workspace
+          (map (n: "${mod},${n},workspace,${n}") workspaces)
         ++
-        # Move window to workspace
-        (map (n: "${mod}SHIFT,${n},hy3:movetoworkspace,${n}, silent")
-          workspaces)
+          # Move window to workspace
+          (map (n: "${mod}SHIFT,${n},hy3:movetoworkspace,${n}, silent") workspaces)
         ++
-        # Move focus to Hy3 Tab
-        (map (n: "${mod}ALT,${n},hy3:focustab, index, ${n}")
-          workspaces)
+          # Move focus to Hy3 Tab
+          (map (n: "${mod}ALT,${n},hy3:focustab, index, ${n}") workspaces)
         ++
-        # Move focus in a direction
-        (lib.mapAttrsToList (key: direction: "${mod},${key},exec,vim-hy3-nav ${direction}") directions)
+          # Move focus in a direction
+          (lib.mapAttrsToList (key: direction: "${mod},${key},exec,vim-hy3-nav ${direction}") directions)
         #(lib.mapAttrsToList (key: direction: "${mod},${key},hy3:movefocus,${direction}, visible") directions)
         ++
-        # Move windows between visible nodes
-        (lib.mapAttrsToList (key: direction: "${mod}SHIFT,${key},hy3:movewindow,${direction},once,visible") directions)
+          # Move windows between visible nodes
+          (lib.mapAttrsToList (
+            key: direction: "${mod}SHIFT,${key},hy3:movewindow,${direction},once,visible"
+          ) directions)
         ++
-        # Move windows between invisible nodes (tabs)
-        (lib.mapAttrsToList (key: direction: "${mod}SHIFTCONTROL,${key},hy3:movewindow,${direction},once") directions)
+          # Move windows between invisible nodes (tabs)
+          (lib.mapAttrsToList (
+            key: direction: "${mod}SHIFTCONTROL,${key},hy3:movewindow,${direction},once"
+          ) directions)
         ++
-        # Open next window in given direction
-        (lib.mapAttrsToList (key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}")
-          directions);
+          # Open next window in given direction
+          (lib.mapAttrsToList (
+            key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}"
+          ) directions);
       /*
+        bind =
+          [
+            # Group Settings
+            "${mod}CONTROL, G, togglegroup"
+            # Dwindle Layout Messages
+            "${mod}CONTROL, S, layoutmsg, togglesplit"
+            "${mod}CONTROL, Space, layoutmsg, swapsplit"
+            "${mod}CONTROL, R, layoutmsg, movetoroot active"
+            # Master Layout Messages
+            "${mod}CONTROL, R, layoutmsg, mfact exact 0.5"
+            "${mod}CONTROL, U, layoutmsg, mfact exact 0.65"
+            "${mod}CONTROL, L, layoutmsg, orientationleft"
+            "${mod}CONTROL, C, layoutmsg, orientationcenter"
 
-      bind =
-        [
-          # Group Settings
-          "${mod}CONTROL, G, togglegroup"
-          # Dwindle Layout Messages
-          "${mod}CONTROL, S, layoutmsg, togglesplit"
-          "${mod}CONTROL, Space, layoutmsg, swapsplit"
-          "${mod}CONTROL, R, layoutmsg, movetoroot active"
-          # Master Layout Messages
-          "${mod}CONTROL, R, layoutmsg, mfact exact 0.5"
-          "${mod}CONTROL, U, layoutmsg, mfact exact 0.65"
-          "${mod}CONTROL, L, layoutmsg, orientationleft"
-          "${mod}CONTROL, C, layoutmsg, orientationcenter"
+            "${mod}, tab, changegroupactive, f"
+            "${mod}SHIFT, tab, changegroupactive, b"
 
-          "${mod}, tab, changegroupactive, f"
-          "${mod}SHIFT, tab, changegroupactive, b"
+            # Bar
+            "${mod}CONTROL, B, exec, ${toggle "waybar"}"
+            ##window management
+            "${mod}SHIFT, Q, killactive,"
+            "${mod}SHIFT, L, lockactivegroup, toggle"
 
-          # Bar
-          "${mod}CONTROL, B, exec, ${toggle "waybar"}"
-          ##window management
-          "${mod}SHIFT, Q, killactive,"
-          "${mod}SHIFT, L, lockactivegroup, toggle"
+            "${mod}CONTROL, M, fullscreen"
+            "${mod}CONTROL, F, togglefloating"
+            "${mod}CONTROL, P, pin"
 
-          "${mod}CONTROL, M, fullscreen"
-          "${mod}CONTROL, F, togglefloating"
-          "${mod}CONTROL, P, pin"
+            # Swap Layouts
+            "${mod}CONTROL, D, exec, hyprctl keyword general:layout dwindle"
+            "${mod}CONTROL, M, exec, hyprctl keyword general:layout master"
 
-          # Swap Layouts
-          "${mod}CONTROL, D, exec, hyprctl keyword general:layout dwindle"
-          "${mod}CONTROL, M, exec, hyprctl keyword general:layout master"
+            # Search
+            "${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
+            "${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
+            "${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
 
-          # Search
-          "${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
-          "${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
-          "${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
-
-          "${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
-          "${mod}, Return, exec, uwsm app -- kitty"
-        ]
-        ++
-        # Change workspace//
-        (map (n: "${mod},${n},workspace,${n}") workspaces)
-        ++
-        # Move window to workspace
-        (map (n: "${mod}SHIFT,${n},movetoworkspacesilent,${n}")
-          workspaces)
-        ++
-        # Move focus, changes focus of nvim windows too
-        (lib.mapAttrsToList (key: direction: "${mod},${key},exec, ${vim-hypr-nav}/bin/vim-hypr-nav ${direction}")
-          directions)
-        ++
-        # Move windows
-        (lib.mapAttrsToList (key: direction: "${mod}SHIFT,${key},movewindoworgroup,${direction}") directions)
-        ++
-        # Open next window in given direction in dwindle
-        (lib.mapAttrsToList (key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}")
-          directions);
+            "${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
+            "${mod}, Return, exec, uwsm app -- kitty"
+          ]
+          ++
+          # Change workspace//
+          (map (n: "${mod},${n},workspace,${n}") workspaces)
+          ++
+          # Move window to workspace
+          (map (n: "${mod}SHIFT,${n},movetoworkspacesilent,${n}")
+            workspaces)
+          ++
+          # Move focus, changes focus of nvim windows too
+          (lib.mapAttrsToList (key: direction: "${mod},${key},exec, ${vim-hypr-nav}/bin/vim-hypr-nav ${direction}")
+            directions)
+          ++
+          # Move windows
+          (lib.mapAttrsToList (key: direction: "${mod}SHIFT,${key},movewindoworgroup,${direction}") directions)
+          ++
+          # Open next window in given direction in dwindle
+          (lib.mapAttrsToList (key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}")
+            directions);
       */
-      bindm = ["SUPER, mouse:272, movewindow" "SUPER, mouse:273, resizewindow"];
+      bindm = [
+        "SUPER, mouse:272, movewindow"
+        "SUPER, mouse:273, resizewindow"
+      ];
 
       binde = [
         # Change Split Ratio for new splits
@@ -546,7 +576,7 @@ in {
       '';
   };
 
-  services = {
+  services = lib.mkIf desktop {
     hyprpaper = {
       enable = true;
       settings = {
@@ -554,7 +584,7 @@ in {
         splash = false;
         splash_offset = 2.0;
 
-        preload = ["${config.xdg.userDirs.pictures}/wallpaper/32:9/pixel-horizon.png"];
+        preload = [ "${config.xdg.userDirs.pictures}/wallpaper/32:9/pixel-horizon.png" ];
 
         wallpaper = [
           "DP-1, ~/media/pictures/wallpaper/32:9/pixel-horizon.png"
@@ -562,36 +592,37 @@ in {
         ];
       };
     };
-  };
-  services.hypridle = {
-    enable = true;
 
-    settings = {
-      general = {
-        lock_cmd = "pidof hyprlock || hyprlock";
-        before_sleep_cmd = "loginctl lock-session";
-        after_sleep_cmd = "hyprctl dispatch dpms on";
+    hypridle = {
+      enable = true;
+
+      settings = {
+        general = {
+          lock_cmd = "pidof hyprlock || hyprlock";
+          before_sleep_cmd = "loginctl lock-session";
+          after_sleep_cmd = "hyprctl dispatch dpms on";
+        };
+
+        listener = [
+          {
+            timeout = 900;
+            on-timeout = "loginctl lock-session";
+          }
+          {
+            timeout = 1280;
+            on-timeout = "hyprctl dispatch dpms off";
+            on-resume = "hyprctl dispatch dpms on";
+          }
+          {
+            timeout = 4800;
+            on-timeout = "systemctl suspend";
+          }
+        ];
       };
-
-      listener = [
-        {
-          timeout = 900;
-          on-timeout = "loginctl lock-session";
-        }
-        {
-          timeout = 1280;
-          on-timeout = "hyprctl dispatch dpms off";
-          on-resume = "hyprctl dispatch dpms on";
-        }
-        {
-          timeout = 4800;
-          on-timeout = "systemctl suspend";
-        }
-      ];
     };
   };
   systemd.user.services.hypridle.Unit.After = lib.mkForce "graphical-session.target";
-  programs.hyprlock = {
+  programs.hyprlock = lib.mkIf desktop {
     enable = true;
 
     settings = {

@@ -83,7 +83,7 @@
         ];
         edit = [
           {
-            run = "kitten edit-in-kitty '$@'";
+            run = "edit-in-kitty $@";
             block = true;
             for = "unix";
           }

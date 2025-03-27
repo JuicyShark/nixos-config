@@ -1,23 +1,12 @@
 # Emacs is my main driver. I'm the author of Doom Emacs
 # https://github.com/doomemacs. This module sets it up to meet my particular
 # Doomy needs.
-{
-  nix-config,
-  lib,
-  config,
-  pkgs,
-  ...
-}: let
+{ nix-config, lib, config, pkgs, ... }:
+let
   cfg = config.modules.desktop.apps.emacs;
   emacs = with pkgs;
-    (emacsPackagesFor
-      emacs-pgtk)
-    .emacsWithPackages (epkgs:
-      with epkgs; [
-        treesit-grammars.with-all-grammars
-        vterm
-        mu4e
-      ]);
+    (emacsPackagesFor emacs-pgtk).emacsWithPackages
+    (epkgs: with epkgs; [ treesit-grammars.with-all-grammars vterm mu4e ]);
 in {
   config = lib.mkIf cfg {
     environment.systemPackages = with pkgs; [
@@ -44,7 +33,7 @@ in {
       mu
       isync
       # :checkers spell
-      (aspellWithDicts (ds: with ds; [en en-computers en-science]))
+      (aspellWithDicts (ds: with ds; [ en en-computers en-science ]))
       # :tools editorconfig
       editorconfig-core-c # per-project style config
       # :tools lookup & :lang org +roam
@@ -58,13 +47,11 @@ in {
       # fava
       # :lang nix
       age
-      nixfmt
+      nixfmt-rfc-style
     ];
 
-    environment.variables.PATH = ["$XDG_CONFIG_HOME/emacs/bin"];
+    environment.variables.PATH = [ "$XDG_CONFIG_HOME/emacs/bin" ];
 
-    fonts.packages = [
-      (pkgs.nerd-fonts.symbols-only)
-    ];
+    fonts.packages = [ (pkgs.nerd-fonts.symbols-only) ];
   };
 }

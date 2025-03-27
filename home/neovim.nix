@@ -1,20 +1,22 @@
 {
+  lib,
   inputs,
   config,
+  osConfig,
   nixosConfig,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (nixosConfig._module.specialArgs) nix-config;
   inherit (nix-config.packages.${pkgs.system}) vim-hy3-nav;
-in {
-  imports = [nix-config.inputs.nixvim.homeManagerModules.nixvim];
-  home.packages = with pkgs; [
-    alejandra
-  ];
+in
+{
+  imports = [ nix-config.inputs.nixvim.homeManagerModules.nixvim ];
+  home.packages = with pkgs; [ nixfmt-rfc-style ];
   programs.nixvim = {
     enable = true;
-    defaultEditor = true;
+    defaultEditor = lib.mkIf (osConfig.modules.desktop.enable == false) true;
     vimdiffAlias = true;
     viAlias = true;
     vimAlias = true;
@@ -63,7 +65,11 @@ in {
       swapfile = false;
     };
 
-    opts.completeopt = ["menu" "menuone" "noselect"];
+    opts.completeopt = [
+      "menu"
+      "menuone"
+      "noselect"
+    ];
     extraPackages = with pkgs; [
       lua-language-server
       nil
@@ -85,13 +91,22 @@ in {
     keymaps = [
       {
         # [F]ind things, mainly uses Telescope
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<leader>ff";
         action = "<cmd>Telescope find_files<CR>";
-        options = {desc = "[F]ind [F]iles";};
+        options = {
+          desc = "[F]ind [F]iles";
+        };
       }
       {
-        mode = ["n" "v" "i"];
+        mode = [
+          "n"
+          "v"
+          "i"
+        ];
         key = "<C-f>";
         action = "<cmd>Tele find_files<CR>";
         options = {
@@ -101,7 +116,11 @@ in {
         };
       }
       {
-        mode = ["n" "v" "i"];
+        mode = [
+          "n"
+          "v"
+          "i"
+        ];
         key = "<C-f>";
         action = "<cmd>Telescope find_files<CR>";
         options = {
@@ -111,7 +130,10 @@ in {
         };
       }
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<leader>fh";
         action = "<cmd>Telescope harpoon marks<CR>";
         options = {
@@ -121,7 +143,11 @@ in {
         };
       }
       {
-        mode = ["n" "v" "i"];
+        mode = [
+          "n"
+          "v"
+          "i"
+        ];
         key = "<C-h>";
         action = "<cmd>Telescope harpoon marks<CR>";
         options = {
@@ -131,7 +157,10 @@ in {
         };
       }
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<leader>fg";
         action = "<cmd>Telescope live_grep<CR>";
         options = {
@@ -140,7 +169,10 @@ in {
         };
       }
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<leader>fb";
         action = "<cmd>Telescope buffers<CR>";
         options = {
@@ -149,7 +181,10 @@ in {
         };
       }
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<leader>f?";
         action = "<cmd>Telescope help_tags<CR>";
         options = {
@@ -158,13 +193,21 @@ in {
         };
       }
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<leader>?";
         action = "<cmd>Telescope help_tags<CR>";
-        options = {silent = true;};
+        options = {
+          silent = true;
+        };
       }
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<leader>ft";
         action = "<cmd>TodoTrouble<CR>";
         options = {
@@ -173,7 +216,10 @@ in {
         };
       }
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<leader>d";
         action = "<cmd>Trouble<CR>";
         options = {
@@ -183,10 +229,15 @@ in {
       }
       # Git
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<leader>gc";
         action = "<cmd>Neogit commit<CR>";
-        options = {desc = "[G]it [C]ompete";};
+        options = {
+          desc = "[G]it [C]ompete";
+        };
       }
       # Misc
       {
@@ -196,14 +247,20 @@ in {
         options.desc = "Open Explorer";
       }
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<Down>";
         options.silent = true;
         options.noremap = true;
         action = "gj";
       }
       {
-        mode = ["n" "v"];
+        mode = [
+          "n"
+          "v"
+        ];
         key = "<Up>";
         options.silent = true;
         options.noremap = true;
@@ -215,7 +272,9 @@ in {
         mode = "n";
         key = "<leader>nt";
         action = "<cmd>Neorg journal today<CR>";
-        options = {desc = "Open Journal";};
+        options = {
+          desc = "Open Journal";
+        };
       }
       {
         mode = "n";
@@ -263,14 +322,22 @@ in {
             };
           };
           # hidden = ["<silent>" "<cmd>" "<Cmd>" "<CR>" "^:" "^ " "^call " "^lua "];
-          triggersNoWait = ["`" "'" "g`" "g'" ''"'' "<c-r>" "z="];
+          triggersNoWait = [
+            "`"
+            "'"
+            "g`"
+            "g'"
+            ''"''
+            "<c-r>"
+            "z="
+          ];
           /*
-          registrations = {
-            "<leader>n" = "[N]otes";
-            "<leader>f" = "[F]ind";
-            "<leader>h" = "[H]arpoon that B*";
-            "<leader>g" = "[G]it";
-          };
+            registrations = {
+              "<leader>n" = "[N]otes";
+              "<leader>f" = "[F]ind";
+              "<leader>h" = "[H]arpoon that B*";
+              "<leader>g" = "[G]it";
+            };
           */
         };
       };
@@ -351,7 +418,7 @@ in {
             };
             documentation = {
               opts = {
-                format = ["{message}"];
+                format = [ "{message}" ];
                 lang = "markdown";
                 render = "plain";
                 replace = true;
@@ -384,8 +451,12 @@ in {
               "|%S-|" = "@text.reference";
             };
             hover = {
-              "%[.-%]%((%S-)%)" = {__raw = "require('noice.util').open";};
-              "|(%S-)|" = {__raw = "vim.cmd.help";};
+              "%[.-%]%((%S-)%)" = {
+                __raw = "require('noice.util').open";
+              };
+              "|(%S-)|" = {
+                __raw = "vim.cmd.help";
+              };
             };
           };
           popupmenu = {
@@ -398,7 +469,7 @@ in {
       headlines = {
         enable = true;
         settings.norg = {
-          headline_highlights = ["Headline"];
+          headline_highlights = [ "Headline" ];
           bullet_highlights = [
             "@neorg.headings.1.prefix"
             "@neorg.headings.2.prefix"
@@ -407,7 +478,12 @@ in {
             "@neorg.headings.5.prefix"
             "@neorg.headings.6.prefix"
           ];
-          bullets = ["◉" "○" "✸" "✿"];
+          bullets = [
+            "◉"
+            "○"
+            "✸"
+            "✿"
+          ];
           codeblock_highlight = "CodeBlock";
           dash_highlight = "Dash";
           dash_string = "-";
@@ -486,10 +562,10 @@ in {
             "<CR>" = "cmp.mapping.confirm({ select = true })";
           };
           sources = [
-            {name = "nvim_lsp";}
-            {name = "path";}
-            {name = "buffer";}
-            {name = "neorg";}
+            { name = "nvim_lsp"; }
+            { name = "path"; }
+            { name = "buffer"; }
+            { name = "neorg"; }
           ];
         };
       };
@@ -520,13 +596,16 @@ in {
           nil_ls = {
             enable = true;
             settings = {
-              formatting.command = ["alejandra"];
+              formatting.command = [ "nixfmt" ];
             };
           };
           lua_ls.enable = false;
           rust_analyzer = {
             enable = true;
-            filetypes = ["toml" "rs"];
+            filetypes = [
+              "toml"
+              "rs"
+            ];
             installCargo = false;
             installRustc = false;
           };
@@ -563,13 +642,13 @@ in {
       }
       {
         event = "FileType";
-        pattern = ["norg"];
+        pattern = [ "norg" ];
         command = "setlocal conceallevel=1";
         desc = "Conceal Syntax Attribute";
       }
       {
         event = "FileType";
-        pattern = ["norg"];
+        pattern = [ "norg" ];
         command = "setlocal concealcursor=n";
         desc = "Conceal line when not editing";
       }

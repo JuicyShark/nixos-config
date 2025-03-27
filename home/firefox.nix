@@ -3,18 +3,21 @@
 {
   pkgs,
   nixosConfig,
+  osConfig,
   lib,
   config,
   ...
-}: let
+}:
+let
   inherit (nixosConfig._module.specialArgs) nix-config;
   inherit (nix-config.inputs.stylix.homeManagerModules) stylix;
-in {
-  xdg.mimeApps.defaultApplications = {
-    "text/html" = ["firefox.desktop"];
-    "text/xml" = ["firefox.desktop"];
-    "x-scheme-handler/http" = ["firefox.desktop"];
-    "x-scheme-handler/https" = ["firefox.desktop"];
+in
+{
+  xdg.mimeApps.defaultApplications = lib.mkIf osConfig.modules.desktop.enable {
+    "text/html" = [ "firefox.desktop" ];
+    "text/xml" = [ "firefox.desktop" ];
+    "x-scheme-handler/http" = [ "firefox.desktop" ];
+    "x-scheme-handler/https" = [ "firefox.desktop" ];
   };
   home.sessionVariables = {
     "MOZ_DISABLE_RDD_SANDBOX" = "1";
@@ -24,12 +27,12 @@ in {
   #   "player_command": "${config.programs.mpv.package}/bin/umpv",
   #   "player_args": ["--no-config"]
   # '';
-  stylix.targets.firefox.profileNames = ["default"]; #lib.attrValues config.programs.firefox.profiles;
+  stylix.targets.firefox.profileNames = [ "default" ]; # lib.attrValues config.programs.firefox.profiles;
   stylix.targets.firefox.firefoxGnomeTheme.enable = true;
   programs.firefox = {
-    enable = true;
+    enable = lib.mkIf osConfig.modules.desktop.enable true;
 
-    languagePacks = ["en-GB"];
+    languagePacks = [ "en-GB" ];
 
     #   nativeMessagingHosts = with pkgs; [tridactyl-native];
 
@@ -61,7 +64,7 @@ in {
               }
             ];
             icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
-            definedAliases = ["@nix"];
+            definedAliases = [ "@nix" ];
           };
           "YT" = {
             urls = [
@@ -71,13 +74,13 @@ in {
             ];
             icon = "https://www.youtube.com/favicon.ico";
             updateInterval = 24 * 60 * 60 * 1000;
-            definedAliases = ["@yt"];
+            definedAliases = [ "@yt" ];
           };
           "google" = {
-            urls = [{template = "http://google.com.au/search?q={searchTerms}";}];
+            urls = [ { template = "http://google.com.au/search?q={searchTerms}"; } ];
             icon = "http://google.com.au/favicon.ico";
             updateInterval = 24 * 60 * 60 * 1000;
-            definedAliases = ["@g"];
+            definedAliases = [ "@g" ];
           };
         };
         force = true;
@@ -176,9 +179,12 @@ in {
 
         # * TRACKING PROTECTION **
         "browser.contentblocking.category" = "strict";
-        "urlclassifier.trackingSkipURLs" = "*.reddit.com, *.twitter.com, *.twimg.com, *.tiktok.com, *.facebook.com, *.youtube.com, *.netflix, *.binge.com";
-        "urlclassifier.features.socialtracking.skipURLs" = "*.instagram.com, *.twitter.com, *.twimg.com, *.facebook.com";
-        "privacy.query_stripping.strip_list" = "__hsfp __hssc __hstc __s _hsenc _openstat dclid fbclid gbraid gclid hsCtaTracking igshid mc_eid ml_subscriber ml_subscriber_hash msclkid oft_c oft_ck oft_d oft_id oft_ids oft_k oft_lk oft_sk oly_anon_id oly_enc_id rb_clickid s_cid twclid vero_conv vero_id wbraid wickedid yclid";
+        "urlclassifier.trackingSkipURLs" =
+          "*.reddit.com, *.twitter.com, *.twimg.com, *.tiktok.com, *.facebook.com, *.youtube.com, *.netflix, *.binge.com";
+        "urlclassifier.features.socialtracking.skipURLs" =
+          "*.instagram.com, *.twitter.com, *.twimg.com, *.facebook.com";
+        "privacy.query_stripping.strip_list" =
+          "__hsfp __hssc __hstc __s _hsenc _openstat dclid fbclid gbraid gclid hsCtaTracking igshid mc_eid ml_subscriber ml_subscriber_hash msclkid oft_c oft_ck oft_d oft_id oft_ids oft_k oft_lk oft_sk oly_anon_id oly_enc_id rb_clickid s_cid twclid vero_conv vero_id wbraid wickedid yclid";
         "browser.uitour.enabled" = false;
         "privacy.globalprivacycontrol.enabled" = true;
         "privacy.globalprivacycontrol.functionality.enabled" = true;

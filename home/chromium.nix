@@ -1,8 +1,13 @@
-{ pkgs, ... }:
+{
+  pkgs,
+  osConfig,
+  lib,
+  ...
+}:
 
 {
   programs.chromium = {
-    enable = true;
+    enable = lib.mkIf osConfig.modules.desktop.enable true;
     package = pkgs.ungoogled-chromium;
 
     commandLineArgs = [

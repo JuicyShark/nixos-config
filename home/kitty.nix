@@ -1,17 +1,18 @@
-{ config, pkgs, ... }:
+{
+  lib,
+  config,
+  osConfig,
+  pkgs,
+  ...
+}:
 
 let
   inherit (config.lib.stylix.colors.withHashtag) base00;
 in
 {
-  programs.kitty = {
+  programs.kitty = lib.mkIf osConfig.modules.desktop.enable {
     shellIntegration.enableZshIntegration = true;
     enable = true;
- /*   font = {
-          package = pkgs.nerd-fonts.iosevka-term;
-          name = "Iosevka Terminal Nerd Font";
- #         size = 13;
-    }; */
     settings = {
       term = "xterm-kitty";
       enable_audio_bell = false;
