@@ -11,14 +11,10 @@
       xh
       file
       timg
-      choose
       rustscan
       yt-dlp
-      timer
       dig
       mtr
-      mediainfo
-      fdupes
       whois
       killall
       hwinfo
@@ -26,24 +22,17 @@
       stress
       hdparm
       jpegoptim
-      npm-check-updates
-      microfetch
+      fastfetch
       onefetch
       asciiquarium-transparent
       cmatrix
       p7zip
       peaclock
-      unar
       rsync
       rclone
       ffmpeg
       imagemagick
       smartmontools
-      restic
-      borgbackup
-      zbar
-      phraze
-      lychee
       bluetui
       ventoy
       nixpkgs-review
@@ -56,11 +45,9 @@
       rustfmt
       cargo
       nodejs
-      monolith
-      haylxon
       nix-inspect
-      sherlock
-      remind
+      sherlock # Search Social Media Names
+      lemonade
       zoxide
     ];
   };
@@ -76,7 +63,8 @@
     direnv = {
       enable = true;
       nix-direnv.enable = true;
-      #silent = true;
+      enableFishIntegration = true;
+      silent = true;
     };
   };
 }
