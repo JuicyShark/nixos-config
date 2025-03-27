@@ -9,9 +9,7 @@
   inherit (config.modules.system) username;
   inherit (config.boot) isContainer;
   inherit (builtins) attrValues;
-  inherit (nix-config.inputs.hyprland.packages.${pkgs.system}) hyprland xdg-desktop-portal-hyprland;
   inherit (lib) mkEnableOption mkIf mkMerge mkOption;
-  hypr-pkgs = nix-config.inputs.hyprland.inputs.nixpkgs.legacyPackages.${pkgs.system};
   inherit (cfg) apps;
 
   cfg = config.modules.desktop;
@@ -41,14 +39,12 @@ in {
   config = mkIf cfg.enable {
     qt = {
       enable = true;
-      #platformTheme = "qt5ct";
     };
 
     hardware.graphics = {
-      package = mkIf (config.programs.hyprland.enable) hypr-pkgs.mesa.drivers;
-      package32 = mkIf (config.programs.hyprland.enable) hypr-pkgs.pkgsi686Linux.mesa.drivers;
       enable32Bit = mkIf (pkgs.system == "x86_64-linux") true;
     };
+
     environment.sessionVariables = {
       NIXOS_OZONE_WL = "1";
       GDK_BACKEND = "wayland,x11,*";
@@ -67,7 +63,7 @@ in {
     #virtualisation.waydroid.enable = mkIf gaming true;
     #virtualisation.libvirtd.enable = true;
     #virtualisation.spiceUSBRedirection.enable = true;
-    hardware.xpadneo.enable = mkIf apps.gaming true;
+
     systemd.extraConfig = mkIf apps.gaming "DefaultLimitNOFILE=1048576";
 
     users.users.juicy.extraGroups = ["libvirtd"];
@@ -90,10 +86,9 @@ in {
           };
         };
       };
+
       hyprland = {
         enable = mkIf (!isContainer) true;
-        package = hyprland;
-        portalPackage = xdg-desktop-portal-hyprland;
         withUWSM = true;
       };
 
@@ -169,9 +164,11 @@ in {
 
       pipewire = {
         enable = true;
-        alsa.enable = true;
-        alsa.support32Bit = true;
+        #alsa.enable = true;
+        #alsa.support32Bit = true;
         pulse.enable = true;
+
+        # wireplumber.enable = true;
       };
 
       greetd = mkIf (!isContainer) {
@@ -194,9 +191,7 @@ in {
     users.extraGroups.audio.members = [username];
     security.rtkit.enable = true;
 
-    boot = {
-      kernel.sysctl."vm.swappiness" = 10;
-    };
+    boot.kernel.sysctl."vm.swappiness" = 10;
 
     security.pam.loginLimits = [
       {
@@ -254,6 +249,7 @@ in {
         zathura
         pavucontrol
         appimage-run
+        rpi-imager
         #virt-manager
       ]))
 

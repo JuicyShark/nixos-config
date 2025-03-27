@@ -8,7 +8,7 @@
 }:
 with pkgs; let
   inherit (nixosConfig._module.specialArgs) nix-config;
-  inherit (nixosConfig._module.specialArgs.nix-config.inputs) hyprsunset hyprpicker hyprland-hy3 hyprland-plugins quickshell;
+  inherit (nixosConfig._module.specialArgs.nix-config.inputs) quickshell;
   stylix = config.lib.stylix.colors;
   inherit (nix-config.packages.${pkgs.system}) vim-hy3-nav;
   opacity = "0.95";
@@ -38,8 +38,6 @@ in {
     ../quickshell
   ];
   home.packages = with pkgs; [
-    hyprpicker.packages.${pkgs.system}.hyprpicker
-    hyprsunset.packages.${pkgs.system}.hyprsunset
     quickshell.packages.${pkgs.system}.quickshell
     hyprpolkitagent
     mpvpaper
@@ -56,9 +54,9 @@ in {
     package = null;
     portalPackage = null;
 
-    plugins = [
-      hyprland-plugins.packages.${pkgs.system}.hyprbars
-      hyprland-hy3.packages.${pkgs.system}.hy3
+    plugins = with pkgs.hyprlandPlugins; [
+      hyprbars
+      hy3
     ];
 
     settings = {
@@ -70,7 +68,7 @@ in {
 
       monitor = [
         "DP-1,5120x1440@120,auto,1"
-        #"DP-2,1920x1080,auto-left,1"
+        "DP-2,1920x1080@60,auto-left,1"
       ];
 
       exec = [
@@ -84,6 +82,7 @@ in {
         "systemctl --user start hyprpolkitagent"
         "wpctl set-volume @DEFAULT_SINK@ 40%"
         "quickshell"
+        "jellyfin-mpv-shim"
         "[workspace 1 silent; float] youtube-music"
         "[workspace 1 silent; float] bitwarden"
 
@@ -263,30 +262,30 @@ in {
         "tag +terminal, class:kitty"
 
         # Specific Game / Launcher Rules
-        "content game, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
-        "content game, title:^(UNDERTALE)$"
-
+        ##"content game, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
+        ##"content game, title:^(UNDERTALE)$"
+        #"tag +jellyfin, class:mpv, title:^(.*(Transcode) - mpv)$"
         #"nomaxsize,class:^(winecfg.exe|osu.exe)$"
-        "nodim,content:game"
-        "nodim,content:video"
+        ##"nodim,content:game"
+        ##"nodim,content:video"
         #"nodim,workspace:m[DP-2]"
         #"nodim,workspace:s[true]"
 
         # Classify Video content and picture in picture tags
-        "content video, class:mpv"
-        "content video, title:Picture-in-Picture"
+        ##"content video, class:mpv"
+        ##"content video, title:Picture-in-Picture"
         "tag +pip, title:Picture-in-Picture"
 
         # Video Content Rules
-        "idleinhibit always, content:video"
-        "noborder, content:video"
+        ##"idleinhibit always, content:video"
+        ##"noborder, content:video"
 
         # Picture in picture specific rules
-        "suppressevent activatefocus, content:video, tag:pip"
-        "float, content:video, tag:pip"
-        "pin, content:video, tag:pip"
-        "noinitialfocus, content:video, tag:pip"
-        "move 100%-99%, content:video, tag:pip"
+        ##"suppressevent activatefocus, content:video, tag:pip"
+        ##"float, content:video, tag:pip"
+        "pin, tag:pip"
+        ##"noinitialfocus, content:video, tag:pip"
+        ##"move 100%-99%, content:video, tag:pip"
 
         # Tag Launchers
         "tag +launcher, initialTitle:Battle.net"
@@ -297,17 +296,19 @@ in {
         "workspace unset, tag:launcher"
 
         # Game Content Rules
-        "monitor DP-1, content:game"
-        "workspace 5, content:game"
-        "noborder 1, content:game"
-        "noblur 1, content:game"
-        "xray 1, content:game"
-        "noanim 1, content:game"
-        "group deny, content:game"
-        "idleinhibit always, content:game"
+        ##"monitor DP-1, content:game"
+        ##"workspace 5, content:game"
+        ##"noborder 1, content:game"
+        ##"noblur 1, content:game"
+        ##"xray 1, content:game"
+        ##"noanim 1, content:game"
+        ##"group deny, content:game"
+        ##"idleinhibit always, content:game"
 
+        #
+        "workspace 9, tag:jellyfin"
         # Game Specific Rules
-        "fullscreenstate 1 2, initialTitle:(World of Warcraft)"
+        #"fullscreenstate 1 2, initialTitle:(World of Warcraft)"
 
         # Misc Windows
         "float, title:^(Extension: (Bitwarden - Free Password Manager).*)$"

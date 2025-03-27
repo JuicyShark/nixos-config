@@ -4,9 +4,7 @@
   lib,
   nix-config,
   ...
-}: let
-pkgs-hypr = nix-config.inputs.hyprland.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
-in {
+}:  {
   config = lib.mkIf config.modules.hardware.nvidia.enable {
     nixpkgs.config.nvidia.acceptLicense = true;
 
@@ -18,29 +16,25 @@ in {
         nvidiaPersistenced = false;
         powerManagement.enable = true;
         powerManagement.finegrained = false;
-        open = false;
+        open = true;
 
         nvidiaSettings = false;
       };
 
       graphics = {
         enable = true;
-            package = lib.mkIf config.programs.hyprland.enable (lib.mkForce pkgs-hypr.mesa.drivers);
-            enable32Bit = true;
-            package32 = lib.mkIf config.programs.hyprland.enable (lib.mkForce pkgs-hypr.pkgsi686Linux.mesa.drivers);
-        extraPackages = [ pkgs.nvidia-vaapi-driver ];
+        enable32Bit = true;
+        extraPackages = [pkgs.nvidia-vaapi-driver];
       };
     };
 
-    services.udev.packages = [ pkgs.linuxPackages.nvidia_x11 ];
+    services.udev.packages = [pkgs.linuxPackages.nvidia_x11_beta_open];
     services.xserver.videoDrivers = lib.mkDefault ["nvidia"];
 
     boot.extraModulePackages = [
-
-        config.boot.kernelPackages.nvidiaPackages.beta
-
+      config.boot.kernelPackages.nvidiaPackages.beta
     ];
-    boot.kernelParams = [ "nvidia-drm.fbdev=1" ];
+    boot.kernelParams = ["nvidia-drm.fbdev=1"];
     environment.sessionVariables = {
       GBM_BACKEND = "nvidia-drm";
       NVD_BACKEND = "direct";

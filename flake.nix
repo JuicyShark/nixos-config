@@ -1,4 +1,9 @@
 {
+  /*
+    nixpkgs.config = {
+    allowUnfree = true;
+  };
+  */
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -7,12 +12,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    agenix.url = "github:ryantm/agenix";
-    agenix.inputs.nixpkgs.follows = "nixpkgs";
-    # optionally choose not to download darwin deps (saves some resources on Linux)
-    agenix.inputs.darwin.follows = "";
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      # optionally choose not to download darwin deps (saves some resources on Linux)
+      inputs.darwin.follows = "";
+    };
 
-    nixtheplanet.url = "github:matthewcroughan/nixtheplanet";
+    #nixtheplanet.url = "github:matthewcroughan/nixtheplanet";
     stylix = {
       inputs = {
         nixpkgs.follows = "nixpkgs";
@@ -20,6 +27,7 @@
       };
       url = "github:danth/stylix";
     };
+
     quickshell = {
       url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -27,29 +35,6 @@
 
     disko = {
       url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Hypr Ecosystem
-    hyprland = {
-      url = "git+https://github.com/hyprwm/Hyprland?submodules=1"; #&ref=v0.47.2-b";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    hyprland-hy3 = {
-      url = "github:outfoxxed/hy3"; #?ref=hl0.47.0-1";
-      inputs.hyprland.follows = "hyprland";
-    };
-    hyprland-plugins = {
-      url = "github:hyprwm/hyprland-plugins";
-      inputs.hyprland.follows = "hyprland";
-    };
-    hyprsunset = {
-      url = "git+https://github.com/hyprwm/hyprsunset";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    hyprpicker = {
-      url = "git+https://github.com/hyprwm/hyprpicker";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -62,7 +47,7 @@
       url = "git+https://git.outfoxxed.me/outfoxxed/nix-qml-support";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    retro-ports.url = "github:nadiaholmquist/pc-ports.nix";
+    #retro-ports.url = "github:nadiaholmquist/pc-ports.nix";
   };
 
   outputs = {
@@ -90,6 +75,15 @@
         }
     );
 
+    devShell = forAllSystems (
+      pkgs:
+        pkgs.mkShell {
+          packages = [pkgs.qt6.qtdeclarative];
+          shellHook = ''
+            onefetch
+          '';
+        }
+    );
     nixosModules = genAttrs (map nameOf (listFilesRecursive ./modules)) (
       name: import ./modules/${name}.nix
     );
@@ -122,6 +116,6 @@
       # Extra Hosts here
     };
 
-    formatter = forAllSystems (pkgs: pkgs.nixfmt-rfc-style);
+    formatter = forAllSystems (pkgs: pkgs.alejandra);
   };
 }
