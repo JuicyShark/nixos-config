@@ -110,7 +110,7 @@ in {
       services.NetworkManager-wait-online.enable = false;
     };
     nixpkgs.config.allowUnfree = true;
-    nixpkgs.config.allowUnsupportedSystem = true;
+    #nixpkgs.config.allowUnsupportedSystem = true;
     nix = {
       package = pkgs.nixVersions.latest;
       gc.automatic = true;
@@ -163,8 +163,8 @@ in {
     };
 
     home-manager = {
-      useGlobalPkgs = true;
-      useUserPackages = true;
+      # useGlobalPkgs = true;
+      #useUserPackages = true;
 
       sharedModules = singleton {
         home = {inherit (cfg) stateVersion;};
@@ -179,21 +179,30 @@ in {
 
     networking = {
       inherit (cfg) hostName;
-      defaultGateway = lib.mkDefault "192.168.1.1";
-      nameservers = lib.mkDefault ["1.1.1.1" "8.8.8.8"];
+      useDHCP = lib.mkForce true;
+      /*
+        defaultGateway = lib.mkForce "192.168.1.99";
+      nameservers = lib.mkForce ["1.1.1.1" "8.8.8.8"];
+
+      interfaces.enp5s0.ipv4.addresses = [
+        {
+          address = "192.168.1.54";
+          prefixLength = 24;
+        }
+      ];
+      */
       enableIPv6 = lib.mkDefault true;
 
       networkmanager = {
         enable = lib.mkDefault true;
         wifi.macAddress = "random";
-        ethernet.macAddress = "random";
+        #ethernet.macAddress = "random";
 
         unmanaged = ["interface-name:ve-*"];
+        #useDHCP = true;
       };
 
-      useHostResolvConf = true;
-
-      resolvconf.enable = mkIf mullvad false;
+      #resolvconf.enable = mkIf mullvad false;
 
       nat = mkIf mullvad {
         enable = true;
