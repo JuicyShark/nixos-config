@@ -38,7 +38,6 @@ in {
         config.services.radarr.user
         config.services.lidarr.user
         config.services.bazarr.user
-        config.services.prowlarr.user
         ];
       };
       users.media = {
@@ -150,4 +149,48 @@ in {
         openFirewall = true;
       };
     };
+
+    matrix-synapse = {
+    enable = true;
+    enableRegistrationScript = true;
+
+    settings = {
+      server_name = "nixlab.au";
+      public_baseurl = "https://matrix.nixlab.au";
+
+      enable_registration = true;
+      enable_registration_without_verification = true;
+      #registration_shared_secrets = "gyQzMwGb97tMgKsalrjSxBB1UnKWzhs5hbXyQbNK7kD0kq7b44foIYakCaHabjVY";
+
+      listeners = [
+        {
+          port = 8008;
+          bind_addresses = [
+            "192.168.1.60"
+            "::1"
+            "127.0.0.1"
+          ];
+          type = "http";
+          tls = false;
+          x_forwarded = true;
+          resources = [
+            {
+              names = ["client" "federation"];
+              compress = false;
+            }
+          ];
+        }
+      ];
+
+      database = {
+        name = "sqlite3";
+        args = {
+          database = "/var/lib/matrix-synapse/homeserver.db";
+        };
+      };
+
+    };
+    };
+
+
 }

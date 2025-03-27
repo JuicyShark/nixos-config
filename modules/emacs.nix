@@ -58,6 +58,7 @@ in {
       # fava
       # :lang nix
       age
+      nixfmt
     ];
 
     environment.variables.PATH = ["$XDG_CONFIG_HOME/emacs/bin"];
