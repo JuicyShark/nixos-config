@@ -106,7 +106,7 @@ in
 
       loader = {
         systemd-boot = mkIf (pkgs.system != "aarch64-linux") {
-          enable = true;
+          enable = lib.mkDefault true;
           editor = false;
           configurationLimit = 10;
         };
