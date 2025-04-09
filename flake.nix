@@ -26,7 +26,15 @@
       };
       url = "github:danth/stylix";
     };
-
+    /*
+      hyprland.url = "github:hyprwm/Hyprland?submodules=1&ref=v0.47.2";
+      hy3 = {
+        url = "github:outfoxxed/hy3?ref=hl0.47.0-1"; # where {version} is the hyprland release version
+        # or "github:outfoxxed/hy3" to follow the development branch.
+        # (you may encounter issues if you dont do the same for hyprland)
+        inputs.hyprland.follows = "hyprland";
+      };
+    */
     quickshell = {
       url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -128,7 +136,6 @@
           specialArgs.nix-config = self;
           modules = listFilesRecursive ./hosts/zues;
         };
-
       };
 
       formatter = forAllSystems (pkgs: pkgs.alejandra);

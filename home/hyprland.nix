@@ -74,7 +74,7 @@ in
 
     plugins = with pkgs.hyprlandPlugins; [
       hyprbars
-      hy3
+      # nix-config.inputs.hy3.packages.${pkgs.system}.hy3
     ];
 
     settings = {
@@ -101,18 +101,18 @@ in
         "wpctl set-volume @DEFAULT_SINK@ 40%"
         "quickshell"
         "jellyfin-mpv-shim"
-        "[workspace 1 silent; float] youtube-music"
-        "[workspace 1 silent; float] bitwarden"
+        "[workspace 1 silent; float; move 100%-w-75] youtube-music"
+        "[workspace 1 silent; float; move 0%-w-75] bitwarden"
 
         "[workspace 2 silent] firefox"
 
         "[workspace 3 silent] emacs --fg-daemon"
         "[workspace 3 silent] kitty"
 
-        "[workspace 4 silent; float ] steam"
+        "steam"
         "[workspace 4 silent; float] discord"
-        "[workspace 4 silent; float] signal-desktop"
-        "[workspace 4 silent; float] telegram-desktop"
+        "[workspace 4 silent; float; move 0%-w-75] signal-desktop"
+        "[workspace 4 silent; float; move 100%-w-75] telegram-desktop"
         "hyprctl dispatch workspace 2"
       ];
 
@@ -144,7 +144,7 @@ in
         gaps_in = 0;
         gaps_out = "-4";
         border_size = 4;
-        layout = "hy3";
+        layout = "dwindle";
 
         snap = {
           enabled = true;
@@ -191,9 +191,9 @@ in
       };
 
       dwindle = {
-        preserve_split = false;
-        default_split_ratio = "1";
-        split_width_multiplier = "1";
+        preserve_split = true;
+        default_split_ratio = 1;
+        split_width_multiplier = "1.2";
         special_scale_factor = 1;
         split_bias = 1;
       };
@@ -208,7 +208,7 @@ in
         orientation = "center";
         #always_center_master = true;
         slave_count_for_center_master = 2;
-        center_master_slaves_on_right = false;
+        center_master_slaves_on_right = true;
         center_ignores_reserved = true;
       };
 
@@ -284,33 +284,29 @@ in
 
       windowrulev2 = [
         "plugin:hyprbars:nobar, floating:0"
+        "suppressevent maximize, class:.*"
+        "nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0" # Fix some dragging issues with XWayland
         "tag +terminal, class:kitty"
 
         # Specific Game / Launcher Rules
-        ##"content game, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
-        ##"content game, title:^(UNDERTALE)$"
-        #"tag +jellyfin, class:mpv, title:^(.*(Transcode) - mpv)$"
-        #"nomaxsize,class:^(winecfg.exe|osu.exe)$"
-        ##"nodim,content:game"
-        ##"nodim,content:video"
-        #"nodim,workspace:m[DP-2]"
-        #"nodim,workspace:s[true]"
+        "tag +game, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
+        "tag +game, title:^(UNDERTALE)$"
 
         # Classify Video content and picture in picture tags
-        ##"content video, class:mpv"
-        ##"content video, title:Picture-in-Picture"
+        "tag +video, class:mpv"
+        "tag +video, title:Picture-in-Picture"
         "tag +pip, title:Picture-in-Picture"
 
         # Video Content Rules
-        ##"idleinhibit always, content:video"
-        ##"noborder, content:video"
+        "idleinhibit always, tag:video"
+        "noborder, tag:video"
 
         # Picture in picture specific rules
-        ##"suppressevent activatefocus, content:video, tag:pip"
-        ##"float, content:video, tag:pip"
+        "suppressevent activatefocus, tag:video"
+        "float, tag:pip"
         "pin, tag:pip"
-        ##"noinitialfocus, content:video, tag:pip"
-        ##"move 100%-99%, content:video, tag:pip"
+        "noinitialfocus, tag:video"
+        "move 100%-99%, tag:pip"
 
         # Tag Launchers
         "tag +launcher, initialTitle:Battle.net"
@@ -321,19 +317,17 @@ in
         "workspace unset, tag:launcher"
 
         # Game Content Rules
-        ##"monitor DP-1, content:game"
-        ##"workspace 5, content:game"
-        ##"noborder 1, content:game"
-        ##"noblur 1, content:game"
-        ##"xray 1, content:game"
-        ##"noanim 1, content:game"
-        ##"group deny, content:game"
-        ##"idleinhibit always, content:game"
-
+        "workspace 5, tag:game"
+        "noanim 1, tag:game"
+        "group deny, tag:game"
+        "idleinhibit always, tag:game"
+        "nodim,tag:game"
+        "nodim,tag:video"
         #
-        "workspace 9, tag:jellyfin"
+        #"workspace 9, tag:jellyfin"
         # Game Specific Rules
-        #"fullscreenstate 1 2, initialTitle:(World of Warcraft)"
+        "fullscreenstate 0 2, initialTitle:(World of Warcraft)"
+        "suppressevent fullscreen, initialTitle:(World of Warcraft)"
 
         # Misc Windows
         "float, title:^(Extension: (Bitwarden - Free Password Manager).*)$"
@@ -346,14 +340,19 @@ in
         "move onscreen 100% 0%, class:^(com.saivert.pwvucontrol)$"
         "tile,class:^(.qemu-system-x86_64-wrapped)$"
         "opacity ${opacity} ${opacity},class:^(thunar)$"
+
+        "bordersize 0, floating:0, onworkspace:w[tv1]"
+        "rounding 0, floating:0, onworkspace:w[tv1]"
+        "bordersize 0, floating:0, onworkspace:f[1]"
+        "rounding 0, floating:0, onworkspace:f[1]"
       ];
 
       workspace = [
-        "1, monitor:DP-1, layoutopt:orientation:center"
+        "1, monitor:DP-1, gapsout:50,200,50,200, gapsin:0,30,0,30, rounding:true, layoutopt:orientation:center"
         "2, monitor:DP-1, layoutopt:orientation:center, default:true"
         "3, monitor:DP-1, layoutopt:orientation:center"
         "4, monitor:DP-1, layoutopt:orientation:right"
-        "5, monitor:DP-1, layoutopt:orientation:left"
+        "5, monitor:DP-1, decorate:0, shadow:0, border:0, layoutopt:orientation:left"
 
         "m[DP-2], layoutopt:orientation:left, decorate:false, shadow:false"
         "6, monitor:DP-2, default:true"
@@ -361,7 +360,12 @@ in
         "8, monitor:DP-2"
         "9, monitor:DP-2"
         "0, monitor:DP-2"
-        "special:scratchpad, on-created-empty:[monitor DP-1;float;size 25% 35%; move 37.5% 100%;]kitty"
+        "s[true], gapsout:0,400,0,400"
+        "special:scratchpad, gapsout:0,400,0,400, on-created-empty:kitty"
+
+        #No Gaps if only
+        "w[tv1], gapsout:0, gapsin:0"
+        "workspace = f[1], gapsout:0, gapsin:0"
       ];
 
       ecosystem = {
@@ -379,127 +383,129 @@ in
         initial_workspace_tracking = 0;
         font_family = "IosevkaTerm Nerd Font";
       };
-
-      bind =
-        [
-          # Hy3 Groups
-          "${mod}CONTROL, G, hy3:changegroup, toggletab"
-          "${mod}, tab, hy3:focustab, r, wrap"
-          "${mod}SHIFT, tab, hy3:focustab, l, wrap"
-
-          "${mod}CONTROL, left, hy3:makegroup, h"
-          "${mod}CONTROL, right, hy3:makegroup, h"
-          "${mod}CONTROL, down, hy3:makegroup, v"
-          "${mod}CONTROL, up, hy3:makegroup, v"
-
-          # Bar
-          #"${mod}CONTROL, B, exec, ${toggle "waybar"}"
-
-          ##window management
-          "${mod}SHIFT, Q, killactive,"
-
-          "${mod}CONTROL, F, togglefloating"
-          "${mod}CONTROL, P, pin"
-          "${mod}CONTROL, M, fullscreen"
-
-          # Search
-          "${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
-          "${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
-          "${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
-
-          "${mod}, Space, exec, quickshell ipc call launcher toggle"
-          #"${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
-          "${mod}, Return, exec, uwsm app -- kitty"
-
-          #"${mod}, c, exec, ${cliphist}/bin/cliphist list | ${toggle "${wofi}/bin/wofi --show dmenu"} | ${cliphist}/bin/cliphist decode | ${wl-clipboard}/bin/wl-copy"
-        ]
-        ++
-          # Change focused workspace
-          (map (n: "${mod},${n},workspace,${n}") workspaces)
-        ++
-          # Move window to workspace
-          (map (n: "${mod}SHIFT,${n},hy3:movetoworkspace,${n}, silent") workspaces)
-        ++
-          # Move focus to Hy3 Tab
-          (map (n: "${mod}ALT,${n},hy3:focustab, index, ${n}") workspaces)
-        ++
-          # Move focus in a direction
-          (lib.mapAttrsToList (key: direction: "${mod},${key},exec,vim-hy3-nav ${direction}") directions)
-        #(lib.mapAttrsToList (key: direction: "${mod},${key},hy3:movefocus,${direction}, visible") directions)
-        ++
-          # Move windows between visible nodes
-          (lib.mapAttrsToList (
-            key: direction: "${mod}SHIFT,${key},hy3:movewindow,${direction},once,visible"
-          ) directions)
-        ++
-          # Move windows between invisible nodes (tabs)
-          (lib.mapAttrsToList (
-            key: direction: "${mod}SHIFTCONTROL,${key},hy3:movewindow,${direction},once"
-          ) directions)
-        ++
-          # Open next window in given direction
-          (lib.mapAttrsToList (
-            key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}"
-          ) directions);
       /*
         bind =
           [
-            # Group Settings
-            "${mod}CONTROL, G, togglegroup"
-            # Dwindle Layout Messages
-            "${mod}CONTROL, S, layoutmsg, togglesplit"
-            "${mod}CONTROL, Space, layoutmsg, swapsplit"
-            "${mod}CONTROL, R, layoutmsg, movetoroot active"
-            # Master Layout Messages
-            "${mod}CONTROL, R, layoutmsg, mfact exact 0.5"
-            "${mod}CONTROL, U, layoutmsg, mfact exact 0.65"
-            "${mod}CONTROL, L, layoutmsg, orientationleft"
-            "${mod}CONTROL, C, layoutmsg, orientationcenter"
+            # Hy3 Groups
+            "${mod}CONTROL, G, hy3:changegroup, toggletab"
+            "${mod}, tab, hy3:focustab, r, wrap"
+            "${mod}SHIFT, tab, hy3:focustab, l, wrap"
 
-            "${mod}, tab, changegroupactive, f"
-            "${mod}SHIFT, tab, changegroupactive, b"
+            "${mod}CONTROL, left, hy3:makegroup, h"
+            "${mod}CONTROL, right, hy3:makegroup, h"
+            "${mod}CONTROL, down, hy3:makegroup, v"
+            "${mod}CONTROL, up, hy3:makegroup, v"
 
             # Bar
-            "${mod}CONTROL, B, exec, ${toggle "waybar"}"
+            #"${mod}CONTROL, B, exec, ${toggle "waybar"}"
+
             ##window management
             "${mod}SHIFT, Q, killactive,"
-            "${mod}SHIFT, L, lockactivegroup, toggle"
 
-            "${mod}CONTROL, M, fullscreen"
             "${mod}CONTROL, F, togglefloating"
             "${mod}CONTROL, P, pin"
-
-            # Swap Layouts
-            "${mod}CONTROL, D, exec, hyprctl keyword general:layout dwindle"
-            "${mod}CONTROL, M, exec, hyprctl keyword general:layout master"
+            "${mod}CONTROL, M, fullscreen"
 
             # Search
             "${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
             "${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
             "${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
 
-            "${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
+            "${mod}, Space, exec, quickshell ipc call launcher toggle"
+            #"${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
             "${mod}, Return, exec, uwsm app -- kitty"
+
+            #"${mod}, c, exec, ${cliphist}/bin/cliphist list | ${toggle "${wofi}/bin/wofi --show dmenu"} | ${cliphist}/bin/cliphist decode | ${wl-clipboard}/bin/wl-copy"
           ]
           ++
+            # Change focused workspace
+            (map (n: "${mod},${n},workspace,${n}") workspaces)
+          ++
+            # Move window to workspace
+            (map (n: "${mod}SHIFT,${n},hy3:movetoworkspace,${n}, silent") workspaces)
+          ++
+            # Move focus to Hy3 Tab
+            (map (n: "${mod}ALT,${n},hy3:focustab, index, ${n}") workspaces)
+          ++
+            # Move focus in a direction
+            (lib.mapAttrsToList (key: direction: "${mod},${key},exec,vim-hy3-nav ${direction}") directions)
+          #(lib.mapAttrsToList (key: direction: "${mod},${key},hy3:movefocus,${direction}, visible") directions)
+          ++
+            # Move windows between visible nodes
+            (lib.mapAttrsToList (
+              key: direction: "${mod}SHIFT,${key},hy3:movewindow,${direction},once,visible"
+            ) directions)
+          ++
+            # Move windows between invisible nodes (tabs)
+            (lib.mapAttrsToList (
+              key: direction: "${mod}SHIFTCONTROL,${key},hy3:movewindow,${direction},once"
+            ) directions)
+          ++
+            # Open next window in given direction
+            (lib.mapAttrsToList (
+              key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}"
+            ) directions);
+      */
+      bind =
+        [
+          # Group Settings
+          "${mod}CONTROL, G, togglegroup"
+          # Dwindle Layout Messages
+          "${mod}CONTROL, S, layoutmsg, togglesplit"
+          "${mod}CONTROL, Space, layoutmsg, swapsplit"
+          "${mod}CONTROL, R, layoutmsg, movetoroot active"
+          # Master Layout Messages
+          "${mod}CONTROL, R, layoutmsg, mfact exact 0.5"
+          "${mod}CONTROL, U, layoutmsg, mfact exact 0.65"
+          "${mod}CONTROL, L, layoutmsg, orientationleft"
+          "${mod}CONTROL, C, layoutmsg, orientationcenter"
+
+          "${mod}, tab, changegroupactive, f"
+          "${mod}SHIFT, tab, changegroupactive, b"
+
+          # Bar
+          "${mod}CONTROL, B, exec, ${toggle "waybar"}"
+          ##window management
+          "${mod}SHIFT, Q, killactive,"
+          "${mod}SHIFT, L, lockactivegroup, toggle"
+
+          "${mod}CONTROL, M, fullscreen"
+          "${mod}CONTROL, F, togglefloating"
+          "${mod}CONTROL, P, pin"
+
+          # Swap Layouts
+          "${mod}CONTROL, D, exec, hyprctl keyword general:layout dwindle"
+          "${mod}CONTROL, M, exec, hyprctl keyword general:layout master"
+
+          "${mod}, t, togglespecialworkspace, scratchpad"
+          # Search
+          "${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
+          "${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
+          "${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
+
+          "${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
+          "${mod}, Return, exec, uwsm app -- kitty"
+        ]
+        ++
           # Change workspace//
           (map (n: "${mod},${n},workspace,${n}") workspaces)
-          ++
+        ++
           # Move window to workspace
-          (map (n: "${mod}SHIFT,${n},movetoworkspacesilent,${n}")
-            workspaces)
-          ++
+          (map (n: "${mod}SHIFT,${n},movetoworkspacesilent,${n}") workspaces)
+        ++
           # Move focus, changes focus of nvim windows too
-          (lib.mapAttrsToList (key: direction: "${mod},${key},exec, ${vim-hypr-nav}/bin/vim-hypr-nav ${direction}")
-            directions)
-          ++
+          (lib.mapAttrsToList (key: direction: "${mod},${key}, movefocus, ${direction}") directions)
+        ++
           # Move windows
-          (lib.mapAttrsToList (key: direction: "${mod}SHIFT,${key},movewindoworgroup,${direction}") directions)
-          ++
+          (lib.mapAttrsToList (
+            key: direction: "${mod}SHIFT,${key},movewindoworgroup,${direction}"
+          ) directions)
+        ++
           # Open next window in given direction in dwindle
-          (lib.mapAttrsToList (key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}")
-            directions);
-      */
+          (lib.mapAttrsToList (
+            key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}"
+          ) directions);
+
       bindm = [
         "SUPER, mouse:272, movewindow"
         "SUPER, mouse:273, resizewindow"

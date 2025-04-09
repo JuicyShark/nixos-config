@@ -106,7 +106,7 @@ in
 
       loader = {
         systemd-boot = mkIf (pkgs.system != "aarch64-linux") {
-          enable = lib.mkDefault true;
+          enable = true;
           editor = false;
           configurationLimit = 10;
         };
@@ -235,6 +235,8 @@ in
         allowedUDPPorts = [
           67
           68
+          60344
+          24800
         ] ++ optional allowSRB2Port [ 5029 ];
         allowedTCPPorts = mkIf allowDevPort [ 3000 ];
       };
@@ -277,6 +279,16 @@ in
           PasswordAuthentication = true;
           KbdInteractiveAuthentication = false;
         };
+      };
+
+      glances = {
+        enable = true;
+        openFirewall = true;
+        port = 8008;
+        extraArgs = lib.mkDefault [
+          "--webserver"
+          "--disable-process"
+        ];
       };
     };
     programs.command-not-found.enable = false;

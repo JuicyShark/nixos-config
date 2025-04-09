@@ -3,9 +3,11 @@
   config,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (builtins) attrValues;
-in {
+in
+{
   imports = attrValues nix-config.nixosModules;
   home-manager.sharedModules = attrValues nix-config.homeModules;
   environment.systemPackages = attrValues nix-config.packages.${pkgs.system};
@@ -27,16 +29,18 @@ in {
       username = "juicy";
       hostName = "leo";
 
-      hashedPassword = config.age.secrets.juicy-password.path; #"$y$j9T$j5oMkFeAEFqm.TmI9Yql/0$nMZGLBa0Y5E2ORwPbIr1oHVUS2jZJUjFjPPWP.SAmR8";
+      hashedPassword = config.age.secrets.juicy-password.path; # "$y$j9T$j5oMkFeAEFqm.TmI9Yql/0$nMZGLBa0Y5E2ORwPbIr1oHVUS2jZJUjFjPPWP.SAmR8";
     };
 
     desktop = {
       enable = true;
       apps = {
         emacs = true;
+        llm = true;
         bloat = true;
         gaming = true;
         streaming = true;
+        virtual = true;
       };
     };
   };

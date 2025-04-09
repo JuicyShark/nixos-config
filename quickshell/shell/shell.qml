@@ -69,10 +69,41 @@ ShellRoot {
 					right: true
         }
 
-        Text {
 
-          text: "Hey"
-          color: "black"
+
+        ColumnLayout {
+          spacing: 0
+              Layout.leftMargin: 275
+              Layout.topMargin: 125
+
+          Rectangle {
+            Layout.alignment: Qt.AlignCenter
+              Layout.preferredHeight: 150
+              Layout.preferredWidth: 750
+
+        color: "transparent"
+            Text {
+              anchors.centerIn: parent
+
+              text: "Welcome Back ${user}"
+              color: "black"
+              width: 100
+              height: 50
+
+            }
+
+          }
+          Rectangle {
+              Layout.preferredHeight: 150
+              Layout.preferredWidth: 750
+
+        color: "transparent"
+              Text {
+                anchors.centerIn: parent
+                text: "The Weather is Currently ${temp} Outside"
+
+              }
+            }
         }
 			}
 		}
