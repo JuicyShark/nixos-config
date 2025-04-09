@@ -15,6 +15,7 @@ in
   environment.sessionVariables.FLAKE = "/srv/chonk/nix-config";
 
   networking.firewall.allowedTCPPorts = [
+    8123
     8521
     8686
     9050
