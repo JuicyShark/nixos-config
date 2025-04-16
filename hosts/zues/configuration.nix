@@ -67,7 +67,7 @@ in
             service = "http://192.168.1.60:8199";
           };
           "home-assist.nixlab.au" = {
-            service = "http://192.168.1.60:8123";
+            service = "http://192.168.1.59:8123";
           };
           "matrix.nixlab.au" = {
             service = "http://192.168.1.60:8008";

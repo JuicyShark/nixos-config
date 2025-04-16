@@ -32,7 +32,12 @@ in
       dynamic_background_opacity = true;
 
       window_padding_width = 5;
+      single_window_padding_width = 0;
+      placement_strategy = "bottom-left";
       tab_bar_margin_width = 5;
+      hide_window_decorations = "yes";
+
+      visual_window_select_characters = "arstneio12345";
 
       scrollback_pager = "less --chop-long-lines --raw-control-chars +INPUT_LINE_NUMBER";
 

@@ -19,12 +19,12 @@ in
       modules-left = [
         "custom/launcher"
         "hyprland/workspaces"
-        "hyprland/mode"
+        #"hyprland/mode"
 
       ];
       modules-center = [
-
-        "hyprland/window"
+        "tray"
+        #"hyprland/window"
 
       ];
       modules-right = [
@@ -200,7 +200,12 @@ in
           "5" = [ ];
         };
       };
-
+      "wlr/taskbar" = {
+        sort-by-app-id = true;
+        on-click = "minimize-raise";
+        on-middle-click = "close";
+        on-right-click = "minimize";
+      };
       mpd = {
         format = "{stateIcon} {consumeIcon}{randomIcon}{repeatIcon}{singleIcon}{artist} - {album} - {title} ({elapsedTime:%M:%S}/{totalTime:%M:%S}) ";
         format-disconnected = "Disconnected ";

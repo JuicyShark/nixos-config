@@ -34,6 +34,9 @@ in
 
     desktop = {
       enable = true;
+      wallpapers = {
+        "32:9".enable = false;
+      };
       apps = {
         emacs = true;
         llm = true;

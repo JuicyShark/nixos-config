@@ -38,17 +38,22 @@ Singleton {
 		activeAsync: persist.launcherOpen
 
 		PanelWindow {
-			width: 450
+			width: 350
 			height: 7 + searchContainer.implicitHeight + list.topMargin * 2 + list.delegateHeight * 10
-			color: "transparent"
+      color: "transparent"
+
+      //WlrLayershell.outputName: "DP-1"
 			WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 			WlrLayershell.namespace: "shell:launcher"
 
 			Rectangle {
-				//anchors.fill: parent
+        //anchors.fill: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+
 				height: 7 + searchContainer.implicitHeight + list.topMargin + list.bottomMargin + Math.min(list.contentHeight, list.delegateHeight * 10)
 				Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-				width: 450
+				width: 350
 				color: ShellGlobals.colors.bar
 				radius: 5
 				border.color: ShellGlobals.colors.barOutline
@@ -62,7 +67,7 @@ Singleton {
 
 					Rectangle {
 						id: searchContainer
-						Layout.fillWidth: true
+            Layout.fillWidth: true
 						implicitHeight: searchbox.implicitHeight + 10
 						color: "#30c0ffff"
 						radius: 3
@@ -87,7 +92,8 @@ Singleton {
 								Keys.forwardTo: [list]
 								Keys.onEscapePressed: persist.launcherOpen = false
 
-								Keys.onPressed: event => {
+                // Adding keybinds to move up/down in list
+								/* Keys.onPressed: event => {
 									if (event.modifiers & Qt.ControlModifier) {
 										if (event.key == Qt.Key_J) {
 											list.currentIndex = list.currentIndex == list.count - 1 ? 0 : list.currentIndex + 1;
@@ -97,7 +103,7 @@ Singleton {
 											event.accepted = true;
 										}
 									}
-								}
+                } */
 
 								onAccepted: {
 									if (list.currentItem) {
@@ -113,8 +119,8 @@ Singleton {
 					}
 
 					ListView {
-						id: list
-						Layout.fillWidth: true
+            id: list
+            Layout.fillWidth: true
 						Layout.fillHeight: true
 						clip: true
 						cacheBuffer: 0 // works around QTBUG-131106
@@ -251,12 +257,12 @@ Singleton {
 							}
 
 							RowLayout {
-								id: delegateLayout
+                id: delegateLayout
 								anchors {
 									verticalCenter: parent.verticalCenter
-									left: parent.left
 									leftMargin: 5
-								}
+                }
+
 
 								IconImage {
 									Layout.alignment: Qt.AlignVCenter

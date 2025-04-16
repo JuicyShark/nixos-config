@@ -13,7 +13,7 @@ let
   stylix = config.lib.stylix.colors;
   desktop = osConfig.modules.desktop.enable;
   inherit (nix-config.packages.${pkgs.system}) vim-hy3-nav;
-  opacity = "0.95";
+  opacity = "0.9";
 
   mod = "SUPER";
 
@@ -56,9 +56,8 @@ in
   home.packages =
     with pkgs;
     lib.mkIf desktop [
-      quickshell.packages.${pkgs.system}.quickshell
       hyprpolkitagent
-      mpvpaper
+      clipse
       wf-recorder
       playerctl
       socat
@@ -69,12 +68,11 @@ in
 
   wayland.windowManager.hyprland = lib.mkIf desktop {
     enable = true;
-    package = null;
-    portalPackage = null;
+    package = osConfig.programs.hyprland.package;
+    portalPackage = osConfig.programs.hyprland.portalPackage;
 
     plugins = with pkgs.hyprlandPlugins; [
       hyprbars
-      # nix-config.inputs.hy3.packages.${pkgs.system}.hy3
     ];
 
     settings = {
@@ -85,8 +83,9 @@ in
       ];
 
       monitor = [
-        "DP-1,5120x1440@120,auto,1"
+        "DP-1,5120x1440@120,auto,1,bitdepth,10,cm,wide"
         "DP-2,1920x1080@60,auto-left,1"
+        #"headless,1920x1080@60,0x0,1"
       ];
 
       exec = [
@@ -97,22 +96,21 @@ in
         "uwsm finalize"
         "mullvad connect"
 
+        "emacs --daemon"
+
         "systemctl --user start hyprpolkitagent"
         "wpctl set-volume @DEFAULT_SINK@ 40%"
         "quickshell"
-        "jellyfin-mpv-shim"
-        "[workspace 1 silent; float; move 100%-w-75] youtube-music"
-        "[workspace 1 silent; float; move 0%-w-75] bitwarden"
+        "[float] jellyfin-mpv-shim"
+
+        "[workspace 1 silent; float; move 100%-w-75; size 900 500] youtube-music"
+        "[workspace 1 silent; float; move 0%-w-75; size 900 500] bitwarden"
 
         "[workspace 2 silent] firefox"
 
-        "[workspace 3 silent] emacs --fg-daemon"
-        "[workspace 3 silent] kitty"
-
         "steam"
-        "[workspace 4 silent; float] discord"
-        "[workspace 4 silent; float; move 0%-w-75] signal-desktop"
-        "[workspace 4 silent; float; move 100%-w-75] telegram-desktop"
+        "discord"
+        "[move 100%-w-75] telegram-desktop"
         "hyprctl dispatch workspace 2"
       ];
 
@@ -192,10 +190,10 @@ in
 
       dwindle = {
         preserve_split = true;
-        default_split_ratio = 1;
+        default_split_ratio = "1";
         split_width_multiplier = "1.2";
         special_scale_factor = 1;
-        split_bias = 1;
+        split_bias = 0;
       };
 
       master = {
@@ -213,6 +211,13 @@ in
       };
 
       plugin = {
+        scroller = {
+          column_widths = "onehalf onethird onefifth, one";
+          window_heights = "one onefifth";
+          column_default_width = "onethird";
+          window_default_height = "one";
+        };
+
         hyprbars = {
           bar_height = 30;
           bar_text_size = 13;
@@ -223,49 +228,6 @@ in
             "rgb(ff4040), 10, 󰖭, hyprctl dispatch killactive"
             "rgb(eeee11), 10, , hyprctl dispatch float 1"
           ];
-        };
-
-        hy3 = {
-          no_gaps_when_only = 1;
-          node_collapse_policy = 1;
-          group_inset = 0;
-          tab_first_window = false;
-
-          tabs = {
-            height = 38;
-            padding = 0;
-            text_height = 13;
-            radius = config.wayland.windowManager.hyprland.settings.decoration.rounding;
-            border_width = config.wayland.windowManager.hyprland.settings.general.border_size;
-            text_font = config.wayland.windowManager.hyprland.settings.misc.font_family;
-            opacity = "0.9";
-            # TODO use stylix
-            "col.active" = "rgba(${stylix.base02}ff)"; # default: rgba(50a0e0ff)
-            "col.active.border" = config.wayland.windowManager.hyprland.settings.group."col.border_active";
-            "col.active.text" = "rgba(${stylix.base0B}ff)"; # default: rgba(ffffffff)
-
-            # focused tab bar segment colors (focused node in unfocused container)
-            "col.focused" = "rgba(${stylix.base00}f2)";
-            "col.focused.border" = config.wayland.windowManager.hyprland.settings.group."col.border_active";
-            "col.focused.text" = "rgba(${stylix.base0B}ff)"; # default: rgba(ffffffff)
-
-            # inactive tab bar segment colors
-            "col.inactive" = "rgba(${stylix.base00}f2)"; # default: rgba(30303050)
-            "col.inactive.border" = config.wayland.windowManager.hyprland.settings.group."col.border_inactive";
-            "col.inactive.text" = "rgba(${stylix.base04}ff)"; # default: rgba(ffffffff)
-
-            # urgent tab bar segment colors
-            "col.urgent" = "rgba(${stylix.base0E}f2)"; # default: rgba(ff4f4fff)
-            "col.urgent.border" = "rgba(${stylix.base0E}ff)"; # default: rgba(ff8080ff)
-            "col.urgent.text" = "rgba(${stylix.base02}ff)"; # default: rgba(ffffffff)
-          };
-          # Based on a 5120x1440, 32:9 display
-          autotile = {
-            enable = true;
-            epherhemeral_groups = true;
-            trigger_width = 1150;
-            trigger_height = 525;
-          };
         };
       };
 
@@ -278,25 +240,33 @@ in
       };
 
       layerrule = [
-        "blur,wofi"
+        "blur,launcher"
         "blur,notifications"
       ];
 
       windowrulev2 = [
         "plugin:hyprbars:nobar, floating:0"
         "suppressevent maximize, class:.*"
+        "float, workspace:1"
+
+        "persistentsize, class:.*, xwayland:0, content:none"
         "nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0" # Fix some dragging issues with XWayland
         "tag +terminal, class:kitty"
 
+        "persistentsize, class:.*"
         # Specific Game / Launcher Rules
         "tag +game, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
         "tag +game, title:^(UNDERTALE)$"
+
+        "tag +social, class:signal"
+        "tag +social, class:org.telegram.desktop"
+        "tag +social, class:discord"
 
         # Classify Video content and picture in picture tags
         "tag +video, class:mpv"
         "tag +video, title:Picture-in-Picture"
         "tag +pip, title:Picture-in-Picture"
-
+        "content video, tag:video"
         # Video Content Rules
         "idleinhibit always, tag:video"
         "noborder, tag:video"
@@ -310,11 +280,14 @@ in
 
         # Tag Launchers
         "tag +launcher, initialTitle:Battle.net"
+        "tag +launcher, class:steam, title:Steam"
 
         # Launchers
         "float, tag:launcher"
         "size 1680 1080, tag:launcher"
         "workspace unset, tag:launcher"
+
+        "float, tag:social"
 
         # Game Content Rules
         "workspace 5, tag:game"
@@ -322,9 +295,10 @@ in
         "group deny, tag:game"
         "idleinhibit always, tag:game"
         "nodim,tag:game"
+        "plugin:hyprbars:nobar, tag:game"
+
         "nodim,tag:video"
-        #
-        #"workspace 9, tag:jellyfin"
+
         # Game Specific Rules
         "fullscreenstate 0 2, initialTitle:(World of Warcraft)"
         "suppressevent fullscreen, initialTitle:(World of Warcraft)"
@@ -336,6 +310,9 @@ in
         "float, class:^(thunar|com.saivert.pwvucontrol|RimPy)$"
         "float, class:(org.keepassxc.KeePassXC)"
         "float, title:^(Sign In - Google Accounts.*)$"
+        "float, class:(Tk)"
+
+        "workspace 9, class:steam, title:Steam Big Picture Mode"
 
         "move onscreen 100% 0%, class:^(com.saivert.pwvucontrol)$"
         "tile,class:^(.qemu-system-x86_64-wrapped)$"
@@ -383,69 +360,6 @@ in
         initial_workspace_tracking = 0;
         font_family = "IosevkaTerm Nerd Font";
       };
-      /*
-        bind =
-          [
-            # Hy3 Groups
-            "${mod}CONTROL, G, hy3:changegroup, toggletab"
-            "${mod}, tab, hy3:focustab, r, wrap"
-            "${mod}SHIFT, tab, hy3:focustab, l, wrap"
-
-            "${mod}CONTROL, left, hy3:makegroup, h"
-            "${mod}CONTROL, right, hy3:makegroup, h"
-            "${mod}CONTROL, down, hy3:makegroup, v"
-            "${mod}CONTROL, up, hy3:makegroup, v"
-
-            # Bar
-            #"${mod}CONTROL, B, exec, ${toggle "waybar"}"
-
-            ##window management
-            "${mod}SHIFT, Q, killactive,"
-
-            "${mod}CONTROL, F, togglefloating"
-            "${mod}CONTROL, P, pin"
-            "${mod}CONTROL, M, fullscreen"
-
-            # Search
-            "${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
-            "${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
-            "${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
-
-            "${mod}, Space, exec, quickshell ipc call launcher toggle"
-            #"${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
-            "${mod}, Return, exec, uwsm app -- kitty"
-
-            #"${mod}, c, exec, ${cliphist}/bin/cliphist list | ${toggle "${wofi}/bin/wofi --show dmenu"} | ${cliphist}/bin/cliphist decode | ${wl-clipboard}/bin/wl-copy"
-          ]
-          ++
-            # Change focused workspace
-            (map (n: "${mod},${n},workspace,${n}") workspaces)
-          ++
-            # Move window to workspace
-            (map (n: "${mod}SHIFT,${n},hy3:movetoworkspace,${n}, silent") workspaces)
-          ++
-            # Move focus to Hy3 Tab
-            (map (n: "${mod}ALT,${n},hy3:focustab, index, ${n}") workspaces)
-          ++
-            # Move focus in a direction
-            (lib.mapAttrsToList (key: direction: "${mod},${key},exec,vim-hy3-nav ${direction}") directions)
-          #(lib.mapAttrsToList (key: direction: "${mod},${key},hy3:movefocus,${direction}, visible") directions)
-          ++
-            # Move windows between visible nodes
-            (lib.mapAttrsToList (
-              key: direction: "${mod}SHIFT,${key},hy3:movewindow,${direction},once,visible"
-            ) directions)
-          ++
-            # Move windows between invisible nodes (tabs)
-            (lib.mapAttrsToList (
-              key: direction: "${mod}SHIFTCONTROL,${key},hy3:movewindow,${direction},once"
-            ) directions)
-          ++
-            # Open next window in given direction
-            (lib.mapAttrsToList (
-              key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}"
-            ) directions);
-      */
       bind =
         [
           # Group Settings
@@ -472,18 +386,22 @@ in
           "${mod}CONTROL, M, fullscreen"
           "${mod}CONTROL, F, togglefloating"
           "${mod}CONTROL, P, pin"
-
+          "${mod}CONTROL, L, exec, quickshell ipc call lockscreen lock"
           # Swap Layouts
           "${mod}CONTROL, D, exec, hyprctl keyword general:layout dwindle"
+          "${mod}CONTROL, V, exec, hyprctl keyword general:layout scoller"
           "${mod}CONTROL, M, exec, hyprctl keyword general:layout master"
 
           "${mod}, t, togglespecialworkspace, scratchpad"
-          # Search
-          "${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
-          "${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
-          "${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
 
-          "${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
+          "${mod}, V, exec,  kitty --class clipse -e 'clipse'"
+          "${mod}, C, exec,  kitty --class clipse -e 'clipse'"
+          # Search
+          #"${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
+          #"${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
+          #"${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
+          "${mod}, Space, exec, quickshell ipc call launcher toggle"
+          #"${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
           "${mod}, Return, exec, uwsm app -- kitty"
         ]
         ++
@@ -552,6 +470,8 @@ in
           bind = , Return ,submap, reset
           bind = , W, exec, uwsm app -- firefox
           bind = , W,submap, reset
+          bind = , B, exec, bambu-studio
+          bind = , B, submap, reset
           bind = , D, exec, uwsm app -- discord
           bind = , D,submap, reset
           bind = , S, exec, grimblast copy area
@@ -561,8 +481,24 @@ in
           bind = , V, exec, uwsm app -- pwvucontrol
           bind = , V,submap, reset
           bind = , T, submap, openTerminal
+
+          bind = , E, submap, emacs
           bind = , catchall, submap, reset
           submap = reset
+
+        submap = emacs
+          bind = , E, exec, emacsclient -r
+          bind = , E, focuswindow, class:(emacs)
+          bind = , E, submap, reset
+          bind = , N, exec, emacsclient -c
+          bind = , N, submap, reset
+          bind = , dot, exec, emacsclient -r .
+          bind = , dot, submap, reset
+          bind = , D, exec, emacsclient -c --eval "(call-interactively org-dailies-goto-today)"
+          bind = , D, submap, reset,
+          bind = , catchall, submap, reset
+        submap = reset
+
         bind = ${mod}, T, submap, openTerminal
         submap = openTerminal
           bind = , Return, exec, uwsm app -- kitty
@@ -583,28 +519,12 @@ in
   };
 
   services = lib.mkIf desktop {
-    hyprpaper = {
-      enable = true;
-      settings = {
-        ipc = "on";
-        splash = false;
-        splash_offset = 2.0;
-
-        preload = [ "${config.xdg.userDirs.pictures}/wallpaper/32:9/pixel-horizon.png" ];
-
-        wallpaper = [
-          "DP-1, ~/media/pictures/wallpaper/32:9/pixel-horizon.png"
-          "DP-2,${config.xdg.userDirs.pictures}/wallpaper/32:9/pixel-horizon.png"
-        ];
-      };
-    };
-
     hypridle = {
       enable = true;
 
       settings = {
         general = {
-          lock_cmd = "pidof hyprlock || hyprlock";
+          lock_cmd = "quickshell ipc call lockscreen lock";
           before_sleep_cmd = "loginctl lock-session";
           after_sleep_cmd = "hyprctl dispatch dpms on";
         };
@@ -615,52 +535,10 @@ in
             on-timeout = "loginctl lock-session";
           }
           {
-            timeout = 1280;
-            on-timeout = "hyprctl dispatch dpms off";
-            on-resume = "hyprctl dispatch dpms on";
-          }
-          {
             timeout = 4800;
             on-timeout = "systemctl suspend";
           }
         ];
-      };
-    };
-  };
-  systemd.user.services.hypridle.Unit.After = lib.mkForce "graphical-session.target";
-  programs.hyprlock = lib.mkIf desktop {
-    enable = true;
-
-    settings = {
-      general = {
-        hide_cursor = true;
-        grace = 2;
-      };
-
-      background = {
-        #color = "rgba(25, 20, 20, 1.0)";
-        #path = "screenshot";
-        blur_passes = 2;
-        brightness = 0.5;
-      };
-
-      label = {
-        text = "Welcome";
-        #color = "rgba(222, 222, 222, 1.0)";
-        font_size = 50;
-        font_family = "Noto Sans";
-        position = "0, 70";
-        halign = "center";
-        valign = "center";
-      };
-
-      input-field = {
-        size = "50, 50";
-        dots_size = 0.33;
-        dots_spacing = 0.15;
-        #outer_color = "rgba(25, 20, 20, 0)";
-        #inner_color = "rgba(25, 20, 20, 0)";
-        #font_color = "rgba(222, 222, 222, 1.0)";
       };
     };
   };

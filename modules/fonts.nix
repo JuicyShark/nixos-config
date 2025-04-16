@@ -1,25 +1,23 @@
 { pkgs, ... }:
-  {
-  /*  fonts = {
-      enableDefaultPackages = false;
+{
+  fonts = {
+    enableDefaultPackages = false;
 
-      packages = with pkgs; [
-        nerd-fonts.iosevka
-        nerd-fonts.iosevka-term
-        nerd-fonts.mononoki
-        roboto-serif
-        liberation_ttf
-      ];
+    packages = with pkgs; [
+      roboto-serif
+    ];
 
-      fontconfig = {
-        defaultFonts = {
-
-          serif = ["JetBrainsMonoNL Nerd Font"];
-          sansSerif = ["JetBrainsMonoNL Nerd Font Propo"];
-          monospace = ["Iosevka Nerd Font Mono"];
-        };
-
-        allowBitmaps = false;
+    fontconfig = {
+      defaultFonts = {
+        serif = [ "Mononoki Nerd Font" ];
+        sansSerif = [ "Iosevka Nerd Font" ];
+        monospace = [
+          #"ShureTechMono Nerd Font"
+          "IosevkaTerm Nerd Font Mono"
+        ];
       };
-    };*/
+
+      allowBitmaps = false;
+    };
+  };
 }

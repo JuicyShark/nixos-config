@@ -26,8 +26,9 @@
       };
       url = "github:danth/stylix";
     };
+
     /*
-      hyprland.url = "github:hyprwm/Hyprland?submodules=1&ref=v0.47.2";
+      hyprland.url = "github:hyprwm/Hyprland";
       hy3 = {
         url = "github:outfoxxed/hy3?ref=hl0.47.0-1"; # where {version} is the hyprland release version
         # or "github:outfoxxed/hy3" to follow the development branch.
@@ -35,6 +36,7 @@
         inputs.hyprland.follows = "hyprland";
       };
     */
+
     quickshell = {
       url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";

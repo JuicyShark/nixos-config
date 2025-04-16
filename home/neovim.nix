@@ -129,33 +129,7 @@ in
           nowait = true;
         };
       }
-      {
-        mode = [
-          "n"
-          "v"
-        ];
-        key = "<leader>fh";
-        action = "<cmd>Telescope harpoon marks<CR>";
-        options = {
-          desc = "[F]ind [H]arpoons";
-          silent = true;
-          nowait = true;
-        };
-      }
-      {
-        mode = [
-          "n"
-          "v"
-          "i"
-        ];
-        key = "<C-h>";
-        action = "<cmd>Telescope harpoon marks<CR>";
-        options = {
-          desc = "[F]ind [H]arpoons";
-          silent = true;
-          nowait = true;
-        };
-      }
+
       {
         mode = [
           "n"
@@ -360,24 +334,6 @@ in
         };
       };
       neorg.enable = true;
-      harpoon = {
-        enable = false;
-        enableTelescope = true;
-        markBranch = true;
-
-        keymaps = {
-          addFile = "<C-a>";
-          navFile = {
-            "1" = "<C-1>";
-            "2" = "<C-2>";
-            "3" = "<C-3>";
-            "4" = "<C-4>";
-          };
-          navNext = "<C-e>";
-          navPrev = "<C-q>";
-          toggleQuickMenu = "<C-w>";
-        };
-      };
 
       # TODO setup FOLKE plugins
       trouble = {

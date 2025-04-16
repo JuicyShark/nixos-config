@@ -1,28 +1,30 @@
 {
   nix-config,
+  config,
   pkgs,
   ...
 }:
 
 let
-  opacity = 0.95;
-  fontSize = 11;
+  opacity = 0.87;
+  fontSize = 13;
 in
 {
+
+  options.modules.desktop.baseOpacity = 0.9;
   imports = with nix-config.inputs.stylix.nixosModules; [ stylix ];
-  environment.systemPackages = with pkgs; [
-    gtk3
-  ];
-  stylix = {
+
+  config = {
+    stylix = {
       enable = true;
       autoEnable = true;
       #image = "${stylix-background}/wallpaper.png";
       image = pkgs.fetchurl {
-    url = "https://www.pixelstalk.net/wp-content/uploads/2016/05/Epic-Anime-Awesome-Wallpapers.jpg";
-    sha256 = "enQo3wqhgf0FEPHj2coOCvo7DuZv+x5rL/WIo4qPI50=";
-  };
+        url = "https://raw.githubusercontent.com/nodesleep/dual-monitor-wallpapers/refs/heads/main/ROCCAT_AIMO-3DLighting_Wallpaper_5120x1440_DualWHQD.png";
+        sha256 = "sha256-JJ7rgj6dh3H9e+ri4bTAsZjvqTNSlBaY9pv3FPbjIz0=";
+      };
       polarity = "dark";
-        base16Scheme = {
+      base16Scheme = {
         system = "base16";
         name = "selenized-black";
         author = "Jan Warchol (https://github.com/jan-warchol/selenized) / adapted to base16 by ali";
@@ -62,17 +64,17 @@ in
       fonts = {
         serif = {
           package = pkgs.nerd-fonts.mononoki;
-          name = "Mononoki Nerd Font Propo";
+          name = "Mononoki Nerd Font";
         };
 
         sansSerif = {
           package = pkgs.nerd-fonts.iosevka;
-          name = "Iosevka Nerd Font Propo";
+          name = "Iosevka Nerd Font";
         };
 
         monospace = {
           package = pkgs.nerd-fonts.iosevka-term;
-          name = "Iosevka Terminal Nerd Font";
+          name = "IosevkaTerm Nerd Font Mono";
         };
 
         emoji = {
@@ -81,11 +83,12 @@ in
         };
 
         sizes = {
-          applications = fontSize;
+          applications = fontSize - 2;
           desktop = fontSize - 1;
           popups = fontSize - 2;
-          terminal = fontSize + 1;
+          terminal = fontSize;
         };
       };
+    };
   };
 }

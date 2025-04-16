@@ -5,7 +5,8 @@
   pkgs,
   nix-config,
   ...
-}: {
+}:
+{
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
     nix-config.inputs.disko.nixosModules.default
@@ -15,9 +16,14 @@
 
   boot = {
     initrd = {
-      availableKernelModules = ["nvme" "xhci_pci" "usb_storage" "sd_mod"];
+      availableKernelModules = [
+        "nvme"
+        "xhci_pci"
+        "usb_storage"
+        "sd_mod"
+      ];
 
-      kernelModules = [];
+      kernelModules = [ ];
     };
 
     kernelModules = [
@@ -33,15 +39,18 @@
       "intel_iommu=on"
       "nouveau.modeset=0"
     ];
-    supportedFilesystems = ["ntfs" "btrfs" "nfs"];
-    extraModulePackages = [];
+    supportedFilesystems = [
+      "ntfs"
+      "btrfs"
+      "nfs"
+    ];
+    extraModulePackages = [ ];
   };
 
-  swapDevices = [];
+  swapDevices = [ ];
 
   networking.hostName = "leo";
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.intel.updateMicrocode =
-    lib.mkDefault config.hardware.enableRedistributableFirmware;
+  hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }

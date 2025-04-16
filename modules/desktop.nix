@@ -42,11 +42,16 @@ in
       llm = mkEnableOption "Llama llm model runner";
       virtual = mkEnableOption "Enable Qemu Support";
     };
+
+    wallpapers = {
+      "32:9".enable = lib.mkEnableOption "Dual monitor wallpapers";
+    };
   };
 
   config = mkIf cfg.enable {
     qt = {
       enable = true;
+      platformTheme = lib.mkForce "qt5ct";
     };
 
     hardware.graphics = {
@@ -87,42 +92,53 @@ in
     #virtualisation.spiceUSBRedirection.enable = true;
 
     systemd.extraConfig = mkIf apps.gaming "DefaultLimitNOFILE=1048576";
-    systemd.user.services.mqtt-listener = {
-      description = "MQTT Command Listener";
-      wantedBy = [ "default.target" ];
-      serviceConfig = {
-        ExecStart = ''
-
-          ${pkgs.mosquitto}/bin/mosquitto_sub -h 192.168.1.59:8123 -t "hyprland/command" | \
-          while read -r msg; do
-            case "$msg" in
-              lock) hyprctl dispatch lock ;;
-              dpms_off) hyprctl dispatch dpms off ;;
-              dpms_on) hyprctl dispatch dpms on ;;
-              next_ws) hyprctl dispatch workspace e+1 ;;
-              prev_ws) hyprctl dispatch workspace e-1 ;;
-            esac
-          done
-
-        '';
+    systemd.tmpfiles.rules = [
+      "L /home/${username}/chonk - - - - /mnt/chonk"
+    ];
+    users.users.juicy.extraGroups = [ "libvirtd" ];
+    fileSystems."/mnt/chonk" = {
+      device = "//192.168.1.60/chonk";
+      fsType = "cifs";
+      options = [
+        "credentials=/etc/nixos/samba-credentials"
+        "iocharset=utf8"
+        "uid=1000" # Replace with your user's UID
+        "gid=100" # Replace with your user's GID
+        "vers=3.0" # Or try 2.1 / 1.0 depending on your server's SMB version
+        "nofail"
+        "x-systemd.automount"
+        "x-systemd.idle-timeout=600"
+        "x-systemd.mount-timeout=30"
+      ];
+    };
+    services.displayManager = {
+      defaultSession = "hyprland-uwsm";
+      autoLogin = {
+        user = username;
+        enable = false;
       };
     };
-    users.users.juicy.extraGroups = [ "libvirtd" ];
 
     services.xserver = mkIf (!isContainer) {
       enable = true;
+
       excludePackages = with pkgs; [ xterm ];
-      displayManager.startx.enable = mkIf isContainer true;
-      displayManager.gdm = {
-        enable = true;
-        wayland = true;
+      displayManager = {
+
+        startx.enable = mkIf isContainer true;
+        gdm = {
+          enable = true;
+          wayland = true;
+        };
       };
       desktopManager.gnome.enable = true;
     };
+
     programs = {
       firefox.enable = true;
       #ladybird.enable = true; # Keep an eye on, independant web browser
-      uwsm = {
+      /*
+        uwsm = {
         enable = mkIf (!isContainer) true;
         waylandCompositors = {
           sway = {
@@ -131,29 +147,26 @@ in
             binPath = "/run/current-system/sw/bin/sway";
           };
         };
-      };
+        };
+      */
 
       hyprland = {
         enable = mkIf (!isContainer) true;
-        # package = nix-config.inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-        # portalPackage = nix-config.inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
         withUWSM = true;
       };
 
-      sway = {
-        enable = mkIf (!isContainer) true;
-        wrapperFeatures.gtk = true;
-        extraOptions = [
-          "--unsupported-gpu"
-        ];
-        extraPackages = with pkgs; [
-          swayr
-        ];
-      };
-
-      regreet = {
-        enable = true;
-      };
+      /*
+        sway = {
+          enable = mkIf (!isContainer) false;
+          wrapperFeatures.gtk = true;
+          extraOptions = [
+            "--unsupported-gpu"
+          ];
+          extraPackages = with pkgs; [
+            swayr
+          ];
+        };
+      */
 
       cdemu.enable = true;
       steam = {
@@ -169,7 +182,6 @@ in
         enable = true;
         plugins = with pkgs.xfce; [ thunar-volman ];
       };
-      appimage.binfmt = mkIf apps.bloat true;
       gnupg = {
         agent = {
           enable = true;
@@ -196,25 +208,53 @@ in
     };
 
     services = {
+      flatpak.enable = lib.mkIf apps.bloat true;
       playerctld.enable = true;
-      hardware.openrgb = {
-        enable = true;
-        motherboard = "intel";
-
-      };
       ollama.enable = mkIf apps.llm true;
+
       nextjs-ollama-llm-ui.enable = mkIf apps.llm true;
       udisks2 = {
         enable = true;
         mountOnMedia = true;
       };
 
-      libinput = {
-        touchpad = {
-          naturalScrolling = true;
-          accelProfile = "flat";
-          accelSpeed = "0.75";
+      sunshine = {
+        enable = lib.mkIf apps.streaming true;
+        autoStart = true;
+        capSysAdmin = true;
+        openFirewall = true;
+        settings = {
+          port = 47989;
+          sunshine_name = "Max-Nixos";
         };
+        applications = {
+          env = {
+            PATH = "$(PATH):$(HOME)/.local/bin";
+          };
+          apps = [
+            {
+              name = "1440p Desktop";
+              prep-cmd = [
+                {
+                  do = "hyprctl keyword monitor DP-1,2560x1440@120,auto,1";
+                  undo = "hyprctl keyword monitor DP-1,5120x1440@120,auto,1";
+                }
+              ];
+              exclude-global-prep-cmd = "false";
+              auto-detach = "true";
+            }
+          ];
+        };
+      };
+
+      libinput = {
+        /*
+          touchpad = {
+            naturalScrolling = true;
+            accelProfile = "flat";
+            accelSpeed = "0.75";
+          };
+        */
 
         mouse = {
           accelProfile = "flat";
@@ -230,18 +270,6 @@ in
         # wireplumber.enable = true;
       };
 
-      greetd = mkIf (!isContainer) {
-        enable = lib.mkForce false;
-        restart = true;
-        settings = {
-          default_session = {
-            command = "${lib.getExe config.programs.regreet.package}";
-            # command = "${lib.getExe config.programs.uwsm.package} start hyprland-uwsm.desktop";
-            user = "juicy";
-          };
-        };
-      };
-
       dbus.implementation = lib.mkForce "dbus";
       tumbler.enable = true;
       gvfs.enable = true;
@@ -254,6 +282,8 @@ in
     security.rtkit.enable = true;
 
     boot.kernel.sysctl."vm.swappiness" = 10;
+
+    security.pam.services.quickshell = { };
 
     security.pam.loginLimits = [
       {
@@ -292,71 +322,81 @@ in
       KERNEL=="hpet", GROUP="audio"
     '';
 
-    environment.systemPackages = mkMerge [
-      (mkIf apps.bloat (
-        with pkgs;
-        [
-          audacity
-          moonlight-qt
-          runelite
-          iamb
-          obsidian
-          gimp
-          element-desktop
-          signal-desktop
-          telegram-desktop
-          clipboard-jh
+    environment.systemPackages =
+      let
+        #Bambu is broken with Nvidia cards, this fixes it by changing env vars
+        bambu-studio-wrapped = pkgs.writeShellScriptBin "bambu-studio" ''
+          export __EGL_VENDOR_LIBRARY_FILENAMES=/run/opengl-driver/share/glvnd/egl_vendor.d/50_mesa.json
+          export __GLX_VENDOR_LIBRARY_NAME=mesa
+          export MESA_LOADER_DRIVER_OVERRIDE=zink
+          export GALLIUM_DRIVER=zink
+          export WEBKIT_DISABLE_DMABUF_RENDERER=1
+          exec ${pkgs.bambu-studio}/bin/bambu-studio "$@"
+        '';
+      in
+      mkMerge [
+        (mkIf apps.bloat (
+          with pkgs;
+          [
+            audacity
+            runelite
+            iamb
+            obsidian
+            gimp
+            element-desktop
+            signal-desktop
+            telegram-desktop
+            clipboard-jh
 
-          #bambu-studio
-          pwvucontrol
-          jellyfin-media-player
-          discord
-          youtube-music
-          zathura
-          pavucontrol
-          appimage-run
-          rpi-imager
+            bambu-studio-wrapped
+            pwvucontrol
+            jellyfin-media-player
+            discord
+            youtube-music
+            zathura
+            pavucontrol
+            rpi-imager
 
-          virt-manager
-          input-leap
-          sonobus
-        ]
-      ))
+            virt-manager
+            input-leap
+            sonobus
+          ]
+        ))
 
-      (mkIf config.hardware.keyboard.zsa.enable (with pkgs; [ keymapp ]))
-      (mkIf apps.streaming (
-        with pkgs;
-        [
-          obs-studio
-          streamlink
-        ]
-      ))
-      (mkIf apps.gaming (
-        with pkgs;
-        [
-          heroic
-          ryujinx
-          dolphin-emu
-          osu-lazer-bin
-          wowup-cf
-        ]
-      ))
-      (mkIf apps.virtual (
-        with pkgs;
-        [
-          quickemu
-        ]
-      ))
-      (with pkgs; [
-        bitwarden
-        pulseaudio
-        grim
-        wl-clipboard-rs
-        gparted
-        qt6.qtwayland
-        pciutils
-        libmtp
-      ])
-    ];
+        (mkIf config.hardware.keyboard.zsa.enable (with pkgs; [ keymapp ]))
+        (mkIf apps.streaming (
+          with pkgs;
+          [
+            obs-studio
+            streamlink
+          ]
+        ))
+        (mkIf apps.gaming (
+          with pkgs;
+          [
+            heroic
+            ryujinx
+            dolphin-emu
+            osu-lazer-bin
+            wowup-cf
+          ]
+        ))
+        (mkIf apps.virtual (
+          with pkgs;
+          [
+            quickemu
+          ]
+        ))
+        (with pkgs; [
+          bitwarden
+          pulseaudio
+          grim
+          wl-clipboard-rs
+          gparted
+          qt6.qtwayland
+          pciutils
+          libmtp
+        ])
+      ];
   };
 }

@@ -6,7 +6,6 @@ import Quickshell
 import "systray" as SysTray
 import "audio" as Audio
 import "mpris" as Mpris
-import "power" as Power
 import "root:notifications" as Notifs
 
 BarContainment {
@@ -65,7 +64,7 @@ BarContainment {
 				Workspaces {
 					bar: root
 					Layout.fillWidth: true
-					wsBaseIndex: root.screen.name == "DP-1" ? 11 : 1;
+					wsBaseIndex: root.screen.name == "DP-1" ? 1 : 11;
 					hideWhenEmpty: root.isSoleBar
         }
       }

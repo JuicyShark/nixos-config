@@ -291,8 +291,11 @@ in
         ];
       };
     };
+    programs.mosh = {
+      enable = true;
+      withUtempter = true;
+    };
     programs.command-not-found.enable = false;
-
     programs.ssh.startAgent = false;
 
     security.pam.services."greetd".gnupg.enable = true;

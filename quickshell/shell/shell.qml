@@ -10,9 +10,10 @@ import "bar" as Bar
 import "lock" as Lock
 import "notifications" as Notifs
 import "launcher" as Launcher
+import "submapOverlay" as Submap
 
 ShellRoot {
-	Component.onCompleted: [Lock.Controller, Launcher.Controller.init()]
+	Component.onCompleted: [Lock.Controller, Launcher.Controller.init(), Submap.Controller.init()]
 
 	ReloadPopup {}
 
@@ -37,9 +38,14 @@ ShellRoot {
 		}
 	}
 
-	Notifs.NotificationOverlay {
-		screen: Quickshell.screens.find(s => s.name == "DP-1")
-	}
+
+
+	  Notifs.NotificationOverlay {
+		  screen: Quickshell.screens.find(s => s.name == "DP-1")
+	  }
+		Bar.Bar {
+			screen: Quickshell.find(s => s.name == "DP-1")
+    }
 
 	Variants {
 		model: Quickshell.screens
@@ -47,9 +53,7 @@ ShellRoot {
 		Scope {
 			property var modelData
 
-			Bar.Bar {
-				screen: modelData
-			}
+
 
       //Background Overlay
 			PanelWindow {
