@@ -21,7 +21,7 @@
   boot.extraModulePackages = [ ];
   boot.loader = {
     grub.enable = lib.mkForce true;
-    systemd-boot.enable = false;
+    systemd-boot.enable = lib.mkForce false;
     efi.canTouchEfiVariables = true;
   };
   boot.initrd = {

@@ -284,7 +284,7 @@ in
       glances = {
         enable = true;
         openFirewall = true;
-        port = 8008;
+        port = 55555;
         extraArgs = lib.mkDefault [
           "--webserver"
           "--disable-process"

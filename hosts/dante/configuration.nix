@@ -23,6 +23,7 @@ in
     2283
     8008
     80
+    445
   ];
   system.autoUpgrade = {
     enable = true;
@@ -69,6 +70,7 @@ in
 
   services = {
     mullvad-vpn.enable = true;
+    # jmusicbot.enable = true;
 
     vaultwarden = {
       enable = true;
@@ -219,6 +221,50 @@ in
           };
         };
       };
+    };
+
+    # Network Share
+    gvfs.enable = true;
+    samba = {
+      enable = true;
+      settings = {
+        global = {
+          "workgroup" = "nixlab.au";
+          "server string" = "smbnix";
+          "netbios name" = "smbnix";
+          "security" = "user";
+          #"use sendfile" = "yes";
+          #"max protocol" = "smb2";
+          # note: localhost is the ipv6 localhost ::1
+          "hosts allow" = "192.168.1. 192.168.1.54 127.0.0.1 localhost";
+          "hosts deny" = "0.0.0.0/0";
+          "guest account" = "nobody";
+          "map to guest" = "bad user";
+          "passwd program" = "/run/wrappers/bin/passwd %u";
+        };
+        "public" = {
+          "path" = "/srv/public";
+          "browseable" = "yes";
+          "read only" = "no";
+          "guest ok" = "yes";
+          "create mask" = "0644";
+          "directory mask" = "0755";
+        };
+        "chonk" = {
+          "path" = "/srv/chonk/";
+          "browseable" = "yes";
+          "read only" = "no";
+          "guest ok" = "yes";
+          "create mask" = "0644";
+          "directory mask" = "0755";
+          "force user" = "juicy";
+          "force group" = "users";
+        };
+      };
+    };
+    samba-wsdd = {
+      enable = true;
+      openFirewall = true;
     };
   };
 

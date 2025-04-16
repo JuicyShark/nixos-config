@@ -249,6 +249,8 @@ in
     };
 
     users.extraGroups.audio.members = [ username ];
+    users.extraGroups.media.mempers = [ username ];
+
     security.rtkit.enable = true;
 
     boot.kernel.sysctl."vm.swappiness" = 10;
