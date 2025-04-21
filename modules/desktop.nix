@@ -71,46 +71,9 @@ in
       XDG_SESSION_TYPE = "wayland";
       XDG_SCREENSHOTS_DIR = "/home/${username}/pictures/screenshots";
     };
-    users.groups.libvirtd.members = [ username ];
-
-    virtualisation = {
-      libvirtd = {
-        enable = true;
-
-        qemu = {
-          package = pkgs.qemu_kvm;
-          ovmf = {
-            enable = true;
-            packages = [ pkgs.OVMFFull.fd ];
-          };
-          swtpm.enable = true;
-        };
-      };
-    };
-    #virtualisation.waydroid.enable = mkIf gaming true;
-    #virtualisation.libvirtd.enable = true;
-    #virtualisation.spiceUSBRedirection.enable = true;
 
     systemd.extraConfig = mkIf apps.gaming "DefaultLimitNOFILE=1048576";
-    systemd.tmpfiles.rules = [
-      "L /home/${username}/chonk - - - - /mnt/chonk"
-    ];
-    users.users.juicy.extraGroups = [ "libvirtd" ];
-    fileSystems."/mnt/chonk" = {
-      device = "//192.168.1.60/chonk";
-      fsType = "cifs";
-      options = [
-        "credentials=/etc/nixos/samba-credentials"
-        "iocharset=utf8"
-        "uid=1000" # Replace with your user's UID
-        "gid=100" # Replace with your user's GID
-        "vers=3.0" # Or try 2.1 / 1.0 depending on your server's SMB version
-        "nofail"
-        "x-systemd.automount"
-        "x-systemd.idle-timeout=600"
-        "x-systemd.mount-timeout=30"
-      ];
-    };
+
     services.displayManager = {
       defaultSession = "hyprland-uwsm";
       autoLogin = {
@@ -277,7 +240,7 @@ in
     };
 
     users.extraGroups.audio.members = [ username ];
-    users.extraGroups.media.mempers = [ username ];
+    users.extraGroups.media.members = [ username ];
 
     security.rtkit.enable = true;
 

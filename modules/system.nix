@@ -68,7 +68,7 @@ in
 
     stateVersion = mkOption {
       type = str;
-      default = "24.05";
+      default = "24.11";
     };
 
     hostName = mkOption {
@@ -102,11 +102,11 @@ in
             cleanOnBoot = true;
           };
 
-      binfmt.emulatedSystems = mkIf (pkgs.system == "x86_64-linux") [ "aarch64-linux" ];
+      #     binfmt.emulatedSystems = mkIf (pkgs.system == "x86_64-linux") [ "aarch64-linux" ];
 
       loader = {
         systemd-boot = mkIf (pkgs.system != "aarch64-linux") {
-          enable = true;
+          enable = lib.mkIf (!isContainer) true;
           editor = false;
           configurationLimit = 10;
         };
@@ -118,7 +118,26 @@ in
       kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_stable;
       blacklistedKernelModules = [ "floppy" ];
     };
-
+    /*
+      systemd.tmpfiles.rules = [
+        "L /home/${username}/chonk - - - - /mnt/chonk"
+      ];
+    */
+    fileSystems."/mnt/chonk" = {
+      device = "//192.168.1.60/chonk";
+      fsType = "cifs";
+      options = [
+        "credentials=/etc/nixos/samba-credentials"
+        "iocharset=utf8"
+        "uid=1000" # Reace with your user's UID
+        "gid=100" # Replace with your user's GID
+        "vers=3.0" # Or try 2.1 / 1.0 depending n your server's SMB version
+        "nofail"
+        "x-systemd.automount"
+        "x-systemd.idle-timeout=600"
+        "x-systemd.mount-timeout=30"
+      ];
+    };
     systemd = {
       extraConfig = "DefaultTimeoutStopSec=10s";
       services.NetworkManager-wait-online.enable = false;
