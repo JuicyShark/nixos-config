@@ -138,7 +138,14 @@
           specialArgs.nix-config = self;
           modules = listFilesRecursive ./hosts/zues;
         };
+        nixos = nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = { inherit inputs; };
+          specialArgs.nix-config = self;
+          modules = listFilesRecursive ./hosts/nix-wsl;
+        };
       };
+
 
       formatter = forAllSystems (pkgs: pkgs.alejandra);
     };
