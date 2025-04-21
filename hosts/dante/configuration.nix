@@ -84,7 +84,7 @@ in
     };
 
     immich = {
-      enable = true;
+      enable = false;
       host = "192.168.1.60";
       group = "media";
       port = 2283;
@@ -254,17 +254,20 @@ in
           "path" = "/srv/chonk/";
           "browseable" = "yes";
           "read only" = "no";
-          "guest ok" = "yes";
-          "create mask" = "0644";
-          "directory mask" = "0755";
+          "guest ok" = "no";
+          #"create mask" = "0644";
+          #"directory mask" = "0755";
           "force user" = "juicy";
-          "force group" = "users";
+          #"force group" = "users";
         };
       };
     };
     samba-wsdd = {
       enable = true;
       openFirewall = true;
+      discovery = true;
+      workgroup = "nixlab.au";
+
     };
   };
 

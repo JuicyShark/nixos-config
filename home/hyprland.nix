@@ -83,7 +83,7 @@ in
       ];
 
       monitor = [
-        "DP-1,5120x1440@120,auto,1,bitdepth,10,cm,wide"
+        "DP-1,highres,auto,1,bitdepth,10,cm,wide"
         "DP-2,1920x1080@60,auto-left,1"
         #"headless,1920x1080@60,0x0,1"
       ];

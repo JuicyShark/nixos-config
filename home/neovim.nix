@@ -22,7 +22,7 @@ in
     vimAlias = true;
     withNodeJs = false;
     withRuby = false;
-
+    dependencies.nodejs.enable = false;
     globals = {
       mapleader = " ";
       maplocalleader = "<C-Space>";
@@ -473,7 +473,6 @@ in
         enable = true;
         folding = true;
         nixvimInjections = true;
-        nodejsPackage = null;
         nixGrammars = true;
         grammarPackages = with pkgs.tree-sitter-grammars; [
           tree-sitter-norg

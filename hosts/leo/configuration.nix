@@ -11,7 +11,7 @@ in
   imports = attrValues nix-config.nixosModules;
   home-manager.sharedModules = attrValues nix-config.homeModules;
   environment.systemPackages = attrValues nix-config.packages.${pkgs.system};
-  environment.sessionVariables.FLAKE = "/home/juicy/projects/nix-config";
+  environment.sessionVariables.FLAKE = "/home/juicy/chonk/nixos-config";
   age.secrets.juicy-password = {
     file = ../../secrets/juicy-password.age;
   };
@@ -29,7 +29,7 @@ in
       username = "juicy";
       hostName = "leo";
 
-      hashedPassword = config.age.secrets.juicy-password.path; # "$y$j9T$j5oMkFeAEFqm.TmI9Yql/0$nMZGLBa0Y5E2ORwPbIr1oHVUS2jZJUjFjPPWP.SAmR8";
+      hashedPassword = config.age.secrets.juicy-password.path;
     };
 
     desktop = {
