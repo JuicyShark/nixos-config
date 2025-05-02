@@ -125,6 +125,14 @@
           specialArgs.nix-config = self;
           modules = listFilesRecursive ./hosts/leo;
         };
+
+        # Extra Hosts here
+        hyperjuice = nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = { inherit inputs; };
+          specialArgs.nix-config = self;
+          modules = listFilesRecursive ./hosts/hyperjuice;
+        };
         # Extra Hosts here
         dante = nixosSystem {
           system = "x86_64-linux";
@@ -145,7 +153,6 @@
           modules = listFilesRecursive ./hosts/nix-wsl;
         };
       };
-
 
       formatter = forAllSystems (pkgs: pkgs.alejandra);
     };

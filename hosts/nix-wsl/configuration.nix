@@ -17,30 +17,32 @@
   imports = [
     # include NixOS-WSL modules
     <nixos-wsl/modules>
-
   ] ++ (builtins.attrValues nix-config.nixosModules);
+
   home-manager.sharedModules = builtins.attrValues nix-config.homeModules;
   environment.systemPackages = builtins.attrValues nix-config.packages.${pkgs.system};
+  environment.sessionVariables = {
+    FLAKE = "/mnt/chonk/nixos-config";
+    #GDK_BACKEND = "wayland";
+    #   XDG_SESSION_TYPE = "wayland";
+    WAYLAND_DISPLAY = "wayland-0";
+  };
 
   modules = {
     desktop.enable = true;
-
+    desktop.apps.llm = false;
+    desktop.apps.emacs = true;
+    hardware.nvidia.enable = true;
   };
+
   wsl.enable = true;
   wsl.defaultUser = "juicy";
-  boot.isContainer = true;
-  # This value determines the NixOS release from which the default
-  # settings for stateful data, like file locations and database versions
-  # on your system were taken. It's perfectly fine and recommended to leave
-  # this value at the release version of the first install of this system.
-  # Before changing this value read the documentation for this option
-  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "24.11"; # Did you read the comment?
 
+  #TODO need to limit to more CLI tools
+  boot.isContainer = true;
   boot.kernelModules = [ "nfs" ];
   boot.supportedFilesystems = [
     "btrfs"
     "nfs"
   ];
 }
-

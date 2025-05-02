@@ -83,7 +83,6 @@ in
       sqlite
       graphviz
 
-
       # :lang cc
       clang-tools
       gnumake

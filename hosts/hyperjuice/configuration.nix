@@ -12,9 +12,6 @@ in
   home-manager.sharedModules = attrValues nix-config.homeModules;
   environment.systemPackages = attrValues nix-config.packages.${pkgs.system};
   environment.sessionVariables.FLAKE = "/mnt/chonk/nixos-config";
-  age.secrets.juicy-password = {
-    file = ../../secrets/juicy-password.age;
-  };
 
   modules = {
     router.enable = false;
@@ -29,7 +26,7 @@ in
       username = "juicy";
       hostName = "leo";
 
-      hashedPassword = config.age.secrets.juicy-password.path;
+      #hashedPassword =
     };
 
     desktop = {

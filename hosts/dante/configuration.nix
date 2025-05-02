@@ -12,8 +12,7 @@ in
   imports = attrValues nix-config.nixosModules;
   home-manager.sharedModules = attrValues nix-config.homeModules;
   environment.systemPackages = attrValues nix-config.packages.${pkgs.system};
-  environment.sessionVariables.FLAKE = "/srv/chonk/nix-config";
-
+  environment.sessionVariables.FLAKE = "/mnt/chonk/nixos-config";
   networking.firewall.allowedTCPPorts = [
     8123
     8521

@@ -118,11 +118,11 @@ in
       kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_stable;
       blacklistedKernelModules = [ "floppy" ];
     };
-    /*
+
       systemd.tmpfiles.rules = [
         "L /home/${username}/chonk - - - - /mnt/chonk"
       ];
-    */
+
     fileSystems."/mnt/chonk" = {
       device = "//192.168.1.60/chonk";
       fsType = "cifs";
