@@ -1,8 +1,12 @@
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   users.defaultUserShell = pkgs.fish;
 
   environment = {
-    shells = with pkgs; [fish zsh];
+    shells = with pkgs; [
+      fish
+      zsh
+    ];
 
     systemPackages = with pkgs; [
       jq
@@ -34,7 +38,6 @@
       imagemagick
       smartmontools
       bluetui
-      ventoy
       nixpkgs-review
       nix-init
       nix-update
@@ -52,7 +55,7 @@
     ];
   };
 
-  environment.pathsToLink = ["/share/fish"];
+  environment.pathsToLink = [ "/share/fish" ];
   environment.variables = {
     SSH_AUTH_SOCK = "$(gpgconf --list-dirs agent-ssh-socket)";
   };

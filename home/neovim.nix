@@ -379,7 +379,7 @@ in
                 render = "plain";
                 replace = true;
                 win_options = {
-                  concealcursor = "n";
+
                   conceallevel = 3;
                 };
               };
@@ -600,12 +600,6 @@ in
         pattern = [ "norg" ];
         command = "setlocal conceallevel=1";
         desc = "Conceal Syntax Attribute";
-      }
-      {
-        event = "FileType";
-        pattern = [ "norg" ];
-        command = "setlocal concealcursor=n";
-        desc = "Conceal line when not editing";
       }
       {
         event = "FileType";

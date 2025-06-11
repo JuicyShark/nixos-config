@@ -78,8 +78,9 @@ in
   };
 
   networking = {
-    defaultGateway = "192.168.1.1";
-    nameservers = [ "1.1.1.1" ];
+    useDHCP = true;
+    #defaultGateway = "192.168.1.1";
+    #nameservers = [ "1.1.1.1" ];
     wireless.enable = false;
 
     firewall.trustedInterfaces = [ "br0" ];
@@ -97,7 +98,6 @@ in
 
     interfaces.br0 = {
       #defaultGateway = "192.168.1.1";
-      useDHCP = false;
       ipv4.addresses = [
         {
           address = "192.168.1.99";
@@ -106,5 +106,116 @@ in
       ];
     };
   };
+  networking.firewall.allowedTCPPorts = [
+    8123
+    8521
+    8686
+    9050
+    3456
+    2283
+    8008
+    80
+    445
+  ];
+  system.autoUpgrade = {
+    enable = true;
+    flake = inputs.self.outPath;
+    flags = [
+      "--update-input"
+      "nixpkgs"
+      "-L" # print build logs
+    ];
+    dates = "weekly";
+    randomizedDelaySec = "45min";
+  };
 
+  users = {
+    groups.media = {
+      name = "media";
+      members = [
+        "juicy"
+      ];
+    };
+    users.media = {
+      isSystemUser = true;
+      group = "media";
+    };
+  };
+
+  services = {
+    mullvad-vpn.enable = true;
+    # jmusicbot.enable = true;
+
+    vaultwarden = {
+      enable = true;
+      config = {
+        DOMAIN = "https://pass.nixlab.au";
+        SIGNUPS_ALLOWED = true;
+        ROCKET_ADDRESS = "192.168.1.60";
+        ROCKET_PORT = "8521";
+        WEB_VAULT_ENABLED = true;
+      };
+    };
+
+    immich = {
+      enable = false;
+      host = "192.168.1.60";
+      user = "media";
+      group = "media";
+      port = 2283;
+      mediaLocation = "/srv/chonk/media/immich";
+      machine-learning.enable = true;
+      redis.enable = true;
+      openFirewall = true;
+    };
+
+    jellyseerr = {
+      enable = true;
+      port = 5055;
+      openFirewall = true;
+    };
+
+    matrix-synapse = {
+      enable = true;
+      enableRegistrationScript = true;
+
+      settings = {
+        server_name = "nixlab.au";
+        public_baseurl = "https://matrix.nixlab.au";
+
+        enable_registration = true;
+        enable_registration_without_verification = true;
+        #registration_shared_secrets = "gyQzMwGb97tMgKsalrjSxBB1UnKWzhs5hbXyQbNK7kD0kq7b44foIYakCaHabjVY";
+
+        listeners = [
+          {
+            port = 8008;
+            bind_addresses = [
+              "192.168.1.60"
+              "::1"
+              "127.0.0.1"
+            ];
+            type = "http";
+            tls = false;
+            x_forwarded = true;
+            resources = [
+              {
+                names = [
+                  "client"
+                  "federation"
+                ];
+                compress = false;
+              }
+            ];
+          }
+        ];
+
+        database = {
+          name = "sqlite3";
+          args = {
+            database = "/var/lib/matrix-synapse/homeserver.db";
+          };
+        };
+      };
+    };
 }

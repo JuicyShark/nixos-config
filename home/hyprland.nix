@@ -83,8 +83,8 @@ in
       ];
 
       monitor = [
-        "DP-1,highres,auto,1,bitdepth,10,cm,wide"
-        "DP-2,1920x1080@60,auto-left,1"
+        "DP-1,highres,auto,1"
+        #"DP-2,1920x1080@60,auto-left,1"
         #"headless,1920x1080@60,0x0,1"
       ];
 
@@ -94,9 +94,9 @@ in
 
       exec-once = [
         "uwsm finalize"
-        "mullvad connect"
+        #"mullvad connect"
 
-        "emacs --daemon"
+        #"emacs --daemon"
 
         "systemctl --user start hyprpolkitagent"
         "wpctl set-volume @DEFAULT_SINK@ 40%"
@@ -206,7 +206,7 @@ in
         orientation = "center";
         #always_center_master = true;
         slave_count_for_center_master = 2;
-        center_master_slaves_on_right = true;
+        #center_master_slaves_on_right = true;
         center_ignores_reserved = true;
       };
 

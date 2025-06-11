@@ -34,10 +34,30 @@
     desktop.apps.emacs = true;
     hardware.nvidia.enable = true;
   };
+  networking = {
+    defaultGateway = lib.mkForce "192.168.1.1";
+    nameservers = lib.mkForce [
+      "1.1.1.1"
+      "8.8.8.8"
+    ];
 
-  wsl.enable = true;
-  wsl.defaultUser = "juicy";
-
+    interfaces.enp5s0.ipv4.addresses = [
+      {
+        address = "192.168.1.49";
+        prefixLength = 24;
+      }
+    ];
+  };
+  wsl = {
+    enable = true;
+    defaultUser = "juicy";
+    useWindowsDriver = true;
+    wslConf = {
+      "wsl2" = {
+        networkingMode = "mirrored";
+      };
+    };
+  };
   #TODO need to limit to more CLI tools
   boot.isContainer = true;
   boot.kernelModules = [ "nfs" ];
@@ -45,4 +65,9 @@
     "btrfs"
     "nfs"
   ];
+  services.jellyfin = {
+    enable = true;
+    group = "media";
+    openFirewall = true;
+  };
 }

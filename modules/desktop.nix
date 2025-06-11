@@ -100,8 +100,8 @@ in
     programs = {
       firefox.enable = true;
       #ladybird.enable = true; # Keep an eye on, independant web browser
-      /*
-        uwsm = {
+
+      uwsm = {
         enable = mkIf (!isContainer) true;
         waylandCompositors = {
           sway = {
@@ -110,8 +110,7 @@ in
             binPath = "/run/current-system/sw/bin/sway";
           };
         };
-        };
-      */
+      };
 
       hyprland = {
         enable = mkIf (!isContainer) true;
@@ -171,7 +170,7 @@ in
     };
 
     services = {
-      flatpak.enable = lib.mkIf apps.bloat true;
+      #flatpak.enable = lib.mkIf apps.bloat true;
       playerctld.enable = true;
       ollama.enable = mkIf apps.llm true;
 
@@ -181,43 +180,38 @@ in
         mountOnMedia = true;
       };
 
-      sunshine = {
-        enable = lib.mkIf apps.streaming true;
-        autoStart = true;
-        capSysAdmin = true;
-        openFirewall = true;
-        settings = {
-          port = 47989;
-          sunshine_name = "Max-Nixos";
-        };
-        applications = {
-          env = {
-            PATH = "$(PATH):$(HOME)/.local/bin";
+      /*
+        sunshine = {
+          enable = lib.mkIf apps.streaming true;
+          autoStart = true;
+          capSysAdmin = true;
+          openFirewall = true;
+          settings = {
+            port = 47989;
+            sunshine_name = "Max-Nixos";
           };
-          apps = [
-            {
-              name = "1440p Desktop";
-              prep-cmd = [
-                {
-                  do = "hyprctl keyword monitor DP-1,2560x1440@120,auto,1";
-                  undo = "hyprctl keyword monitor DP-1,5120x1440@120,auto,1";
-                }
-              ];
-              exclude-global-prep-cmd = "false";
-              auto-detach = "true";
-            }
-          ];
+          applications = {
+            env = {
+              PATH = "$(PATH):$(HOME)/.local/bin";
+            };
+            apps = [
+              {
+                name = "1440p Desktop";
+                prep-cmd = [
+                  {
+                    do = "hyprctl keyword monitor DP-1,2560x1440@120,auto,1";
+                    undo = "hyprctl keyword monitor DP-1,5120x1440@120,auto,1";
+                  }
+                ];
+                exclude-global-prep-cmd = "false";
+                auto-detach = "true";
+              }
+            ];
+          };
         };
-      };
+      */
 
       libinput = {
-        /*
-          touchpad = {
-            naturalScrolling = true;
-            accelProfile = "flat";
-            accelSpeed = "0.75";
-          };
-        */
 
         mouse = {
           accelProfile = "flat";
@@ -319,10 +313,6 @@ in
             zathura
             pavucontrol
             rpi-imager
-
-            virt-manager
-            input-leap
-            sonobus
           ]
         ))
 

@@ -16,6 +16,11 @@ in
     file = ../../secrets/juicy-password.age;
   };
 
+  services.synergy.server = {
+    enable = true;
+    autoStart = true;
+    screenName = "NixOS";
+  };
   modules = {
     router.enable = false;
     hardware = {
@@ -29,7 +34,7 @@ in
       username = "juicy";
       hostName = "leo";
 
-      hashedPassword = config.age.secrets.juicy-password.path;
+      #hashedPassword = config.age.secrets.juicy-password.path;
     };
 
     desktop = {

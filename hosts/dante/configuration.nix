@@ -52,8 +52,10 @@ in
     groups.media = {
       name = "media";
       members = [
+        "juicy"
         config.services.jellyfin.user
         config.services.deluge.user
+        config.services.transmission.user
         config.services.immich.user
         config.services.sonarr.user
         config.services.radarr.user
@@ -85,6 +87,7 @@ in
     immich = {
       enable = false;
       host = "192.168.1.60";
+      user = "media";
       group = "media";
       port = 2283;
       mediaLocation = "/srv/chonk/media/immich";
@@ -95,17 +98,32 @@ in
 
     jellyfin = {
       enable = true;
+      user = "media";
       group = "media";
       openFirewall = true;
     };
 
+    transmission = {
+      enable = true;
+
+      user = "media";
+      group = "media";
+      openFirewall = true;
+
+      settings = {
+        incomplete-dir-enabled = true;
+        incomplete-dir = "/srv/chonk/media/torrent/downloading";
+        download-dir = "/srv/chonk/media/torrent/data";
+      };
+    };
     deluge = {
       enable = true;
-      declarative = false;
+      declarative = true;
       openFirewall = true;
+      user = "media";
       group = "media";
       #TODO
-      #authFile = ;
+      authFile = "/etc/nixos/delugeAuth";
       config = {
         copy_torrent_file = true;
         move_completed = true;
@@ -124,16 +142,7 @@ in
         allow_remote = true;
         daemon_port = 58846;
         random_port = false;
-        listen_ports = [
-          6881
-          6889
-        ];
         outgoing_interface = "wg0-mullvad";
-        enabled_plugins = [
-          "AutoAdd"
-          "Stats"
-          "Label"
-        ];
       };
 
       web = {
@@ -151,6 +160,7 @@ in
     # Subtitles
     bazarr = {
       enable = true;
+      user = "media";
       group = "media";
       openFirewall = true;
     };
@@ -162,18 +172,21 @@ in
     # TV Shows
     sonarr = {
       enable = true;
+      user = "media";
       group = "media";
       openFirewall = true;
     };
     # Movies
     radarr = {
       enable = true;
+      user = "media";
       group = "media";
       openFirewall = true;
     };
     # Music
     lidarr = {
       enable = true;
+      user = "media";
       group = "media";
       openFirewall = true;
     };

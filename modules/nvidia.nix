@@ -29,7 +29,7 @@
       };
     };
 
-    services.udev.packages = [ pkgs.linuxPackages.nvidia_x11_beta_open ];
+    services.udev.packages = [ pkgs.linuxPackages.nvidia_x11_beta ];
     services.xserver.videoDrivers = lib.mkDefault [ "nvidia" ];
 
     boot.extraModulePackages = [

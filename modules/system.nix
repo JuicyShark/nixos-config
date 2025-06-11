@@ -68,7 +68,7 @@ in
 
     stateVersion = mkOption {
       type = str;
-      default = "24.11";
+      default = "25.05";
     };
 
     hostName = mkOption {
@@ -119,9 +119,9 @@ in
       blacklistedKernelModules = [ "floppy" ];
     };
 
-      systemd.tmpfiles.rules = [
-        "L /home/${username}/chonk - - - - /mnt/chonk"
-      ];
+    systemd.tmpfiles.rules = [
+      "L /home/${username}/chonk - - - - /mnt/chonk"
+    ];
 
     fileSystems."/mnt/chonk" = {
       device = "//192.168.1.60/chonk";
@@ -223,14 +223,14 @@ in
       /*
           defaultGateway = lib.mkForce "192.168.1.99";
         nameservers = lib.mkForce ["1.1.1.1" "8.8.8.8"];
-
-        interfaces.enp5s0.ipv4.addresses = [
-          {
-            address = "192.168.1.54";
-            prefixLength = 24;
-          }
-        ];
       */
+      interfaces.enp5s0.ipv4.addresses = [
+        {
+          address = "192.168.1.54";
+          prefixLength = 24;
+        }
+      ];
+
       enableIPv6 = lib.mkDefault true;
 
       networkmanager = {
