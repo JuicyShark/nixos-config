@@ -1,6 +1,8 @@
 {
+  inputs,
   nix-config,
   config,
+  lib,
   pkgs,
   ...
 }:
@@ -11,21 +13,19 @@ in
   imports = attrValues nix-config.nixosModules;
   home-manager.sharedModules = attrValues nix-config.homeModules;
   environment.systemPackages = attrValues nix-config.packages.${pkgs.system};
-  environment.sessionVariables.FLAKE = "/home/juicy/nix-config";
+  environment.sessionVariables.FLAKE = "/mnt/chonk/nix-config";
 
   # Custom modules
   modules = {
     desktop.enable = false;
     system = {
+      mullvad = false;
       username = "juicy";
       hostName = "zues";
       hashedPassword = "$y$j9T$j5oMkFeAEFqm.TmI9Yql/0$nMZGLBa0Y5E2ORwPbIr1oHVUS2jZJUjFjPPWP.SAmR8";
     };
   };
 
-  # Host Specific Programs
-
-  # Host Specific Services
   services = {
     cloudflared = {
       enable = true;
@@ -50,7 +50,7 @@ in
           };
           # Vaultwarden
           "pass.nixlab.au" = {
-            service = "http://192.168.1.60:8521";
+            service = "http://192.168.1.99:8521";
           };
 
           # Vikunja
@@ -64,13 +64,13 @@ in
             service = "http_status:404";
           };
           "git.nixlab.au" = {
-            service = "http://192.168.1.60:8199";
+            service = "http://192.168.1.99:8199";
           };
           "home-assist.nixlab.au" = {
             service = "http://192.168.1.59:8123";
           };
           "matrix.nixlab.au" = {
-            service = "http://192.168.1.60:8008";
+            service = "http://192.168.1.99:8008";
           };
         };
       };
@@ -78,9 +78,7 @@ in
   };
 
   networking = {
-    useDHCP = true;
-    #defaultGateway = "192.168.1.1";
-    #nameservers = [ "1.1.1.1" ];
+    useDHCP = lib.mkForce false;
     wireless.enable = false;
 
     firewall.trustedInterfaces = [ "br0" ];
@@ -97,7 +95,7 @@ in
     };
 
     interfaces.br0 = {
-      #defaultGateway = "192.168.1.1";
+      useDHCP = true;
       ipv4.addresses = [
         {
           address = "192.168.1.99";
@@ -106,17 +104,7 @@ in
       ];
     };
   };
-  networking.firewall.allowedTCPPorts = [
-    8123
-    8521
-    8686
-    9050
-    3456
-    2283
-    8008
-    80
-    445
-  ];
+
   system.autoUpgrade = {
     enable = true;
     flake = inputs.self.outPath;
@@ -143,30 +131,15 @@ in
   };
 
   services = {
-    mullvad-vpn.enable = true;
-    # jmusicbot.enable = true;
-
     vaultwarden = {
       enable = true;
       config = {
         DOMAIN = "https://pass.nixlab.au";
         SIGNUPS_ALLOWED = true;
-        ROCKET_ADDRESS = "192.168.1.60";
+        ROCKET_ADDRESS = "192.168.1.99";
         ROCKET_PORT = "8521";
         WEB_VAULT_ENABLED = true;
       };
-    };
-
-    immich = {
-      enable = false;
-      host = "192.168.1.60";
-      user = "media";
-      group = "media";
-      port = 2283;
-      mediaLocation = "/srv/chonk/media/immich";
-      machine-learning.enable = true;
-      redis.enable = true;
-      openFirewall = true;
     };
 
     jellyseerr = {
@@ -176,7 +149,7 @@ in
     };
 
     matrix-synapse = {
-      enable = true;
+      enable = false;
       enableRegistrationScript = true;
 
       settings = {
@@ -218,4 +191,5 @@ in
         };
       };
     };
+  };
 }

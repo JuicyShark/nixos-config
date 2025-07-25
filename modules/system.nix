@@ -219,27 +219,26 @@ in
 
     networking = {
       inherit (cfg) hostName;
-      useDHCP = lib.mkForce true;
+      useDHCP = lib.mkDefault true;
+
+      defaultGateway = lib.mkDefault "192.168.1.1";
+
       /*
-          defaultGateway = lib.mkForce "192.168.1.99";
-        nameservers = lib.mkForce ["1.1.1.1" "8.8.8.8"];
+          interfaces.enp5s0.ipv4.addresses = [
+          {
+            address = "192.168.1.54";
+            prefixLength = 24;
+          }
+        ];
       */
-      interfaces.enp5s0.ipv4.addresses = [
-        {
-          address = "192.168.1.54";
-          prefixLength = 24;
-        }
-      ];
 
       enableIPv6 = lib.mkDefault true;
 
-      networkmanager = {
-        enable = lib.mkDefault true;
+      networkmanager = mkIf mullvad {
+        enable = lib.mkForce true;
         wifi.macAddress = "random";
-        #ethernet.macAddress = "random";
 
         unmanaged = [ "interface-name:ve-*" ];
-        #useDHCP = true;
       };
 
       #resolvconf.enable = mkIf mullvad false;
