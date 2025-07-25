@@ -7,29 +7,12 @@
   programs.fish = {
     enable = true;
 
-    shellInit =
-      # fish
-      ''
-        set -U fish_greeting ""
-
-        set -x -U LESS_TERMCAP_md (printf "\e[01;31m")
-        set -x -U LESS_TERMCAP_me (printf "\e[0m")
-        set -x -U LESS_TERMCAP_se (printf "\e[0m")
-        set -x -U LESS_TERMCAP_so (printf "\e[01;44;30m")
-        set -x -U LESS_TERMCAP_ue (printf "\e[0m")
-        set -x -U LESS_TERMCAP_us (printf "\e[01;32m")
-        set -x -U MANROFFOPT "-c"
-
-        fish_default_key_bindings
-
-      '';
-
     shellAliases = {
       tree = "eza --all --long --tree";
       mv = "mv -i";
       cp = "cp -ia";
       #    cd = "zoxide";
-      #     z = "zoxide";
+      z = "zoxide";
     };
 
     shellAbbrs = {

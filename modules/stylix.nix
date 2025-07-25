@@ -18,12 +18,14 @@ in
     stylix = {
       enable = true;
       autoEnable = true;
-      #image = "${stylix-background}/wallpaper.png";
+      # image = "/home/juicy/media/pictures/wallpaper/UltrawideWallpapersDotNet-997.png";
+
       image = pkgs.fetchurl {
-        url = "https://raw.githubusercontent.com/nodesleep/dual-monitor-wallpapers/refs/heads/main/ROCCAT_AIMO-3DLighting_Wallpaper_5120x1440_DualWHQD.png";
-        sha256 = "sha256-JJ7rgj6dh3H9e+ri4bTAsZjvqTNSlBaY9pv3FPbjIz0=";
+        url = "https://ultrawidewallpapers.net/wallpapers/329/highres/aishot-997.jpg";
+        sha256 = "sha256-vep9AKzwnS4s4dN9t1Jnd08N8wnJ1U92QAJW10RdSSM=";
       };
-      polarity = "dark";
+
+      #polarity = "dark";
       base16Scheme = {
         system = "base16";
         name = "selenized-black";

@@ -22,24 +22,30 @@
     stylix = {
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        home-manager.follows = "home-manager";
+        # home-manager.follows = "home-manager";
       };
       url = "github:danth/stylix";
     };
 
-    hyprland.url = "github:hyprwm/Hyprland";
-    hy3 = {
-      url = "github:outfoxxed/hy3"; # where {version} is the hyprland release version
-      # or "github:outfoxxed/hy3" to follow the development branch.
-      # (you may encounter issues if you dont do the same for hyprland)
-      inputs.hyprland.follows = "hyprland";
-    };
+    hyprland.url = "github:hyprwm/Hyprland"; # "github:3l0w/Hyprland?ref=feat/input-capture-impl"; build breaks
+    # hyprland-protocols.url = "github:3l0w/Hyprland-protocols?ref=feat/input-capture-impl";
+
+    /*
+      hy3 = {
+        url = "github:outfoxxed/hy3"; # where {version} is the hyprland release version
+        # or "github:outfoxxed/hy3" to follow the development branch.
+        # (you may encounter issues if you dont do the same for hyprland)
+        inputs.hyprland.follows = "hyprland";
+      };
+    */
 
     quickshell = {
       url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
+    caelestia-shell = {
+      url = "github:caelestia-dots/shell";
+    };
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";

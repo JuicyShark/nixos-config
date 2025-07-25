@@ -41,9 +41,11 @@
   };
 
   networking = {
-    useDHCP = lib.mkDefault true;
+    useDHCP = lib.mkDefault false;
+    defaultGateway = "192.168.54.99";
+    nameservers = [ "192.168.54.99" ];
     hostName = "dante";
-    interfaces.enp2s0.ipv4.addresses = [
+    interfaces.enp3s0.ipv4.addresses = [
       {
         address = "192.168.54.60";
         prefixLength = 24;

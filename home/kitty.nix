@@ -45,14 +45,10 @@ in
       sync_to_monitor = "yes";
     };
     keybindings = {
-      "alt" = "kitty_mod";
       "ctrl+c" = "copy_or_interrupt";
       "ctrl+shift+c" = "copy_to_clipboard";
-      "kitty_mod+c" = "copy_or_interrupt";
       "ctrl+v" = "paste_from_clipboard";
       "ctrl+shift+v" = "paste_from_clipboard";
-      "kitty_mod+v" = "paste_from_clipboard";
-
     };
 
     extraConfig = ''

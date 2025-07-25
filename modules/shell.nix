@@ -60,7 +60,17 @@
     SSH_AUTH_SOCK = "$(gpgconf --list-dirs agent-ssh-socket)";
   };
   programs = {
-    fish.enable = true;
+    fish = {
+      enable = true;
+      interactiveShellInit = ''
+        if test -z "$DISPLAY" -a "$XDG_VTNR" = "1"
+          if uwsm check may-start; and uwsm select
+            exec uwsm start default
+          end
+        end
+      '';
+    };
+
     neovim.enable = true;
 
     direnv = {

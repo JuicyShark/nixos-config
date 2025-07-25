@@ -16,11 +16,6 @@ in
     file = ../../secrets/juicy-password.age;
   };
 
-  services.synergy.server = {
-    enable = true;
-    autoStart = true;
-    screenName = "NixOS";
-  };
   modules = {
     router.enable = false;
     hardware = {
@@ -29,7 +24,7 @@ in
     };
 
     system = {
-      mullvad = true;
+      mullvad = false;
       iHaveLotsOfRam = true;
       username = "juicy";
       hostName = "leo";
@@ -44,11 +39,11 @@ in
       };
       apps = {
         emacs = true;
-        llm = true;
+        llm = false;
         bloat = true;
         gaming = true;
         streaming = true;
-        virtual = true;
+        virtual = false;
       };
     };
   };

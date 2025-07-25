@@ -74,61 +74,20 @@ in
 
     systemd.extraConfig = mkIf apps.gaming "DefaultLimitNOFILE=1048576";
 
-    services.displayManager = {
-      defaultSession = "hyprland-uwsm";
-      autoLogin = {
-        user = username;
-        enable = false;
-      };
-    };
-
-    services.xserver = mkIf (!isContainer) {
-      enable = true;
-
-      excludePackages = with pkgs; [ xterm ];
-      displayManager = {
-
-        startx.enable = mkIf isContainer true;
-        gdm = {
-          enable = true;
-          wayland = true;
-        };
-      };
-      desktopManager.gnome.enable = false;
-    };
-
     programs = {
       firefox.enable = true;
       #ladybird.enable = true; # Keep an eye on, independant web browser
 
-      uwsm = {
-        enable = mkIf (!isContainer) true;
-        waylandCompositors = {
-          sway = {
-            prettyName = "Sway";
-            comment = "Sway compositor managed by UWSM";
-            binPath = "/run/current-system/sw/bin/sway";
-          };
-        };
-      };
+      uwsm.enable = mkIf (!isContainer) true;
 
       hyprland = {
         enable = mkIf (!isContainer) true;
         withUWSM = true;
-      };
+        package = nix-config.inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+        portalPackage =
+          nix-config.inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
 
-      /*
-        sway = {
-          enable = mkIf (!isContainer) false;
-          wrapperFeatures.gtk = true;
-          extraOptions = [
-            "--unsupported-gpu"
-          ];
-          extraPackages = with pkgs; [
-            swayr
-          ];
-        };
-      */
+      };
 
       cdemu.enable = true;
       steam = {
@@ -140,10 +99,6 @@ in
         extraCompatPackages = with pkgs; [ proton-ge-bin ];
       };
 
-      thunar = {
-        enable = true;
-        plugins = with pkgs.xfce; [ thunar-volman ];
-      };
       gnupg = {
         agent = {
           enable = true;
@@ -170,46 +125,14 @@ in
     };
 
     services = {
-      #flatpak.enable = lib.mkIf apps.bloat true;
-      playerctld.enable = true;
-      ollama.enable = mkIf apps.llm true;
-
-      nextjs-ollama-llm-ui.enable = mkIf apps.llm true;
-      udisks2 = {
+      xserver = {
         enable = true;
-        mountOnMedia = true;
+        displayManager.lightdm.enable = false;
       };
+      playerctld.enable = true;
 
-      /*
-        sunshine = {
-          enable = lib.mkIf apps.streaming true;
-          autoStart = true;
-          capSysAdmin = true;
-          openFirewall = true;
-          settings = {
-            port = 47989;
-            sunshine_name = "Max-Nixos";
-          };
-          applications = {
-            env = {
-              PATH = "$(PATH):$(HOME)/.local/bin";
-            };
-            apps = [
-              {
-                name = "1440p Desktop";
-                prep-cmd = [
-                  {
-                    do = "hyprctl keyword monitor DP-1,2560x1440@120,auto,1";
-                    undo = "hyprctl keyword monitor DP-1,5120x1440@120,auto,1";
-                  }
-                ];
-                exclude-global-prep-cmd = "false";
-                auto-detach = "true";
-              }
-            ];
-          };
-        };
-      */
+      ollama.enable = mkIf apps.llm true;
+      nextjs-ollama-llm-ui.enable = mkIf apps.llm true;
 
       libinput = {
 
@@ -279,77 +202,56 @@ in
       KERNEL=="hpet", GROUP="audio"
     '';
 
-    environment.systemPackages =
-      let
-        #Bambu is broken with Nvidia cards, this fixes it by changing env vars
-        bambu-studio-wrapped = pkgs.writeShellScriptBin "bambu-studio" ''
-          export __EGL_VENDOR_LIBRARY_FILENAMES=/run/opengl-driver/share/glvnd/egl_vendor.d/50_mesa.json
-          export __GLX_VENDOR_LIBRARY_NAME=mesa
-          export MESA_LOADER_DRIVER_OVERRIDE=zink
-          export GALLIUM_DRIVER=zink
-          export WEBKIT_DISABLE_DMABUF_RENDERER=1
-          exec ${pkgs.bambu-studio}/bin/bambu-studio "$@"
-        '';
-      in
-      mkMerge [
-        (mkIf apps.bloat (
-          with pkgs;
-          [
-            audacity
-            runelite
-            iamb
-            obsidian
-            gimp
-            element-desktop
-            signal-desktop
-            telegram-desktop
-            clipboard-jh
+    environment.systemPackages = mkMerge [
+      (mkIf apps.bloat (
+        with pkgs;
+        [
+          iamb
+          obsidian
 
-            bambu-studio-wrapped
-            pwvucontrol
-            jellyfin-media-player
-            discord
-            youtube-music
-            zathura
-            pavucontrol
-            rpi-imager
-          ]
-        ))
+          element-desktop
+          signal-desktop
+          clipboard-jh
 
-        (mkIf config.hardware.keyboard.zsa.enable (with pkgs; [ keymapp ]))
-        (mkIf apps.streaming (
-          with pkgs;
-          [
-            obs-studio
-            streamlink
-          ]
-        ))
-        (mkIf apps.gaming (
-          with pkgs;
-          [
-            heroic
-            ryujinx
-            dolphin-emu
-            osu-lazer-bin
-            wowup-cf
-          ]
-        ))
-        (mkIf apps.virtual (
-          with pkgs;
-          [
-            quickemu
-          ]
-        ))
-        (with pkgs; [
-          bitwarden
-          pulseaudio
-          grim
-          wl-clipboard-rs
-          gparted
-          qt6.qtwayland
-          pciutils
-          libmtp
-        ])
-      ];
+          pwvucontrol
+          discord
+          pavucontrol
+        ]
+      ))
+
+      (mkIf apps.streaming (
+        with pkgs;
+        [
+          obs-studio
+          streamlink
+        ]
+      ))
+      (mkIf apps.gaming (
+        with pkgs;
+        [
+          heroic
+          ryujinx
+          dolphin-emu
+          osu-lazer-bin
+          wowup-cf
+        ]
+      ))
+      (mkIf apps.virtual (
+        with pkgs;
+        [
+          quickemu
+        ]
+      ))
+      (with pkgs; [
+        bitwarden
+        pulseaudio
+        grim
+        wl-clipboard-rs
+        gparted
+        qt6.qtwayland
+        pciutils
+        libmtp
+      ])
+    ];
   };
 }

@@ -9,7 +9,7 @@
 with pkgs;
 let
   inherit (nixosConfig._module.specialArgs) nix-config;
-  inherit (nixosConfig._module.specialArgs.nix-config.inputs) quickshell;
+  inherit (nixosConfig._module.specialArgs.nix-config.inputs) quickshell caelestia-shell;
   stylix = config.lib.stylix.colors;
   desktop = osConfig.modules.desktop.enable;
   inherit (nix-config.packages.${pkgs.system}) vim-hy3-nav;
@@ -51,18 +51,88 @@ let
 in
 {
   imports = [
-    ../quickshell
+    #   ../quickshell
+
   ];
+  home.file = {
+    ".config/caelestia/shell.json".text = ''
+        {
+          "background": {
+          "enabled": false
+      },
+      "bar": {
+          "dragThreshold": 20,
+          "persistent": true,
+          "showOnHover": true,
+          "workspaces": {
+              "activeIndicator": true,
+              "activeLabel": "󰮯 ",
+              "activeTrail": false,
+              "label": "  ",
+              "occupiedBg": false,
+              "occupiedLabel": "󰮯 ",
+              "rounded": true,
+              "showWindows": true,
+              "shown": 5
+          }
+      },
+      "border": {
+          "rounding": 25,
+          "thickness": 10
+      },
+      "dashboard": {
+          "mediaUpdateInterval": 300,
+          "visualiserBars": 45
+      },
+      "launcher": {
+          "actionPrefix": ">",
+          "dragThreshold": 50,
+          "enableDangerousActions": false,
+          "maxShown": 18,
+          "maxWallpapers": 9,
+          "useFuzzy": {
+              "apps": false,
+              "actions": false,
+              "schemes": false,
+              "variants": false,
+              "wallpapers": false
+          }
+      },
+      "lock": {
+          "maxNotifs": 5
+      },
+      "notifs": {
+          "actionOnClick": false,
+          "clearThreshold": 0.3,
+          "defaultExpireTimeout": 5000,
+          "expandThreshold": 20,
+          "expire": false
+      },
+      "osd": {
+          "hideDelay": 2000
+      },
+      "paths": {
+          "mediaGif": "root:/assets/bongocat.gif",
+          "sessionGif": "root:/assets/kurukuru.gif",
+          "wallpaperDir": "~/media/pictures/wallpaper/"
+      },
+      "services": {
+        "weatherLocation": "-28,153",
+        "useFahrenheit": false
+      },
+      "session": {
+          "dragThreshold": 30
+      }
+        }
+    '';
+  };
   home.packages =
     with pkgs;
     lib.mkIf desktop [
-      hyprpolkitagent
-      clipse
+      runelite
       wf-recorder
-      playerctl
       socat
-      inotify-tools
-      grimblast
+      caelestia-shell.packages.${pkgs.system}.default
     ];
   #
 
@@ -72,7 +142,7 @@ in
     portalPackage = osConfig.programs.hyprland.portalPackage;
 
     plugins = with pkgs.hyprlandPlugins; [
-      hyprbars
+      #hyprbars
     ];
 
     settings = {
@@ -85,32 +155,27 @@ in
       monitor = [
         "DP-1,highres,auto,1"
         #"DP-2,1920x1080@60,auto-left,1"
-        #"headless,1920x1080@60,0x0,1"
+        "headless,2420x1668@120,0x0,1"
       ];
 
       exec = [
         "xrandr --output DP-1 --primary"
+        "caelestia-shell -n"
       ];
 
       exec-once = [
-        "uwsm finalize"
-        #"mullvad connect"
 
         #"emacs --daemon"
 
-        "systemctl --user start hyprpolkitagent"
-        "wpctl set-volume @DEFAULT_SINK@ 40%"
-        "quickshell"
-        "[float] jellyfin-mpv-shim"
+        # "systemctl --user start hyprpolkitagent"
+        # "wpctl set-volume @DEFAULT_SINK@ 40%"
 
-        "[workspace 1 silent; float; move 100%-w-75; size 900 500] youtube-music"
+        # "[workspace 1 silent; float; move 100%-w-75; size 900 500] youtube-music"
         "[workspace 1 silent; float; move 0%-w-75; size 900 500] bitwarden"
-
         "[workspace 2 silent] firefox"
-
-        "steam"
-        "discord"
-        "[move 100%-w-75] telegram-desktop"
+        "[workspace 3 silent] discord"
+        "[workspace 5 silent] steam"
+        # "[move 100%-w-75] telegram-desktop"
         "hyprctl dispatch workspace 2"
       ];
 
@@ -139,25 +204,22 @@ in
       };
 
       general = {
-        gaps_in = 0;
-        gaps_out = "-4";
+        gaps_in = 10;
+        gaps_out = 15;
         border_size = 4;
         layout = "dwindle";
 
         snap = {
           enabled = true;
-          window_gap = 50;
-          monitor_gap = 20;
-          border_overlap = true;
+          window_gap = 15;
+          monitor_gap = 10;
+          border_overlap = false;
+          respect_gaps = true;
         };
       };
 
-      render = {
-        direct_scanout = false;
-      };
-
       decoration = {
-        rounding = 0;
+        rounding = 5;
         dim_special = "0.0";
 
         shadow = {
@@ -173,8 +235,14 @@ in
         };
       };
 
+      xwayland = {
+        enabled = true;
+        create_abstract_socket = true;
+      };
+
       animations = {
         enabled = true;
+        workspace_wraparound = true;
         bezier = "myBezier, 0.05, 0.9, 0.1, 1.05";
 
         animation = [
@@ -191,9 +259,10 @@ in
       dwindle = {
         preserve_split = true;
         default_split_ratio = "1";
-        split_width_multiplier = "1.2";
-        special_scale_factor = 1;
-        split_bias = 0;
+        split_width_multiplier = "1.75";
+        special_scale_factor = 0.7;
+        single_window_aspect_ratio = "16 9";
+        single_window_aspect_ratio_tolerance = 0;
       };
 
       master = {
@@ -211,24 +280,20 @@ in
       };
 
       plugin = {
-        scroller = {
-          column_widths = "onehalf onethird onefifth, one";
-          window_heights = "one onefifth";
-          column_default_width = "onethird";
-          window_default_height = "one";
-        };
 
-        hyprbars = {
-          bar_height = 30;
-          bar_text_size = 13;
-          bar_color = "rgb(${stylix.base01})";
-          bar_text_font = config.wayland.windowManager.hyprland.settings.misc.font_family;
+        /*
+          hyprbars = {
+            bar_height = 30;
+            bar_text_size = 13;
+            bar_color = "rgb(${stylix.base01})";
+            bar_text_font = config.wayland.windowManager.hyprland.settings.misc.font_family;
 
-          hyprbars-button = [
-            "rgb(ff4040), 10, 󰖭, hyprctl dispatch killactive"
-            "rgb(eeee11), 10, , hyprctl dispatch float 1"
-          ];
-        };
+            hyprbars-button = [
+              "rgb(ff4040), 10, 󰖭, hyprctl dispatch killactive"
+              "rgb(eeee11), 10, , hyprctl dispatch float 1"
+            ];
+          };
+        */
       };
 
       gestures = {
@@ -246,28 +311,23 @@ in
 
       windowrulev2 = [
         "plugin:hyprbars:nobar, floating:0"
-        "suppressevent maximize, class:.*"
-        "float, workspace:1"
+        #"suppressevent maximize, class:.*"
+        #"float, workspace:1"
 
-        "persistentsize, class:.*, xwayland:0, content:none"
-        "nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0" # Fix some dragging issues with XWayland
         "tag +terminal, class:kitty"
-
-        "persistentsize, class:.*"
-        # Specific Game / Launcher Rules
-        "tag +game, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux)$"
-        "tag +game, title:^(UNDERTALE)$"
-
-        "tag +social, class:signal"
-        "tag +social, class:org.telegram.desktop"
-        "tag +social, class:discord"
-
-        # Classify Video content and picture in picture tags
         "tag +video, class:mpv"
         "tag +video, title:Picture-in-Picture"
         "tag +pip, title:Picture-in-Picture"
+        "tag +game, class:^(steam_app.*|Waydroid|osu!|RimWorldLinux|UNDERTALE)$"
+        "tag +social, class:^(discord|signal|org.telegram.desktop)$"
+        "tag +private, class:^(org.keepassxc.KeePassXC|bitwarden|discord)$"
+        "tag +utility, title:^(Extension: (Bitwarden - Free Password Manager).*|KeePassXC -  Access Request)|Unlock Database - KeePassXC|Sign In - Google Accounts.*)$"
+        "tag +utility, class:^(thunar|com.saivert.pwvucontrol|RimPy|org.keepassxc.KeePassXC|Tk|xdg-desktop-portal-gtk)$"
+
+        "float, tag:utility"
+        "noscreenshare, tag:private"
+
         "content video, tag:video"
-        # Video Content Rules
         "idleinhibit always, tag:video"
         "noborder, tag:video"
 
@@ -276,23 +336,11 @@ in
         "float, tag:pip"
         "pin, tag:pip"
         "noinitialfocus, tag:video"
-        "move 100%-99%, tag:pip"
-
-        # Tag Launchers
-        "tag +launcher, initialTitle:Battle.net"
-        "tag +launcher, class:steam, title:Steam"
-
-        # Launchers
-        "float, tag:launcher"
-        "size 1680 1080, tag:launcher"
-        "workspace unset, tag:launcher"
+        "move 100%-w-20, tag:pip"
 
         "float, tag:social"
 
         # Game Content Rules
-        "workspace 5, tag:game"
-        "noanim 1, tag:game"
-        "group deny, tag:game"
         "idleinhibit always, tag:game"
         "nodim,tag:game"
         "plugin:hyprbars:nobar, tag:game"
@@ -300,19 +348,10 @@ in
         "nodim,tag:video"
 
         # Game Specific Rules
-        "fullscreenstate 0 2, initialTitle:(World of Warcraft)"
+        #"fullscreenstate 0 2, initialTitle:(World of Warcraft)"
         "suppressevent fullscreen, initialTitle:(World of Warcraft)"
 
-        # Misc Windows
-        "float, title:^(Extension: (Bitwarden - Free Password Manager).*)$"
-        "float, title:^(KeePassXC -  Access Request)$"
-        "float, title:^(Unlock Database - KeePassXC)$"
-        "float, class:^(thunar|com.saivert.pwvucontrol|RimPy)$"
-        "float, class:(org.keepassxc.KeePassXC)"
-        "float, title:^(Sign In - Google Accounts.*)$"
-        "float, class:(Tk)"
-
-        "workspace 9, class:steam, title:Steam Big Picture Mode"
+        #"workspace 9, class:steam, title:Steam Big Picture Mode"
 
         "move onscreen 100% 0%, class:^(com.saivert.pwvucontrol)$"
         "tile,class:^(.qemu-system-x86_64-wrapped)$"
@@ -325,7 +364,7 @@ in
       ];
 
       workspace = [
-        "1, monitor:DP-1, gapsout:50,200,50,200, gapsin:0,30,0,30, rounding:true, layoutopt:orientation:center"
+        "1, monitor:DP-1, rounding:true, layoutopt:orientation:center"
         "2, monitor:DP-1, layoutopt:orientation:center, default:true"
         "3, monitor:DP-1, layoutopt:orientation:center"
         "4, monitor:DP-1, layoutopt:orientation:right"
@@ -337,12 +376,14 @@ in
         "8, monitor:DP-2"
         "9, monitor:DP-2"
         "0, monitor:DP-2"
-        "s[true], gapsout:0,400,0,400"
-        "special:scratchpad, gapsout:0,400,0,400, on-created-empty:kitty"
+        #  "s[true], gapsout:0,400,0,400"
+        "special:scratchpad, on-created-empty:kitty"
+        "special:terminal, on-created-empty:kitty"
+        "special:test, on-created-empty:firefox"
 
         #No Gaps if only
-        "w[tv1], gapsout:0, gapsin:0"
-        "workspace = f[1], gapsout:0, gapsin:0"
+        #"w[tv1], gapsout:0, gapsin:0"
+        #"workspace = f[1], gapsout:0, gapsin:0"
       ];
 
       ecosystem = {
@@ -360,69 +401,65 @@ in
         initial_workspace_tracking = 0;
         font_family = "IosevkaTerm Nerd Font";
       };
-      bind =
-        [
-          # Group Settings
-          "${mod}CONTROL, G, togglegroup"
-          # Dwindle Layout Messages
-          "${mod}CONTROL, S, layoutmsg, togglesplit"
-          "${mod}CONTROL, Space, layoutmsg, swapsplit"
-          "${mod}CONTROL, R, layoutmsg, movetoroot active"
-          # Master Layout Messages
-          "${mod}CONTROL, R, layoutmsg, mfact exact 0.5"
-          "${mod}CONTROL, U, layoutmsg, mfact exact 0.65"
-          "${mod}CONTROL, L, layoutmsg, orientationleft"
-          "${mod}CONTROL, C, layoutmsg, orientationcenter"
+      bind = [
+        # Group Settings
+        "${mod}CONTROL, G, togglegroup"
+        # Dwindle Layout Messages
+        "${mod}CONTROL, S, layoutmsg, togglesplit"
+        "${mod}CONTROL, Space, layoutmsg, swapsplit"
+        "${mod}CONTROL, R, layoutmsg, movetoroot active"
+        # Master Layout Messages
+        "${mod}CONTROL, R, layoutmsg, mfact exact 0.5"
+        "${mod}CONTROL, U, layoutmsg, mfact exact 0.65"
+        "${mod}CONTROL, L, layoutmsg, orientationleft"
+        "${mod}CONTROL, C, layoutmsg, orientationcenter"
 
-          "${mod}, tab, changegroupactive, f"
-          "${mod}SHIFT, tab, changegroupactive, b"
+        "${mod}, tab, changegroupactive, f"
+        "${mod}SHIFT, tab, changegroupactive, b"
 
-          # Bar
-          "${mod}CONTROL, B, exec, ${toggle "waybar"}"
-          ##window management
-          "${mod}SHIFT, Q, killactive,"
-          "${mod}SHIFT, L, lockactivegroup, toggle"
+        # Bar
+        "${mod}CONTROL, B, exec, ${toggle "waybar"}"
+        "${mod}CONTROL, N, exec, hyprctl --batch 'keyword general:gaps_out 0 ; keyword general:gaps_in 0 ; keyword decoration:rounding 0'"
+        "${mod}SHIFTCONTROL, N, exec, hyprctl --batch 'keyword general:gaps_out 25 ; keyword general:gaps_in 10 ; keyword decoration:rounding 10'"
 
-          "${mod}CONTROL, M, fullscreen"
-          "${mod}CONTROL, F, togglefloating"
-          "${mod}CONTROL, P, pin"
-          "${mod}CONTROL, L, exec, quickshell ipc call lockscreen lock"
-          # Swap Layouts
-          "${mod}CONTROL, D, exec, hyprctl keyword general:layout dwindle"
-          "${mod}CONTROL, V, exec, hyprctl keyword general:layout scoller"
-          "${mod}CONTROL, M, exec, hyprctl keyword general:layout master"
+        ##window management
+        "${mod}SHIFT, Q, killactive,"
+        "${mod}SHIFT, L, lockactivegroup, toggle"
 
-          "${mod}, t, togglespecialworkspace, scratchpad"
+        "${mod}CONTROL, M, fullscreen"
+        "${mod}CONTROL, F, togglefloating"
+        "${mod}CONTROL, P, pin"
 
-          "${mod}, V, exec,  kitty --class clipse -e 'clipse'"
-          "${mod}, C, exec,  kitty --class clipse -e 'clipse'"
-          # Search
-          #"${mod}, d, exec, ${wofi}/bin/wofi  --show drun"
-          #"${mod}, p, exec, ${wofi-pass}/bin/wofi-pass"
-          #"${mod}, e, exec, ${wofi-emoji}/bin/wofi-emoji"
-          "${mod}, Space, exec, quickshell ipc call launcher toggle"
-          #"${mod}, Space, exec, ${wofi}/bin/wofi  --show drun"
-          "${mod}, Return, exec, uwsm app -- kitty"
-        ]
-        ++
-          # Change workspace//
-          (map (n: "${mod},${n},workspace,${n}") workspaces)
-        ++
-          # Move window to workspace
-          (map (n: "${mod}SHIFT,${n},movetoworkspacesilent,${n}") workspaces)
-        ++
-          # Move focus, changes focus of nvim windows too
-          (lib.mapAttrsToList (key: direction: "${mod},${key}, movefocus, ${direction}") directions)
-        ++
-          # Move windows
-          (lib.mapAttrsToList (
-            key: direction: "${mod}SHIFT,${key},movewindoworgroup,${direction}"
-          ) directions)
-        ++
-          # Open next window in given direction in dwindle
-          (lib.mapAttrsToList (
-            key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}"
-          ) directions);
+        "${mod}CONTROL, L, exec, caelestia-shell ipc call lock lock"
+
+        "${mod}, t, togglespecialworkspace, scratchpad"
+
+        #TODO Replace clipboard history
+        #"${mod}, V, exec, [float] kitty --class clipse -e 'clipse'"
+        #"${mod}, C, exec,  kitty --class clipse -e 'clipse'"
+        "${mod}, Space, exec, caelestia-shell ipc call drawers toggle launcher"
+        "${mod}, Return, exec, uwsm app -- kitty"
+
+      ]
+      ++
+        # Change workspace//
+        (map (n: "${mod},${n},workspace,${n}") workspaces)
+      ++
+        # Move window to workspace
+        (map (n: "${mod}SHIFT,${n},movetoworkspacesilent,${n}") workspaces)
+      ++
+        # Move focus, changes focus of nvim windows too
+        (lib.mapAttrsToList (key: direction: "${mod},${key}, movefocus, ${direction}") directions)
+      ++
+        # Move windows
+        (lib.mapAttrsToList (
+          key: direction: "${mod}SHIFT,${key},movewindoworgroup,${direction}"
+        ) directions)
+      ++
+        # Open next window in given direction in dwindle
+        (lib.mapAttrsToList (
+          key: direction: "${mod}CONTROL,${key},layoutmsg,preselect ${direction}"
+        ) directions);
 
       bindm = [
         "SUPER, mouse:272, movewindow"
@@ -470,13 +507,15 @@ in
           bind = , Return ,submap, reset
           bind = , W, exec, uwsm app -- firefox
           bind = , W,submap, reset
+          bind = , P, exec, uwsm app -- firefox --private-window
+          bind = , P, submap, reset
           bind = , B, exec, bambu-studio
           bind = , B, submap, reset
           bind = , D, exec, uwsm app -- discord
           bind = , D,submap, reset
-          bind = , S, exec, grimblast copy area
+          bind = , S, exec, caelestia-shell ipc call picker openFreeze
           bind = , S,submap, reset
-          bind = , Space, exec, quickshell ipc call launcher toggle
+          bind = , Space, exec, caelestia-shell ipc call drawers toggle launcher
           bind = , Space ,submap, reset
           bind = , V, exec, uwsm app -- pwvucontrol
           bind = , V,submap, reset
@@ -524,7 +563,7 @@ in
 
       settings = {
         general = {
-          lock_cmd = "quickshell ipc call lockscreen lock";
+          lock_cmd = "caelestia-shell ipc call lock lock";
           before_sleep_cmd = "loginctl lock-session";
           after_sleep_cmd = "hyprctl dispatch dpms on";
         };

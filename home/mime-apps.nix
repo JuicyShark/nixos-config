@@ -3,12 +3,12 @@
     enable = true;
 
     defaultApplications = {
-      "text/html" = "librewolf.desktop";
+      "text/html" = "firefox.desktop";
       "text/markdown" = "nvim.desktop";
       "text/plain" = "nvim.desktop";
-      "image/png" = "pqiv.desktop";
-      "image/jpeg" = "pqiv.desktop";
-      "image/gif" = "pqiv.desktop";
+      "image/png" = "timg.desktop";
+      "image/jpeg" = "timg.desktop";
+      "image/gif" = "timg.desktop";
     };
   };
 }
