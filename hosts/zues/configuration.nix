@@ -1,7 +1,6 @@
 {
   inputs,
   nix-config,
-  config,
   lib,
   pkgs,
   ...
@@ -46,7 +45,7 @@ in
             service = "http://192.168.1.60:8096";
           };
           "request.nixlab.au" = {
-            service = "http://192.168.1.60:5055";
+            service = "http://192.168.1.99:5055";
           };
           # Vaultwarden
           "pass.nixlab.au" = {
@@ -63,9 +62,12 @@ in
           "mail.nixlab.au" = {
             service = "http_status:404";
           };
-          "git.nixlab.au" = {
-            service = "http://192.168.1.99:8199";
-          };
+          /*
+            "git.nixlab.au" = {
+              service = "http://192.168.1.99:8199";
+            };
+          */
+
           "home-assist.nixlab.au" = {
             service = "http://192.168.1.59:8123";
           };
@@ -75,62 +77,6 @@ in
         };
       };
     };
-  };
-
-  networking = {
-    useDHCP = lib.mkForce false;
-    wireless.enable = false;
-
-    firewall.trustedInterfaces = [ "br0" ];
-
-    bridges = {
-      br0 = {
-        interfaces = [
-          "enp1s0"
-          "enp2s0"
-          "enp3s0"
-          "enp4s0"
-        ];
-      };
-    };
-
-    interfaces.br0 = {
-      useDHCP = true;
-      ipv4.addresses = [
-        {
-          address = "192.168.1.99";
-          prefixLength = 24;
-        }
-      ];
-    };
-  };
-
-  system.autoUpgrade = {
-    enable = true;
-    flake = inputs.self.outPath;
-    flags = [
-      "--update-input"
-      "nixpkgs"
-      "-L" # print build logs
-    ];
-    dates = "weekly";
-    randomizedDelaySec = "45min";
-  };
-
-  users = {
-    groups.media = {
-      name = "media";
-      members = [
-        "juicy"
-      ];
-    };
-    users.media = {
-      isSystemUser = true;
-      group = "media";
-    };
-  };
-
-  services = {
     vaultwarden = {
       enable = true;
       config = {
@@ -192,4 +138,47 @@ in
       };
     };
   };
+
+  networking = {
+    dhcpcd.enable = lib.mkForce true;
+    useDHCP = lib.mkForce false;
+    wireless.enable = false;
+
+    firewall.trustedInterfaces = [ "br0" ];
+
+    bridges = {
+      br0 = {
+        interfaces = [
+          "enp1s0"
+          "enp2s0"
+          "enp3s0"
+          "enp4s0"
+        ];
+      };
+    };
+
+    interfaces.br0 = {
+      useDHCP = true;
+      ipv4.addresses = [
+        {
+          address = "192.168.1.99";
+          prefixLength = 24;
+        }
+      ];
+    };
+  };
+
+  users = {
+    groups.media = {
+      name = "media";
+      members = [
+        "juicy"
+      ];
+    };
+    users.media = {
+      isSystemUser = true;
+      group = "media";
+    };
+  };
+
 }
