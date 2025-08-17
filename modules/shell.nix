@@ -1,11 +1,11 @@
 { pkgs, ... }:
 {
-  users.defaultUserShell = pkgs.fish;
+  users.defaultUserShell = pkgs.nushell;
 
   environment = {
     shells = with pkgs; [
-      fish
-      zsh
+      nushell
+      bash
     ];
 
     systemPackages = with pkgs; [
@@ -15,7 +15,6 @@
       xh
       file
       timg
-      rustscan
       yt-dlp
       dig
       mtr
@@ -37,21 +36,13 @@
       ffmpeg
       imagemagick
       smartmontools
-      bluetui
-      nixpkgs-review
       nix-init
       nix-update
       nix-search-cli
       nix-tree
-      gcc
-      rustc
-      rustfmt
-      cargo
-      nodejs
       nix-inspect
-      sherlock # Search Social Media Names
-      lemonade
       zoxide
+      zellij
     ];
   };
 
@@ -59,24 +50,20 @@
   environment.variables = {
     SSH_AUTH_SOCK = "$(gpgconf --list-dirs agent-ssh-socket)";
   };
+  environment.interactiveShellInit = ''
+    if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" = "1" ]; then
+      if uwsm check may-start && uwsm select; then
+        exec uwsm start default
+      fi
+    fi
+  '';
   programs = {
-    fish = {
-      enable = true;
-      interactiveShellInit = ''
-        if test -z "$DISPLAY" -a "$XDG_VTNR" = "1"
-          if uwsm check may-start; and uwsm select
-            exec uwsm start default
-          end
-        end
-      '';
-    };
-
     neovim.enable = true;
 
     direnv = {
       enable = true;
       nix-direnv.enable = true;
-      enableFishIntegration = true;
+      #enableNushellIntegration = true;
       silent = true;
     };
   };

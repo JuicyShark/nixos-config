@@ -17,6 +17,12 @@ in
   # Custom modules
   modules = {
     desktop.enable = false;
+    homelab = {
+      hostMonitoring = true;
+      monitoring = true;
+      media = true;
+
+    };
     system = {
       mullvad = false;
       username = "juicy";
@@ -24,8 +30,15 @@ in
       hashedPassword = "$y$j9T$j5oMkFeAEFqm.TmI9Yql/0$nMZGLBa0Y5E2ORwPbIr1oHVUS2jZJUjFjPPWP.SAmR8";
     };
   };
-
+  networking.firewall.allowedTCPPorts = [ 53 ];
+  networking.firewall.allowedUDPPorts = [ 53 ];
+  # systemd.services.unbound.serviceConfig.ReadWritePaths = [ "/var/lib/unbound" ];
   services = {
+    nomad.settings.server.enabled = true;
+    vaultwarden.enable = true;
+    #adguardhome.enable = true;
+
+
     cloudflared = {
       enable = true;
 
@@ -38,35 +51,29 @@ in
         # Proxy to local Addrsess's
         ingress = {
           "nixlab.au" = {
-            service = "http://192.168.1.60:8562";
+            service = "http://192.168.1.54:8562";
           };
-          # Jellyfin
           "jellyfin.nixlab.au" = {
-            service = "http://192.168.1.60:8096";
+            service = "http://192.168.1.54:8096";
           };
           "request.nixlab.au" = {
             service = "http://192.168.1.99:5055";
           };
-          # Vaultwarden
           "pass.nixlab.au" = {
             service = "http://192.168.1.99:8521";
           };
 
-          # Vikunja
-          "tasks.nixlab.au" = {
-            service = "http://192.168.1.60:3456";
-          };
           "photos.nixlab.au" = {
-            service = "http://192.168.1.60:2283";
+            service = "http://192.168.1.54:2283";
           };
+          # TODO setup mailserver
           "mail.nixlab.au" = {
             service = "http_status:404";
           };
-          /*
-            "git.nixlab.au" = {
-              service = "http://192.168.1.99:8199";
-            };
-          */
+
+          "git.nixlab.au" = {
+            service = "http://192.168.1.54:8199";
+          };
 
           "home-assist.nixlab.au" = {
             service = "http://192.168.1.59:8123";
@@ -76,22 +83,6 @@ in
           };
         };
       };
-    };
-    vaultwarden = {
-      enable = true;
-      config = {
-        DOMAIN = "https://pass.nixlab.au";
-        SIGNUPS_ALLOWED = true;
-        ROCKET_ADDRESS = "192.168.1.99";
-        ROCKET_PORT = "8521";
-        WEB_VAULT_ENABLED = true;
-      };
-    };
-
-    jellyseerr = {
-      enable = true;
-      port = 5055;
-      openFirewall = true;
     };
 
     matrix-synapse = {
@@ -110,7 +101,7 @@ in
           {
             port = 8008;
             bind_addresses = [
-              "192.168.1.60"
+              "192.168.1.99"
               "::1"
               "127.0.0.1"
             ];
@@ -136,48 +127,6 @@ in
           };
         };
       };
-    };
-  };
-
-  networking = {
-    dhcpcd.enable = lib.mkForce true;
-    useDHCP = lib.mkForce false;
-    wireless.enable = false;
-
-    firewall.trustedInterfaces = [ "br0" ];
-
-    bridges = {
-      br0 = {
-        interfaces = [
-          "enp1s0"
-          "enp2s0"
-          "enp3s0"
-          "enp4s0"
-        ];
-      };
-    };
-
-    interfaces.br0 = {
-      useDHCP = true;
-      ipv4.addresses = [
-        {
-          address = "192.168.1.99";
-          prefixLength = 24;
-        }
-      ];
-    };
-  };
-
-  users = {
-    groups.media = {
-      name = "media";
-      members = [
-        "juicy"
-      ];
-    };
-    users.media = {
-      isSystemUser = true;
-      group = "media";
     };
   };
 

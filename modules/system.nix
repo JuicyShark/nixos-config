@@ -24,6 +24,7 @@ let
     iHaveLotsOfRam
     hashedPassword
     mullvad
+    nomad
     allowSRB2Port
     allowDevPort
     ;
@@ -75,14 +76,26 @@ in
       type = str;
       default = "nixos";
     };
-
+    hostMonitoring = mkEnableOption "host device monitoring via glances";
     iHaveLotsOfRam = mkEnableOption "tmpfs on /tmp";
     mullvad = mkEnableOption "mullvad vpn";
+    nomad = mkEnableOption "nomad hive";
     allowSRB2Port = mkEnableOption "port for srb2";
     allowDevPort = mkEnableOption "port for development server";
   };
 
   config = {
+
+    age = {
+      identityPaths = [
+        "/home/${username}/.ssh/id_ed25519"
+        "/etc/ssh/ssh_host_ed25519_key"
+      ];
+      secrets.wifi-pass = {
+        file = ../secrets/wifi-pass.age;
+      };
+    };
+
     environment = {
       defaultPackages = lib.mkForce [ ];
       systemPackages = [ agenix ];
@@ -104,46 +117,23 @@ in
 
       #     binfmt.emulatedSystems = mkIf (pkgs.system == "x86_64-linux") [ "aarch64-linux" ];
 
-      loader = {
+      loader = mkIf (!isContainer) {
         systemd-boot = mkIf (pkgs.system != "aarch64-linux") {
-          enable = lib.mkIf (!isContainer) true;
+          enable = true;
           editor = false;
           configurationLimit = 10;
         };
 
         timeout = 0;
-        efi.canTouchEfiVariables = true;
+        efi.canTouchEfiVariables = builtins.pathExists "/sys/firmware/efi";
       };
 
       kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_stable;
       blacklistedKernelModules = [ "floppy" ];
     };
 
-    systemd.tmpfiles.rules = [
-      "L /home/${username}/chonk - - - - /mnt/chonk"
-    ];
-
-    fileSystems."/mnt/chonk" = {
-      device = "//192.168.1.60/chonk";
-      fsType = "cifs";
-      options = [
-        "credentials=/etc/nixos/samba-credentials"
-        "iocharset=utf8"
-        "uid=1000" # Reace with your user's UID
-        "gid=100" # Replace with your user's GID
-        "vers=3.0" # Or try 2.1 / 1.0 depending n your server's SMB version
-        "nofail"
-        "x-systemd.automount"
-        "x-systemd.idle-timeout=600"
-        "x-systemd.mount-timeout=30"
-      ];
-    };
-    systemd = {
-      extraConfig = "DefaultTimeoutStopSec=10s";
-      services.NetworkManager-wait-online.enable = false;
-    };
     nixpkgs.config.allowUnfree = true;
-    #nixpkgs.config.allowUnsupportedSystem = true;
+
     nix = {
       package = pkgs.nixVersions.latest;
       gc.automatic = true;
@@ -183,8 +173,7 @@ in
 
       users.${username} = {
         #inherit hashedPassword;
-        password = "juicy"; # config.age.secrets.juicy-password.path;
-
+        password = "juicy";
         isNormalUser = true;
         uid = 1000;
 
@@ -203,12 +192,12 @@ in
     };
 
     home-manager = {
-      # useGlobalPkgs = true;
+      #useGlobalPkgs = true;
       #useUserPackages = true;
 
       sharedModules = singleton {
         home = { inherit (cfg) stateVersion; };
-        #programs.man.generateCaches = true;
+        programs.man.generateCaches = true;
       };
 
       users.${username}.home = {
@@ -220,77 +209,82 @@ in
     networking = {
       inherit (cfg) hostName;
       useDHCP = lib.mkDefault true;
-
-      defaultGateway = lib.mkDefault "192.168.1.1";
-
-      /*
-          interfaces.enp5s0.ipv4.addresses = [
-          {
-            address = "192.168.1.54";
-            prefixLength = 24;
-          }
-        ];
-      */
-
+      defaultGateway.address = lib.mkDefault "192.168.1.1";
+      nameservers = lib.mkDefault [
+        "192.168.1.99"
+      ];
       enableIPv6 = lib.mkDefault true;
 
-      networkmanager = mkIf mullvad {
-        enable = lib.mkForce true;
+      networkmanager = mkIf config.modules.desktop.enable {
+        enable = true;
         wifi.macAddress = "random";
 
         unmanaged = [ "interface-name:ve-*" ];
+        ensureProfiles.profiles.Packet_Sniffers_Anon = {
+          connection = {
+            id = "Packet_Sniffers_Anon";
+            interface-name = "wlp6s0";
+            type = "wifi";
+            uuid = "1bbc8c9c-2caf-4706-aa9f-362f8879d04b";
+          };
+          ipv4 = {
+            method = "auto";
+          };
+          ipv6 = {
+            addr-gen-mode = "default";
+            method = "auto";
+          };
+          proxy = { };
+          wifi = {
+            mode = "infrastructure";
+            ssid = "Packet_Sniffers_Anon";
+          };
+          wifi-security = {
+            auth-alg = "open";
+            key-mgmt = "wpa-psk";
+            psk = config.age.secrets.wifi-pass.path;
+          };
+        };
       };
 
-      #resolvconf.enable = mkIf mullvad false;
-
-      nat = mkIf mullvad {
-        enable = true;
-        internalInterfaces = lib.mkDefault [ "ve-+" ];
-        externalInterface = lib.mkDefault "wg0-mullvad";
-      };
+      resolvconf.enable = false;
 
       firewall = {
         allowedUDPPorts = [
           67
           68
           60344
-          24800
-        ] ++ optional allowSRB2Port [ 5029 ];
-        allowedTCPPorts = mkIf allowDevPort [ 3000 ];
-      };
-      /*
-          wireguard.interfaces.wg0-mullvad = mkIf mullvad {
-            privateKey = "OB8oklFPX+ZHnTLj09l058y8HY4Xg/z57m1Idut4vkM=";
-            ips = [
-              "10.73.64.1/32"
-              "fc00:bbbb:bbbb:bb01::a:4000/128"
-            ];
-            peers = [
-              # Leo
-              {
-                publicKey = "1H/gj8SVNebAIEGlvMeUVC5Rnf274dfVKbyE+v5G8HA=";
-                allowedIPs = ["0.0.0.0/0""::0/0"];
-                endpoint = "[2404:f780:4:deb::f001]:51820";
-              }
-              # Dante
-              {
-                publicKey = "6vgsf3fnpiMELuHKOV4IXkufW34lzTaJGTC1BMcu/FY=";
-                allowedIPs = ["192.168.54.60"];
-                #endpiont = "192.168.54.60/0";
-              }
-            ];
-        };
-      */
-    };
+          24885
+        ]
+        ++ optional allowSRB2Port [ 5029 ];
 
+        allowedTCPPorts = [
+          2049
+          4000
+          4001
+          4002
+          4646 # Nomad HTTP
+          4647 # Nomad RPC
+          4648 # Nomad Serf LAN
+          8500 # Consul HTTP
+          8300 # Consul server RPC
+          8301 # Consul Serf LAN
+          8302 # Consul WAN (optional)
+          #   4242 # lan-mouse
+          24885
+        ]
+        ++ optional allowDevPort [ 3000 ];
+
+      };
+    };
     services = {
       resolved.llmnr = "false";
+      logrotate.enable = true;
 
       mullvad-vpn = mkIf mullvad {
         enable = true;
         enableExcludeWrapper = false;
       };
-
       openssh = {
         enable = true;
         settings = {
@@ -298,25 +292,19 @@ in
           KbdInteractiveAuthentication = false;
         };
       };
-
-      glances = {
-        enable = true;
-        openFirewall = true;
-        port = 55555;
-        extraArgs = lib.mkDefault [
-          "--webserver"
-          "--disable-process"
-        ];
-      };
     };
-    programs.mosh = {
-      enable = true;
-      withUtempter = true;
-    };
-    programs.command-not-found.enable = false;
-    programs.ssh.startAgent = false;
 
-    security.pam.services."greetd".gnupg.enable = true;
+    programs = {
+      /*
+        mosh = {
+          enable = true;
+          withUtempter = true;
+        };
+      */
+      command-not-found.enable = false;
+      ssh.startAgent = false;
+    };
+
     security.pam.sshAgentAuth = {
       enable = true;
       authorizedKeysFiles = [
