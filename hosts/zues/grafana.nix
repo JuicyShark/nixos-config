@@ -1,6 +1,29 @@
 { config, ... }:
+let
+  promCfg = config.services.prometheus.exporters;
+  ports = {
+    grafana = 3007;
+    prometheus = 3000;
+    loki = 3005;
+    node = promCfg.node.port;
+  };
+in
 {
   services = {
+
+    opentelemetry-collector = {
+      enable = true;
+      settings = {
+        receivers.otlp.protocols.grpc.endpoint = "0.0.0.0:4317";
+        exporters.prometheus = {
+          endpoint = "0.0.0.0:9464";
+        };
+        service.pipelines.metrics = {
+          receivers = [ "otlp" ];
+          exporters = [ "prometheus" ];
+        };
+      };
+    };
     grafana = {
       enable = true;
       openFirewall = true;
@@ -8,7 +31,7 @@
       settings = {
         server = {
           http_addr = "0.0.0.0";
-          http_port = 3007;
+          http_port = ports.grafana;
         };
       };
 
@@ -20,13 +43,13 @@
             name = "Prometheus";
             type = "prometheus";
             access = "proxy";
-            url = "http://localhost:3000";
+            url = "http://zues.lan:${toString ports.prometheus}";
           }
           {
             name = "Loki";
             type = "loki";
             access = "proxy";
-            url = "http://localhost:3005";
+            url = "http://zues.lan:${toString ports.loki}";
           }
         ];
       };
@@ -39,18 +62,18 @@
         auth_enabled = false;
 
         server = {
-          http_listen_port = 3005;
-          grpc_listen_port = 0;
+          http_listen_port = ports.loki;
+          http_listen_address = "0.0.0.0";
         };
 
         common = {
           instance_addr = "0.0.0.0";
-          path_prefix = "/tmp/loki";
+          path_prefix = "/var/lib/loki";
 
           storage = {
             filesystem = {
-              chunks_directory = "/tmp/loki/chunks";
-              rules_directory = "/tmp/loki/rules";
+              chunks_directory = "/var/lib/loki/chunks";
+              rules_directory = "/var/lib/loki/rules";
             };
           };
 
@@ -70,7 +93,21 @@
         pattern_ingester = {
           enabled = true;
         };
-
+        ingester = {
+          lifecycler = {
+            ring = {
+              kvstore.store = "inmemory";
+            };
+            final_sleep = "0s";
+          };
+          chunk_idle_period = "5m";
+          max_chunk_age = "1h";
+          chunk_retain_period = "30s";
+          wal = {
+            enabled = true;
+            dir = "/var/lib/loki/wal";
+          };
+        };
         limits_config = {
           max_global_streams_per_user = 0;
           ingestion_rate_mb = 50000;
@@ -125,7 +162,7 @@
 
         clients = [
           {
-            url = "http://localhost:3005/api/v1/push";
+            url = "http://zues.lan:${toString ports.loki}/api/v1/push";
           }
         ];
 
@@ -160,22 +197,54 @@
     prometheus = {
       enable = true;
       globalConfig.scrape_interval = "10s";
-      port = 3000;
+      port = ports.prometheus;
 
       scrapeConfigs = [
+
+        {
+          job_name = "open-webui";
+          static_configs = [
+            {
+              targets = [
+                (toString config.services.opentelemetry-collector.settings.exporters.prometheus.endpoint)
+              ];
+              labels.service = "open-webui";
+
+            }
+          ];
+        }
+
         {
           job_name = "unbound";
           static_configs = [
             {
-              targets = [ "zues.lan:9167" ];
+              targets = [ "zues.lan:${toString promCfg.unbound.port}" ];
             }
           ];
         }
         {
+          job_name = "vaultwarden";
+          static_configs = [
+            {
+              targets = [ "zues.lan:8521" ];
+            }
+          ];
+        }
+
+        {
+          job_name = "bazarr";
+          static_configs = [
+            {
+              targets = [ "leo.lan:${toString promCfg.exportarr-bazarr.port}" ];
+            }
+          ];
+        }
+
+        {
           job_name = "lidarr";
           static_configs = [
             {
-              targets = [ "leo.lan:9709" ];
+              targets = [ "leo.lan:${toString promCfg.exportarr-lidarr.port}" ];
             }
           ];
         }
@@ -184,7 +253,7 @@
           job_name = "prowlarr";
           static_configs = [
             {
-              targets = [ "leo.lan:9710" ];
+              targets = [ "leo.lan:${toString promCfg.exportarr-prowlarr.port}" ];
             }
           ];
         }
@@ -193,7 +262,15 @@
           job_name = "radarr";
           static_configs = [
             {
-              targets = [ "leo.lan:9711" ];
+              targets = [ "leo.lan:${toString promCfg.exportarr-radarr.port}" ];
+            }
+          ];
+        }
+        {
+          job_name = "sonarr";
+          static_configs = [
+            {
+              targets = [ "leo.lan:${toString promCfg.exportarr-sonarr.port}" ];
             }
           ];
         }
@@ -202,17 +279,12 @@
           job_name = "smartctl";
           static_configs = [
             {
-              targets = [ "leo.lan:9633" ];
+              targets = [ "leo.lan:${toString promCfg.smartctl.port}" ];
               labels.instance = "leo";
             }
-          ];
-        }
-
-        {
-          job_name = "sonarr";
-          static_configs = [
             {
-              targets = [ "leo.lan:9712" ];
+              targets = [ "zues.lan:${toString promCfg.smartctl.port}" ];
+              labels.instance = "zues";
             }
           ];
         }
@@ -221,22 +293,20 @@
           job_name = "node";
           static_configs = [
             {
-              targets = [ "leo.lan:3021" ];
+              targets = [ "leo.lan:${toString ports.node}" ];
               labels.instance = "leo";
             }
             {
-              targets = [ "zues.lan:3021" ];
+              targets = [ "zues.lan:${toString ports.node}" ];
               labels.instance = "zues";
             }
           ];
         }
         {
-          job_name = "ollama";
-          static_configs = [ { targets = [ "leo.lan:11434" ]; } ];
-        }
-        {
-          job_name = "open-webui";
-          static_configs = [ { targets = [ "leo.lan:11111" ]; } ];
+          job_name = "deluge";
+          static_configs = [
+            { targets = [ "leo.lan:${toString promCfg.deluge.port}" ]; }
+          ];
         }
       ];
     };

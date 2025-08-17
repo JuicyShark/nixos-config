@@ -7,11 +7,10 @@
 }:
 
 let
-  inherit (config.lib.stylix.colors.withHashtag) base00;
+  # inherit (config.lib.stylix.colors.withHashtag) base00;
 in
 {
   programs.ghostty = lib.mkIf osConfig.modules.desktop.enable {
-    shellIntegration.enableZshIntegration = true;
     enable = true;
   };
 }

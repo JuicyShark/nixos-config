@@ -11,7 +11,7 @@ stdenv.mkDerivation {
     owner = "nuchs";
     repo = "vim-hypr-nav";
     rev = "6ab4865a7eb5aad35305298815a4563c9d48556a";
-    sha256 = "C9QG8fEFAwnT+av6gxgsEck0rSKrmiainqqt7jKAls0=";
+    sha256 = "sha256-V4a9D3HpT1SZUrUc1XrC6SsrtKmIcFxdSVmq0Gwt/Ik=";
   };
 
   installPhase = ''

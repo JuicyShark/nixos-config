@@ -14,7 +14,7 @@
         package = config.boot.kernelPackages.nvidiaPackages.beta;
 
         modesetting.enable = true;
-        nvidiaPersistenced = false;
+        nvidiaPersistenced = true;
         powerManagement.enable = true;
         powerManagement.finegrained = false;
         open = false;
@@ -29,22 +29,24 @@
       };
     };
 
-    services.udev.packages = [ pkgs.linuxPackages.nvidia_x11_beta ];
     services.xserver.videoDrivers = lib.mkDefault [ "nvidia" ];
 
     boot.extraModulePackages = [
       config.boot.kernelPackages.nvidiaPackages.beta
     ];
     boot.kernelParams = [
-      "nvidia-drm.fbdev=1"
+      "nvidia-drm.modeset=1"
       "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
     ];
     environment.sessionVariables = {
+      WLR_RENDERER = "vulkan"; # REMOVE if issues
       GBM_BACKEND = "nvidia-drm";
       NVD_BACKEND = "direct";
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
       LIBVA_DRIVER_NAME = "nvidia"; # hardware acceleration
       __GL_VRR_ALLOWED = "1";
+      __GL_GSYNC_ALLOWED = "1";
+      __GL_MaxFramesAllowed = "1";
     };
   };
 }

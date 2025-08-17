@@ -4,10 +4,14 @@
   lib,
   ...
 }:
-{
-  home.packages = with pkgs; lib.mkIf osConfig.modules.desktop.apps.streaming [ wl-mirror ];
+lib.mkIf osConfig.modules.desktop.apps.streaming {
+  home.packages = with pkgs; [
+    wl-mirror
+    chatterino2
+
+  ];
   programs.obs-studio = {
-    enable = lib.mkIf osConfig.modules.desktop.apps.streaming true;
+    enable = true;
     plugins = with pkgs.obs-studio-plugins; [
       wlrobs
       obs-vkcapture

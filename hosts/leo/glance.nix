@@ -1,5 +1,5 @@
+{ config, ... }:
 {
-  #gglance
   services.glance = {
     enable = true;
     openFirewall = true;
@@ -55,25 +55,25 @@
                   sites = [
                     {
                       title = "Jellyfin";
-                      url = "http://192.168.1.54:8096";
+                      url = "http://juiced.lan:8096";
                       check-url = "http://192.168.1.54:8096/web/index.html";
                       icon = "di:jellyfin";
                     }
                     {
                       title = "Sonarr";
-                      url = "http://192.168.1.54:8096";
+                      url = "http://192.168.1.54:8989";
                       check-url = "http://192.168.1.54:8989";
                       icon = "di:sonarr";
                     }
                     {
                       title = "Radarr";
-                      url = "http://192.168.1.54:8096";
+                      url = "http://192.168.1.54:7878";
                       check-url = "http://192.168.1.54:7878";
                       icon = "di:radarr";
                     }
                     {
                       title = "Lidarr";
-                      url = "http://192.168.1.54:8096";
+                      url = "http://192.168.1.54:8686";
                       check-url = "http://192.168.1.54:8686";
                       icon = "di:lidarr";
                     }
@@ -93,8 +93,8 @@
                     }
                     {
                       title = "Grafana";
-                      url = "http://192.168.1.54:3007";
-                      check-url = "http://192.168.1.54:3007";
+                      url = "http://192.168.1.99:3007";
+                      check-url = "http://192.168.1.99:3007";
                       icon = "di:grafana";
                     }
                     {
@@ -171,28 +171,11 @@
                   type = "bookmarks";
                   groups = [
                     {
-                      title = "Aly Raffauf";
-                      links = [
-                        {
-                          title = "Website";
-                          url = "https://aly.codes/";
-                        }
-                        {
-                          title = "Github";
-                          url = "https://github.com/alyraffauf/";
-                        }
-                        {
-                          title = "Linkedin";
-                          url = "https://www.linkedin.com/in/alyraffauf/";
-                        }
-                      ];
-                    }
-                    {
                       title = "General";
                       links = [
                         {
-                          title = "Fastmail";
-                          url = "https://fastmail.com/";
+                          title = "Gmail";
+                          url = "https://gmail.com/";
                         }
                         {
                           title = "YouTube";
@@ -214,10 +197,6 @@
                         {
                           title = "Reddit";
                           url = "https://www.reddit.com/";
-                        }
-                        {
-                          title = "Instagram";
-                          url = "https://www.instagram.com/";
                         }
                       ];
                     }

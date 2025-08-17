@@ -5,6 +5,8 @@
   ...
 }:
 let
+
+  cfg = config.modules.desktop.apps.sunshine;
   steam-run-url = pkgs.writeShellApplication {
     name = "steam-run-url";
     runtimeInputs = [ pkgs.uutils-coreutils-noprefix ];
@@ -15,9 +17,9 @@ let
   };
 in
 {
-  options.modules.desktop.sunshine = lib.mkEnableOption "sunshine game streaming";
+  #options.modules.desktop.sunshine = lib.mkEnableOption "sunshine game streaming";
 
-  config = lib.mkIf config.modules.desktop.sunshine {
+  config = lib.mkIf cfg {
     assertions = [
       {
         assertion = config.programs.steam.enable;

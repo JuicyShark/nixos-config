@@ -1,9 +1,13 @@
 {
   programs.eza = {
     enable = true;
-    enableFishIntegration = true;
+    enableNushellIntegration = true;
     icons = "auto";
 
-    extraOptions = ["--group-directories-first" "--no-quotes" "--git-ignore"];
+    extraOptions = [
+      "--group-directories-first"
+      "--no-quotes"
+      "--git-ignore"
+    ];
   };
 }

@@ -1,9 +1,5 @@
 {
-  /*
-      nixpkgs.config = {
-      allowUnfree = true;
-    };
-  */
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -12,40 +8,31 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    emacs-overlay.url = "github:nix-community/emacs-overlay";
+    emacs-overlay.inputs.nixpkgs.follows = "nixpkgs";
+    caelestia-shell.url = "github:caelestia-dots/shell";
+    # use input capture branch
+    hyprland = {
+      url = "github:3l0w/Hyprland?ref=feat/input-capture-impl";
+      inputs.hyprland-protocols.follows = "hyprland-protocols";
+      inputs.xdph.url = "github:3l0w/xdg-desktop-portal-hyprland?ref=feat/input-capture-impl";
+      inputs.xdph.inputs.hyprland-protocols.follows = "hyprland-protocols";
+    };
+    hyprland-protocols = {
+      url = "github:3l0w/Hyprland-protocols?ref=feat/input-capture-impl";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     agenix = {
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
-      # optionally choose not to download darwin deps (saves some resources on Linux)
-      inputs.darwin.follows = "";
     };
 
     stylix = {
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        # home-manager.follows = "home-manager";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
       url = "github:danth/stylix";
     };
 
-    hyprland.url = "github:hyprwm/Hyprland"; # "github:3l0w/Hyprland?ref=feat/input-capture-impl"; build breaks
-    # hyprland-protocols.url = "github:3l0w/Hyprland-protocols?ref=feat/input-capture-impl";
-
-    /*
-      hy3 = {
-        url = "github:outfoxxed/hy3"; # where {version} is the hyprland release version
-        # or "github:outfoxxed/hy3" to follow the development branch.
-        # (you may encounter issues if you dont do the same for hyprland)
-        inputs.hyprland.follows = "hyprland";
-      };
-    */
-
-    quickshell = {
-      url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    caelestia-shell = {
-      url = "github:caelestia-dots/shell";
-    };
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -55,11 +42,11 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    #TODO
+    #colmena.url = "github:zhaofengli/colmena";
+    # Music
+    #vermilion.url = "github:vaxerski/vermilion";
 
-    nix-qml-support = {
-      url = "git+https://git.outfoxxed.me/outfoxxed/nix-qml-support";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -131,18 +118,18 @@
         };
 
         # Extra Hosts here
-        hyperjuice = nixosSystem {
+        emerald = nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit inputs; };
           specialArgs.nix-config = self;
-          modules = listFilesRecursive ./hosts/hyperjuice;
+          modules = listFilesRecursive ./hosts/leo;
         };
         # Extra Hosts here
-        dante = nixosSystem {
+        fallarbor = nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit inputs; };
           specialArgs.nix-config = self;
-          modules = listFilesRecursive ./hosts/dante;
+          modules = listFilesRecursive ./hosts/fallarbor;
         };
 
         zues = nixosSystem {
@@ -151,14 +138,23 @@
           specialArgs.nix-config = self;
           modules = listFilesRecursive ./hosts/zues;
         };
-        nixos = nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = { inherit inputs; };
-          specialArgs.nix-config = self;
-          modules = listFilesRecursive ./hosts/nix-wsl;
+      };
+      colmena = {
+        meta = {
+          nixpkgs = import nixpkgs { system = "x86_64-linux"; };
+          nodeNixpkgs = nixpkgs;
+        };
+        hosts = {
+          desktop = {
+            deployment.targetHost = "leo.lan";
+            imports = [ ./hosts/leo/configuration.nix ];
+          };
+          server = {
+            deployment.targetHost = "zues.lan";
+            imports = [ ./hosts/zues/configuration.nix ];
+          };
         };
       };
-
       formatter = forAllSystems (pkgs: pkgs.alejandra);
     };
 }

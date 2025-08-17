@@ -91,9 +91,8 @@ in
         "/home/${username}/.ssh/id_ed25519"
         "/etc/ssh/ssh_host_ed25519_key"
       ];
-      secrets.wifi-pass = {
-        file = ../secrets/wifi-pass.age;
-      };
+      secrets.wifi-pass.file = ../secrets/wifi-pass.age;
+      secrets.deploy-key.file = ../secrets/deploy-key.age;
     };
 
     environment = {
@@ -139,6 +138,10 @@ in
       gc.automatic = true;
       optimise.automatic = true;
       settings = {
+        secret-key-files = [ config.age.secrets.deploy-key.path ];
+        trusted-public-keys = [
+          "max-deploy:3kPzEf0z7cR3xHAgh2bsS0lp9GZGWzEKsw/ZuQc1z60="
+        ];
         auto-optimise-store = true;
         warn-dirty = false;
         allow-import-from-derivation = false;

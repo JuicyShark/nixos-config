@@ -19,10 +19,21 @@ let
   inherit (cfg) apps;
 
   cfg = config.modules.desktop;
+
+  xdg-desktop-portal-hyprland = pkgs.xdg-desktop-portal-hyprland.overrideAttrs (old: {
+    nativeBuildInputs = old.nativeBuildInputs ++ [
+      pkgs.pkg-config
+    ];
+
+    buildInputs = old.buildInputs ++ [
+      pkgs.libei
+    ];
+  });
 in
 {
   imports = [
   ];
+
   options.modules.desktop = {
     enable = mkEnableOption "Enable Desktop Environment";
     opacity = mkOption {
@@ -38,6 +49,7 @@ in
       emacs = mkEnableOption "Emacs";
       bloat = mkEnableOption "GUI applications";
       streaming = mkEnableOption "Streaming Apps";
+      sunshine = mkEnableOption "Sunshine Streaming";
       gaming = mkEnableOption "Steam + Proton";
       llm = mkEnableOption "Llama llm model runner";
       virtual = mkEnableOption "Enable Qemu Support";
@@ -49,6 +61,11 @@ in
   };
 
   config = mkIf cfg.enable {
+    # Hyprland Flake
+    nixpkgs.overlays = [
+      nix-config.inputs.hyprland.overlays.default
+    ];
+
     qt = {
       enable = true;
       platformTheme = lib.mkForce "qt5ct";
@@ -72,7 +89,7 @@ in
       XDG_SCREENSHOTS_DIR = "/home/${username}/pictures/screenshots";
     };
 
-    systemd.extraConfig = mkIf apps.gaming "DefaultLimitNOFILE=1048576";
+    systemd.settings.Manager = mkIf apps.gaming { DefaultLimitNOFILE = 1048576; };
 
     programs = {
       firefox.enable = true;
@@ -83,9 +100,7 @@ in
       hyprland = {
         enable = mkIf (!isContainer) true;
         withUWSM = true;
-        package = nix-config.inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-        portalPackage =
-          nix-config.inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
+        portalPackage = xdg-desktop-portal-hyprland;
 
       };
 
@@ -131,8 +146,18 @@ in
       };
       playerctld.enable = true;
 
-      ollama.enable = mkIf apps.llm true;
-      nextjs-ollama-llm-ui.enable = mkIf apps.llm true;
+      ollama = {
+        enable = mkIf apps.llm true;
+        acceleration = "cuda";
+        user = "ollama";
+        openFirewall = true;
+        loadModels = [
+          "deepseek-r1:7b"
+          "codellama:7b-code"
+          "qwen2.5:7b"
+          "deepseek-coder:6.7b"
+        ];
+      };
 
       libinput = {
 
@@ -146,7 +171,6 @@ in
         #alsa.enable = true;
         #alsa.support32Bit = true;
         pulse.enable = true;
-
         # wireplumber.enable = true;
       };
 
@@ -160,8 +184,6 @@ in
     users.extraGroups.media.members = [ username ];
 
     security.rtkit.enable = true;
-
-    boot.kernel.sysctl."vm.swappiness" = 10;
 
     security.pam.services.quickshell = { };
 
@@ -195,6 +217,18 @@ in
         item = "rtprio";
         type = "-";
         value = 1;
+      }
+      {
+        domain = username;
+        item = "nofile";
+        type = "hard";
+        value = 1048576;
+      }
+      {
+        domain = username;
+        item = "nofile";
+        type = "soft";
+        value = 1048576;
       }
     ];
 
@@ -230,7 +264,7 @@ in
         with pkgs;
         [
           heroic
-          ryujinx
+          #ryujinx
           dolphin-emu
           osu-lazer-bin
           wowup-cf

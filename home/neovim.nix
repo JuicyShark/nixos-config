@@ -9,14 +9,16 @@
 }:
 let
   inherit (nixosConfig._module.specialArgs) nix-config;
-  inherit (nix-config.packages.${pkgs.system}) vim-hy3-nav;
+  inherit (nix-config.packages.${pkgs.system}) vim-hypr-nav;
 in
 {
-  imports = [ nix-config.inputs.nixvim.homeManagerModules.nixvim ];
+  imports = [ nix-config.inputs.nixvim.homeModules.nixvim ];
   home.packages = with pkgs; [ nixfmt-rfc-style ];
   programs.nixvim = {
     enable = true;
-    defaultEditor = lib.mkIf (osConfig.modules.desktop.enable == false) true;
+    defaultEditor = lib.mkIf (
+      osConfig.modules.desktop.enable == false && osConfig.modules.desktop.apps.emacs == false
+    ) true;
     vimdiffAlias = true;
     viAlias = true;
     vimAlias = true;
@@ -82,8 +84,8 @@ in
     ];
     extraPlugins = [
       (pkgs.vimUtils.buildVimPlugin {
-        name = "vim-hy3-nav";
-        src = vim-hy3-nav;
+        name = "vim-hypr-nav";
+        src = vim-hypr-nav;
       })
       pkgs.vimPlugins.neorg-telescope
     ];
@@ -336,24 +338,28 @@ in
       neorg.enable = true;
 
       # TODO setup FOLKE plugins
-      trouble = {
-        enable = true;
-        settings = {
-          auto_fold = true;
-          #auto_open = true;
-          posistion = "bottom";
+      /*
+        trouble = {
+          enable = true;
+          settings = {
+            auto_fold = true;
+            #auto_open = true;
+            posistion = "bottom";
+          };
         };
-      };
+      */
       # File Explorer
       nvim-tree = {
         enable = true;
-        autoReloadOnWrite = true;
-        autoClose = true;
-        disableNetrw = true;
-        hijackCursor = true;
-        hijackUnnamedBufferWhenOpening = true;
-        openOnSetup = true;
-        openOnSetupFile = true;
+        settings = {
+          autoReloadOnWrite = true;
+          autoClose = true;
+          disableNetrw = true;
+          hijackCursor = true;
+          hijackUnnamedBufferWhenOpening = true;
+          openOnSetup = true;
+          openOnSetupFile = true;
+        };
       };
 
       noice = {
@@ -468,7 +474,7 @@ in
         };
       };
       nix.enable = true;
-      illuminate.enable = true;
+      #illuminate.enable = true;
       treesitter = {
         enable = true;
         folding = true;
@@ -568,7 +574,7 @@ in
       };
       lspkind = {
         enable = true;
-        cmp = {
+        settings.cmp = {
           enable = true;
           menu = {
             nvim_lsp = "[LSP]";
@@ -580,8 +586,8 @@ in
           };
         };
       };
-      yazi.enable = true;
-      vim-surround.enable = true;
+      #yazi.enable = true;
+      #vim-surround.enable = true;
       todo-comments.enable = true;
       lualine.enable = false;
       auto-save.enable = true;
@@ -594,17 +600,6 @@ in
         event = "BufWrite";
         command = "%s/\\s\\+$//e";
         desc = "Remove Whitespaces";
-      }
-      {
-        event = "FileType";
-        pattern = [ "norg" ];
-        command = "setlocal conceallevel=1";
-        desc = "Conceal Syntax Attribute";
-      }
-      {
-        event = "FileType";
-        pattern = "help";
-        command = "wincmd L";
       }
     ];
   };

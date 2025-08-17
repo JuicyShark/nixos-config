@@ -1,7 +1,12 @@
 {
 
-  programs.nushell = {
-    enable = true;
+  programs = {
+    nushell.enable = true;
+
+    carapace = {
+      enable = true;
+      enableNushellIntegration = true;
+    };
 
   };
 }

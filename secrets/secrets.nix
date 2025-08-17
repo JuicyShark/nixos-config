@@ -4,11 +4,11 @@ let
   users = [ juicy ];
 
   host_leo = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDAIkyPtZHQP4je70NBTAnJtKEMRC9c2KYCH9htoahVj";
-  host_dante = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICB0LrsbzqhFVx8Hm19kiVTNccH6Rhszx+AejA6LPOOI";
+  host_fallarbor = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHPsx9Mg7qBNYwHsyECMf1h6xFRxcrxBLuS0GSPxmk8A root@fallarbor";
   host_zues = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOQOb2XaMyLNZNRKvrfcwxVgeIF3rqsSNyY3Kldv735z";
   systems = [
     host_leo
-    host_dante
+    host_fallarbor
     host_zues
   ];
 in
@@ -61,6 +61,7 @@ in
   "coturn-key.age".publicKeys = [
     host_zues
   ];
+  "deploy-key.age".publicKeys = systems;
 
   "wifi-pass.age".publicKeys = systems ++ users;
 
