@@ -55,7 +55,7 @@
                   sites = [
                     {
                       title = "Jellyfin";
-                      url = "http://juiced.lan:8096";
+                      url = "http://192.168.1.54:8096";
                       check-url = "http://192.168.1.54:8096/web/index.html";
                       icon = "di:jellyfin";
                     }
