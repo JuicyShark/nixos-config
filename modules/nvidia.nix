@@ -14,7 +14,7 @@
         package = config.boot.kernelPackages.nvidiaPackages.beta;
 
         modesetting.enable = true;
-        nvidiaPersistenced = true;
+        nvidiaPersistenced = false;
         powerManagement.enable = true;
         powerManagement.finegrained = false;
         open = false;
@@ -37,6 +37,10 @@
     boot.kernelParams = [
       "nvidia-drm.modeset=1"
       "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
+      "nvidia.NVreg_EnableVRR=1"
+      "nvidia.NVreg_UsePageAttributeTable=1"
+      "nvidia.NVreg_EnableGpuFirmware=0"
+      "futex2.enabled=1"
     ];
     environment.sessionVariables = {
       WLR_RENDERER = "vulkan"; # REMOVE if issues
