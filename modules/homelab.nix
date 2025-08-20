@@ -103,18 +103,18 @@ in
         owner = "deluge";
         group = "media";
       };
-      matrix-shared-key = lib.mkIf config.services.matrix-synapse.enable {
-        file = ../secrets/matrix-shared-key.age;
+      matrix-secret-config = lib.mkIf config.services.matrix-synapse.enable {
+        file = ../secrets/matrix-shared-key.yaml.age;
         # owner = "matrix";
         #group = "matrix";
       };
-      /*
-        coturn-key = lib.mkIf config.services.coturn.enable {
-          file = ../secrets/coturn-key.age;
-          #owner = "matrix";
-          #group = "matrix";
-        };
-      */
+
+      coturn-key = lib.mkIf (config.services.coturn.enable || config.services.matrix-synapse.enable) {
+        file = ../secrets/coturn-key.age;
+        #owner = "matrix";
+        #group = "matrix";
+      };
+
     };
 
     users = {
@@ -349,16 +349,22 @@ in
         enable = mkIf cfg.matrix-server true;
         enableRegistrationScript = true;
 
+        extraConfigFiles = [
+          config.age.secrets."matrix-secret-config".path
+        ];
+
         settings = {
           server_name = "nixlab.au";
           public_baseurl = "https://matrix.nixlab.au";
 
           enable_registration = true;
           enable_registration_without_verification = true;
-          registration_shared_secrets = config.age.secrets.matrix-shared-key.path;
-          turn_shared_sercet = config.age.secrets.coturn-key.path;
+
           turn_uris = [
             "turn:turn.nixlab.au:3478?transport=udp"
+            #"turn:turn.nixlab.au:3487?transport=tcp"
+            #"turns:turn.nixlab.au:5349?transport=udp"
+            #"turns:turn.nixlab.au:5349?transport=tcp"
           ];
           # Optional but recommended tuning if you see rate-limit noise:
           rc_message = {

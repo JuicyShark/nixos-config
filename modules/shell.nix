@@ -10,39 +10,28 @@
 
     systemPackages = with pkgs; [
       jq
-      shell-gpt
       fd
       xh
       file
       timg
-      yt-dlp
       dig
       mtr
       whois
-      killall
       hwinfo
       duf
       stress
       hdparm
-      jpegoptim
       fastfetch
-      onefetch
-      asciiquarium-transparent
       cmatrix
       p7zip
       peaclock
-      rsync
-      rclone
       ffmpeg
       imagemagick
-      smartmontools
       nix-init
       nix-update
       nix-search-cli
       nix-tree
       nix-inspect
-      zoxide
-      zellij
     ];
   };
 
