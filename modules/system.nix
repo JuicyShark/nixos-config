@@ -150,7 +150,7 @@ in
         ];
         auto-optimise-store = true;
         warn-dirty = false;
-        allow-import-from-derivation = false;
+        allow-import-from-derivation = true;
         keep-going = true;
 
         experimental-features = [
@@ -201,8 +201,8 @@ in
     };
 
     home-manager = {
-      #useGlobalPkgs = true;
-      #useUserPackages = true;
+      useGlobalPkgs = true;
+      useUserPackages = true;
 
       sharedModules = singleton {
         home = { inherit (cfg) stateVersion; };

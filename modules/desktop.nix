@@ -51,12 +51,7 @@ in
       streaming = mkEnableOption "Streaming Apps";
       sunshine = mkEnableOption "Sunshine Streaming";
       gaming = mkEnableOption "Steam + Proton";
-      llm = mkEnableOption "Llama llm model runner";
       virtual = mkEnableOption "Enable Qemu Support";
-    };
-
-    wallpapers = {
-      "32:9".enable = lib.mkEnableOption "Dual monitor wallpapers";
     };
   };
 
@@ -92,6 +87,7 @@ in
     systemd.settings.Manager = mkIf apps.gaming { DefaultLimitNOFILE = 1048576; };
 
     programs = {
+
       firefox.enable = true;
       #ladybird.enable = true; # Keep an eye on, independant web browser
 
@@ -140,24 +136,7 @@ in
     };
 
     services = {
-      xserver = {
-        enable = true;
-        displayManager.lightdm.enable = false;
-      };
       playerctld.enable = true;
-
-      ollama = {
-        enable = mkIf apps.llm true;
-        acceleration = "cuda";
-        user = "ollama";
-        openFirewall = true;
-        loadModels = [
-          "deepseek-r1:7b"
-          "codellama:7b-code"
-          "qwen2.5:7b"
-          "deepseek-coder:6.7b"
-        ];
-      };
 
       libinput = {
 
@@ -168,10 +147,10 @@ in
 
       pipewire = {
         enable = true;
-        #alsa.enable = true;
-        #alsa.support32Bit = true;
+        alsa.enable = true;
+        alsa.support32Bit = true;
         pulse.enable = true;
-        # wireplumber.enable = true;
+        wireplumber.enable = true;
       };
 
       dbus.implementation = lib.mkForce "dbus";
@@ -240,16 +219,11 @@ in
       (mkIf apps.bloat (
         with pkgs;
         [
-          iamb
           obsidian
-
           element-desktop
           signal-desktop
-          clipboard-jh
-
           pwvucontrol
           discord
-          pavucontrol
         ]
       ))
 
@@ -279,7 +253,6 @@ in
       (with pkgs; [
         bitwarden
         pulseaudio
-        grim
         wl-clipboard-rs
         gparted
         qt6.qtwayland

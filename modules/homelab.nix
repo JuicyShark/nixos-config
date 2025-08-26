@@ -11,7 +11,6 @@ let
   };
 
   iface = config.networking.defaultGateway.interface;
-  ip = (builtins.elemAt config.networking.interfaces.${iface}.ipv4.addresses 0).address;
 
   cfg = config.modules.homelab;
 
@@ -31,7 +30,6 @@ let
     immich = 2283;
     delugeWeb = 9050;
     delugeDaemon = 58846;
-    delugeExporter = 9720;
     vaultwarden = 8521;
     matrix = 8008;
     prowlarr = 9696;
@@ -39,20 +37,11 @@ let
     radarr = 7878;
     lidarr = 8686;
     bazarr = 6767;
-    unboundExporter = 9167;
-    prowlarrExporter = 9710;
-    sonarrExporter = 9712;
-    radarrExporter = 9711;
-    lidarrExporter = 9709;
-    bazarrExporter = 9708;
-    nodeExporter = 3021;
 
   };
 in
 {
   options.modules.homelab = {
-    hostMonitoring = mkEnableOption "Host Device Monitoring";
-    monitoring = mkEnableOption "Monitoring via Prometheus";
     vaultwarden = mkEnableOption "Vaultwarden support";
     matrix-server = mkEnableOption "Matrix Server";
     adguard-home = mkEnableOption "Adguard Support";
@@ -62,6 +51,8 @@ in
     llm = mkEnableOption "Ai time";
     media = mkEnableOption "Jellyfin and Co";
     nas = mkEnableOption "designate host to share storage";
+    unbound = mkEnableOption "unbound node";
+    glances = mkEnableOption "homepage view services at a glance";
 
     nomad = {
       enable = mkEnableOption "Nomad";
@@ -73,48 +64,26 @@ in
   config = {
 
     age.secrets = {
-      prowlarr-api = mkIf config.services.prowlarr.enable {
-        file = ../secrets/prowlarr-api.age;
-      };
-      radarr-api = mkIf config.services.radarr.enable {
-        file = ../secrets/radarr-api.age;
-      };
-      sonarr-api = mkIf config.services.sonarr.enable {
-        file = ../secrets/sonarr-api.age;
-      };
-      lidarr-api = mkIf config.services.lidarr.enable {
-        file = ../secrets/lidarr-api.age;
-      };
 
-      bazarr-api = mkIf config.services.bazarr.enable {
-        file = ../secrets/bazarr-api.age;
-      };
-
-      vaultwarden-push-id = mkIf config.services.vaultwarden.enable {
-        file = ../secrets/vaultwarden-push-id.age;
-      };
-
-      vaultwarden-push-key = mkIf config.services.vaultwarden.enable {
-        file = ../secrets/vaultwarden-push-key.age;
+      "vaultwarden.env" = mkIf config.services.vaultwarden.enable {
+        file = ../secrets/vaultwarden.env.age;
+        owner = "vaultwarden";
       };
 
       deluge-auth = lib.mkIf config.services.deluge.enable {
         file = ../secrets/deluge-auth.age;
         owner = "deluge";
-        group = "media";
       };
-      matrix-secret-config = lib.mkIf config.services.matrix-synapse.enable {
+
+      "matrix-secret-config.yaml" = lib.mkIf config.services.matrix-synapse.enable {
         file = ../secrets/matrix-shared-key.yaml.age;
-        # owner = "matrix";
-        #group = "matrix";
+        owner = "matrix-synapse";
       };
 
-      coturn-key = lib.mkIf (config.services.coturn.enable || config.services.matrix-synapse.enable) {
+      coturn-key = lib.mkIf (config.services.coturn.enable) {
         file = ../secrets/coturn-key.age;
-        #owner = "matrix";
-        #group = "matrix";
+        owner = "coturn";
       };
-
     };
 
     users = {
@@ -136,7 +105,8 @@ in
     };
 
     services = {
-      jellyfin = (mkIf config.services.jellyfin.enable) {
+      jellyfin = (mkIf cfg.jellyfin) {
+        enable = true;
         group = "media";
         openFirewall = true;
       };
@@ -171,9 +141,7 @@ in
         enable = mkIf cfg.media true;
         group = "media";
         openFirewall = true;
-        settings.server = {
-          port = ports.radarr;
-        };
+        settings.server.port = ports.radarr;
       };
       # Music
       lidarr = {
@@ -194,23 +162,23 @@ in
           copy_torrent_file = true;
           move_completed = true;
           group = "media";
-          torrentfiles_location = "/srv/chonk/media/torrent/files";
-          download_location = "/srv/chonk/media/torrent/downloading";
+          torrentfiles_location = "/mnt/torrents/files";
+          download_location = "/mnt/torrents/downloading";
           move_completed_path = "/srv/chonk/media/torrent/data";
           dont_count_slow_torrents = true;
-          max_active_seeding = 745;
-          max_active_limit = 750;
-          max_active_downloading = 10;
-          max_connections_global = 350;
-          max_upload_speed = 3750;
-          max_download_speed = 12750;
+          max_active_seeding = 50;
+          max_active_limit = 50;
+          max_active_downloading = 3;
+          max_connections_global = 150;
+          max_upload_speed = 2500;
+          max_download_speed = 25000;
           share_ratio_limit = 2;
           allow_remote = false;
           daemon_port = ports.delugeDaemon;
           random_port = false;
           outgoing_interface = iface;
           enabled_plugins = [
-            "label"
+            "Label"
           ];
         };
 
@@ -224,6 +192,7 @@ in
       #Vault Warden
       vaultwarden = {
         enable = mkIf cfg.vaultwarden true;
+        environmentFile = config.age.secrets."vaultwarden.env".path;
         config = {
           DOMAIN = "https://pass.nixlab.au";
           SIGNUPS_ALLOWED = true;
@@ -232,9 +201,8 @@ in
           WEB_VAULT_ENABLED = true;
           ENABLE_PROMETHEUS_METRICS = true;
           PUSH_ENABLED = true;
-
-          PUSH_INSTALLATION_ID = config.age.secrets.vaultwarden-push-id.path;
-          PUSH_INSTALLATION_KEY = config.age.secrets.vaultwarden-push-key.path;
+          LOG_LEVEL = "trace";
+          EXTENDED_LOGGING = true;
         };
       };
 
@@ -249,7 +217,7 @@ in
         host = "192.168.1.54";
         group = "media";
         port = ports.immich;
-        mediaLocation = "/srv/chonk/media/immich";
+        mediaLocation = "/mnt/smol/immich";
         machine-learning.enable = true;
         redis.enable = true;
         openFirewall = true;
@@ -264,93 +232,31 @@ in
         lockdPort = 4001;
         mountdPort = 4002;
         statdPort = 4000;
-        exports = "/srv/chonk/ 192.168.1.0/24(rw,sync,no_subtree_check,no_root_squash,insecure)";
+        exports = "
+        /srv/chonk/ 192.168.1.0/24(rw,sync,no_subtree_check,no_root_squash,insecure)
+        /srv/smol/ 192.168.1.0/24(rw,sync,no_subtree_check,no_root_squash,insecure)
+        ";
       };
 
-      prometheus.exporters = {
-        deluge = {
-          enable = mkIf config.services.deluge.enable true;
-          delugePasswordFile = config.age.secrets.deluge-auth.path;
-          delugePort = config.services.deluge.config.daemon_port;
-          openFirewall = true;
-          port = ports.delugeExporter;
-        };
-        exportarr-bazarr = {
-          enable = mkIf config.services.bazarr.enable true;
-          apiKeyFile = config.age.secrets.bazarr-api.path;
-          port = ports.bazarrExporter;
-          listenAddress = "0.0.0.0";
-          url = "http://leo.lan:${toString ports.bazarr}";
-          openFirewall = true;
-        };
-
-        exportarr-lidarr = {
-          enable = mkIf config.services.lidarr.enable true;
-          apiKeyFile = config.age.secrets.lidarr-api.path;
-          port = ports.lidarrExporter;
-          listenAddress = "0.0.0.0";
-          url = "http://leo.lan:${toString ports.lidarr}";
-          openFirewall = true;
-        };
-
-        exportarr-prowlarr = {
-          enable = mkIf config.services.prowlarr.enable true;
-          apiKeyFile = config.age.secrets.prowlarr-api.path;
-          port = ports.prowlarrExporter;
-          listenAddress = "0.0.0.0";
-          url = "http://leo.lan:${toString ports.prowlarr}";
-          openFirewall = true;
-        };
-
-        exportarr-radarr = {
-          enable = mkIf config.services.radarr.enable true;
-          apiKeyFile = config.age.secrets.radarr-api.path;
-          port = ports.radarrExporter;
-          listenAddress = "0.0.0.0";
-          url = "http://leo.lan:${toString ports.radarr}";
-          openFirewall = true;
-        };
-
-        exportarr-sonarr = {
-          enable = mkIf config.services.sonarr.enable true;
-          apiKeyFile = config.age.secrets.sonarr-api.path;
-          port = ports.sonarrExporter;
-          listenAddress = "0.0.0.0";
-          url = "http://leo.lan:${toString ports.sonarr}";
-          openFirewall = true;
-        };
-
-        smartctl = {
-          enable = mkIf cfg.hostMonitoring true;
-          openFirewall = true;
-        };
-
-        node = {
-          enable = mkIf cfg.hostMonitoring true;
-          enabledCollectors = [ "systemd" ];
-          openFirewall = true;
-
-          extraFlags = [
-            "--collector.ethtool"
-            "--collector.softirqs"
-            "--collector.tcpstat"
-            "--collector.wifi"
-            "--collector.cpu"
-
-            "--collector.interrupts"
-            "--collector.softnet"
-            "--collector.hwmon"
-          ];
-
-          port = ports.nodeExporter;
-        };
+      ollama = {
+        enable = mkIf cfg.llm true;
+        acceleration = "cuda";
+        user = "ollama";
+        openFirewall = true;
+        loadModels = [
+          "deepseek-r1:7b"
+          "codellama:7b-code"
+          "qwen2.5:7b"
+          "deepseek-coder:6.7b"
+        ];
       };
+
       matrix-synapse = {
         enable = mkIf cfg.matrix-server true;
         enableRegistrationScript = true;
 
         extraConfigFiles = [
-          config.age.secrets."matrix-secret-config".path
+          config.age.secrets."matrix-secret-config.yaml".path
         ];
 
         settings = {
@@ -358,14 +264,7 @@ in
           public_baseurl = "https://matrix.nixlab.au";
 
           enable_registration = true;
-          enable_registration_without_verification = true;
 
-          turn_uris = [
-            "turn:turn.nixlab.au:3478?transport=udp"
-            #"turn:turn.nixlab.au:3487?transport=tcp"
-            #"turns:turn.nixlab.au:5349?transport=udp"
-            #"turns:turn.nixlab.au:5349?transport=tcp"
-          ];
           # Optional but recommended tuning if you see rate-limit noise:
           rc_message = {
             per_second = 0.5;

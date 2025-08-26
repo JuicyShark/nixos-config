@@ -3,7 +3,8 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (lib) mkEnableOption mkIf;
   inherit (builtins) toJSON;
 
@@ -13,7 +14,8 @@
     ;
 
   cfg = config.modules.hardware;
-in {
+in
+{
   options.modules.hardware = {
     bluetooth = mkEnableOption "bluetooth support";
     nvidia = {
@@ -24,19 +26,14 @@ in {
 
   config = {
     hardware.bluetooth.enable = mkIf bluetooth true;
- #   hardware.nvidia-container-toolkit.enable = nvidia.enable;
+    #   hardware.nvidia-container-toolkit.enable = nvidia.enable;
 
     services = {
       blueman.enable = mkIf bluetooth true;
     };
 
     environment.systemPackages = [
-      (
-        if nvidia.enable
-        then (pkgs.zenith-nvidia)
-        else (pkgs.zenith)
-      )
+      (if nvidia.enable then (pkgs.zenith-nvidia) else (pkgs.zenith))
     ];
   };
 }
-
