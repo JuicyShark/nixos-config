@@ -14,6 +14,7 @@ in
 {
   imports = [ nix-config.inputs.nixvim.homeModules.nixvim ];
   home.packages = with pkgs; [ nixfmt-rfc-style ];
+
   programs.nixvim = {
     enable = true;
     defaultEditor = lib.mkIf (
@@ -36,11 +37,12 @@ in
     };
 
     opts = {
-      # Folds
-      foldmethod = "syntax";
-      #fold = 2;
-      foldminlines = 6;
-      foldnestmax = 3;
+      # Code folding settings (prevent auto-folding on file open)
+      foldmethod = "expr";
+      foldexpr = "nvim_treesitter#foldexpr()";
+      foldenable = false; # Don't fold by default when opening files
+      foldlevel = 99; # Open all folds by default
+      foldlevelstart = 99; # Start with all folds open
 
       # Whitespace
       tabstop = 2;
@@ -54,9 +56,9 @@ in
       cursorline = true;
       number = true;
       relativenumber = true;
-      signcolumn = "number";
+      signcolumn = "yes";
+      updatetime = 250;
 
-      updatetime = 300;
       termguicolors = true;
       mouse = "a";
       hidden = true;
@@ -82,15 +84,210 @@ in
       nixfmt-rfc-style
       stylua
     ];
+    extraConfigLua = ''
+      -- Enhanced dashboard configuration to match your LazyVim setup
+      require('dashboard').setup({
+        theme = 'hyper',
+        config = {
+          week_header = {
+            enable = true,
+          },
+          shortcut = {
+            {
+              desc = ' Find Files',
+              group = 'Label', 
+              action = 'Telescope find_files',
+              key = 'f',
+            },
+            {
+              desc = ' Recent Files',
+              group = 'Number',
+              action = 'Telescope oldfiles',
+              key = 'r', 
+            },
+            {
+              desc = ' Find Text',
+              group = 'DiagnosticHint',
+              action = 'Telescope live_grep',
+              key = 'g',
+            },
+            {
+              desc = ' Terminal',
+              group = 'Function', 
+              action = 'ToggleTerm direction=float',
+              key = 't',
+            },
+            {
+              desc = ' Config',
+              group = 'Constant',
+              action = function()
+                vim.cmd('edit /mnt/smol/nixos-config')
+              end,
+              key = 'c',
+            },
+            {
+              desc = ' Git Status',
+              group = 'Special',
+              action = 'LazyGit', 
+              key = 'G',
+            },
+            {
+              desc = ' Quit',
+              group = 'Error',
+              action = 'qa',
+              key = 'q',
+            },
+          },
+          footer = function()
+            return {
+              '⚡ NixVim loaded with Nix packages - No more Mason!',
+              '📁 ' .. vim.fn.getcwd(),
+            }
+          end,
+        },
+      })
+      -- Enhanced diagnostic configuration
+      vim.diagnostic.config({
+        virtual_text = {
+          spacing = 4,
+          prefix = '●',
+          source = 'if_many',
+        },
+        float = {
+          focusable = false,
+          close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
+          border = 'rounded',
+          source = 'always',
+          prefix = "",
+          scope = 'cursor',
+        },
+        signs = true,
+        underline = true,
+        update_in_insert = false,
+        severity_sort = true,
+      })
+
+      -- Auto-show diagnostic on cursor hold
+      vim.api.nvim_create_autocmd({ "CursorHold" }, {
+        pattern = "*",
+        callback = function()
+          vim.diagnostic.open_float(nil, { focus = false })
+        end,
+      })
+
+      -- Auto-pairs integration with nvim-cmp
+      local cmp_autopairs = require('nvim-autopairs.completion.cmp')
+      local cmp = require('cmp')
+      cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
+    '';
     extraPlugins = [
       (pkgs.vimUtils.buildVimPlugin {
-        name = "vim-hypr-nav";
-        src = vim-hypr-nav;
+        name = "vim-sway-nav";
+        src = /home/juicy/projects/vim-hypr-nav;
       })
       pkgs.vimPlugins.neorg-telescope
     ];
 
     keymaps = [
+      {
+        mode = "n";
+        key = "<A-left>";
+        action = "<cmd>bprevious<cr>";
+        options.desc = "Prev Buffer";
+      }
+      {
+        mode = "n";
+        key = "<A-right>";
+        action = "<cmd>bnext<cr>";
+        options.desc = "Next Buffer";
+      }
+      {
+        mode = "n";
+        key = "<A-h>";
+        action = "<cmd>bprevious<cr>";
+        options.desc = "Prev Buffer";
+      }
+      {
+        mode = "n";
+        key = "<A-l>";
+        action = "<cmd>bnext<cr>";
+        options.desc = "Next Buffer";
+      }
+
+      # Buffer deletion (snacks)
+      {
+        mode = "n";
+        key = "<A-w>";
+        action.__raw = "function() Snacks.bufdelete() end";
+        options.desc = "Delete Buffer";
+      }
+
+      # File explorer toggle (snacks)
+      {
+        mode = "n";
+        key = "<leader>e";
+        action.__raw = "function() Snacks.explorer() end";
+        options.desc = "Explorer (snacks)";
+      }
+      {
+        mode = "n";
+        key = "<leader>.";
+        action.__raw = "function() Snacks.explorer() end";
+        options.desc = "Explorer (snacks)";
+      }
+      # Window navigation with Ctrl + arrow keys
+      {
+        mode = "n";
+        key = "<C-Left>";
+        action = "<C-w>h";
+        options.desc = "Go to left window";
+      }
+      {
+        mode = "n";
+        key = "<C-Down>";
+        action = "<C-w>j";
+        options.desc = "Go to lower window";
+      }
+      {
+        mode = "n";
+        key = "<C-Up>";
+        action = "<C-w>k";
+        options.desc = "Go to upper window";
+      }
+      {
+        mode = "n";
+        key = "<C-Right>";
+        action = "<C-w>l";
+        options.desc = "Go to right window";
+      }
+
+      # Window split with Alt-v (vertical split and move current buffer to right)
+      {
+        mode = "n";
+        key = "<A-v>";
+        action = "<cmd>vsplit<cr><C-w>l";
+        options.desc = "Vertical split and move right";
+      }
+
+      # Terminal toggle (from your toggleterm config)
+      {
+        mode = "n";
+        key = "<A-t>";
+        action = "<cmd>ToggleTerm direction=float<cr>";
+        options.desc = "Toggle Floating Terminal";
+      }
+      {
+        mode = "t";
+        key = "<Esc>";
+        action = ''<C-\><C-N>'';
+        options.desc = "Unfocus terminal";
+      }
+      {
+        mode = "t";
+        key = "<A-t>";
+        action = "<cmd>ToggleTerm direction=float<cr>";
+        options.desc = "Toggle terminal from terminal mode";
+      }
       {
         # [F]ind things, mainly uses Telescope
         mode = [
@@ -217,12 +414,6 @@ in
       }
       # Misc
       {
-        mode = "n";
-        key = "<leader>.";
-        action = "<cmd>NvimTreeToggle<CR>";
-        options.desc = "Open Explorer";
-      }
-      {
         mode = [
           "n"
           "v"
@@ -307,21 +498,62 @@ in
             "<c-r>"
             "z="
           ];
-          /*
-            registrations = {
-              "<leader>n" = "[N]otes";
-              "<leader>f" = "[F]ind";
-              "<leader>h" = "[H]arpoon that B*";
-              "<leader>g" = "[G]it";
-            };
-          */
+
         };
       };
       rustaceanvim.enable = false;
+
+      # Formatting with conform (from your formatting.lua)
+      conform-nvim = {
+        enable = true;
+        settings = {
+          formatters_by_ft = {
+            lua = [ "stylua" ];
+            #python = [ "black" ];
+          };
+          formatters = {
+            stylua = {
+              command = "stylua";
+            };
+          };
+        };
+      };
+      # Terminal (from your toggleterm.lua)
+      toggleterm = {
+        enable = true;
+        settings = {
+          hidden = true;
+          start_in_insert = true;
+          insert_mappings = true;
+          terminal_mappings = true;
+          direction = "float";
+          on_open.__raw = ''
+            function(term)
+              vim.cmd("startinsert!")
+            end
+          '';
+        };
+      };
+
       telescope = {
         enable = true;
-
+        keymaps = {
+          "<leader>ff" = "find_files";
+          "<leader>fg" = "live_grep";
+          "<leader>fb" = "buffers";
+          "<leader>fh" = "help_tags";
+          "<leader>fr" = "oldfiles";
+        };
         settings.defaults = {
+          vimgrep_arguments = [
+            "rg"
+            "--color=never"
+            "--no-heading"
+            "--with-filename"
+            "--line-number"
+            "--column"
+            "--smart-case"
+          ];
           file_ignore_patterns = [
             "^.git/"
             "^.mypy_cache/"
@@ -332,33 +564,81 @@ in
             "%.ipynb"
           ];
           set_env.COLORTERM = "truecolor";
-          pickers.find_files.hidden = true;
+          pickers.find_files = {
+            find_command = [
+              "fd"
+              "--type"
+              "f"
+              "--strip-cwd-prefix"
+            ];
+            hidden = true;
+          };
         };
       };
       neorg.enable = true;
 
-      # TODO setup FOLKE plugins
-      /*
-        trouble = {
-          enable = true;
-          settings = {
-            auto_fold = true;
-            #auto_open = true;
-            posistion = "bottom";
-          };
-        };
-      */
-      # File Explorer
-      nvim-tree = {
+      dashboard = {
         enable = true;
         settings = {
-          autoReloadOnWrite = true;
-          autoClose = true;
-          disableNetrw = true;
-          hijackCursor = true;
-          hijackUnnamedBufferWhenOpening = true;
-          openOnSetup = true;
-          openOnSetupFile = true;
+          theme = "hyper";
+          config = {
+            week_header = {
+              enable = true;
+            };
+          };
+        };
+      };
+      snacks = {
+        enable = true;
+        settings = {
+          bigfile.enabled = true;
+          notifier.enabled = true;
+          quickfile.enabled = true;
+          statuscolumn.enabled = true;
+          words.enabled = true;
+          explorer.enabled = true; # Enable file explorer
+          image.enabled = true;
+          input.enabled = true;
+          picker.enabled = true;
+          scroll.enabled = true;
+          dim = {
+            scope = {
+              min_size = 5;
+              max_size = 20;
+              siblings = true;
+            };
+            animate = {
+              enabled.__raw = "vim.fn.has('nvim-0.10') == 1";
+              easing = "outQuad";
+              duration = {
+                step = 20;
+                total = 300;
+              };
+            };
+            filter.__raw = ''
+              function(buf)
+                return vim.g.snacks_dim ~= false and vim.b[buf].snacks_dim ~= false and vim.bo[buf].buftype == ""
+              end
+            '';
+          };
+          indent = {
+            animate = {
+              enabled.__raw = "vim.fn.has(\"nvim-0.10\") == 1";
+              style = "out";
+              easing = "linear";
+              duration = {
+                step = 20;
+                total = 500;
+              };
+            };
+            scope = {
+              enabled = true;
+              priority = 200;
+              char = "|";
+              underline = false;
+              only_current = false;
+            };
+          };
         };
       };
 
@@ -366,7 +646,6 @@ in
         enable = true;
         settings = {
           cmdline.view = "cmdline";
-
           notify = {
             enabled = false;
             view = "notify";
@@ -458,21 +737,7 @@ in
           fat_headline_lower_string = "🬂";
         };
       };
-      gitsigns.enable = true;
 
-      notify = {
-        enable = false;
-        settings = {
-          fps = 120;
-          level = "info";
-          maxHeight = 42;
-          maxWidth = 35;
-          minimumWidth = 200;
-          render = "default";
-          timeout = 3750;
-          topDown = true;
-        };
-      };
       nix.enable = true;
       #illuminate.enable = true;
       treesitter = {
@@ -481,6 +746,9 @@ in
         nixvimInjections = true;
         nixGrammars = true;
         grammarPackages = with pkgs.tree-sitter-grammars; [
+          tree-sitter-bash
+          tree-sitter-regex
+          tree-sitter-vim
           tree-sitter-norg
           tree-sitter-norg-meta
           tree-sitter-zig
@@ -503,35 +771,142 @@ in
           indent.enable = true;
         };
       };
-      startup = {
-        enable = true;
-        theme = "dashboard";
-      };
-      cmp = {
-        enable = true;
-        autoEnableSources = true;
-        settings = {
-          #snippet.expand = "function(args) require('luasnip').lsp_expand(args.body) end";
 
-          mapping = {
-            "<C-d>" = "cmp.mapping.scroll_docs(-4)";
-            "<C-f>" = "cmp.mapping.scroll_docs(4)";
-            "<C-Space>" = "cmp.mapping.complete()";
-            "<C-e>" = "cmp.mapping.close()";
-            "<Tab>" = "cmp.mapping(cmp.mapping.select_next_item(), {'i', 's'})";
-            "<S-Tab>" = "cmp.mapping(cmp.mapping.select_prev_item(), {'i', 's'})";
-            "<CR>" = "cmp.mapping.confirm({ select = true })";
+      # Git integration
+      lazygit.enable = true;
+      gitsigns.enable = true;
+
+      # UI enhancements
+      lualine.enable = true;
+      bufferline.enable = true;
+
+      # Text manipulation
+      vim-surround.enable = true; # vim-surround functionality
+      comment.enable = true; # Smart commenting with gcc/gbc
+
+      # Additional useful plugins
+      #indent-blankline.enable = true; # Show indentation guides
+      nvim-autopairs.enable = true; # Auto close brackets/quotes
+      leap.enable = true; # Fast motion plugin (like easymotion)
+
+      # Code folding
+      nvim-ufo = {
+        enable = true;
+        settings = {
+          provider_selector.__raw = ''
+            function(bufnr, filetype, buftype)
+              return {'treesitter', 'indent'}
+            end
+          '';
+          open_fold_hl_timeout = 150;
+          close_fold_kinds_for_ft = {
+            default = { }; # Don't auto-close any folds by default
           };
-          sources = [
-            { name = "nvim_lsp"; }
-            { name = "path"; }
-            { name = "buffer"; }
-            { name = "neorg"; }
-          ];
         };
       };
+
+      # Enhanced completion system with nvim-cmp
+      cmp = {
+        enable = true;
+        settings = {
+          /*
+            snippet = {
+              expand = ''
+                function(args)
+                  require('luasnip').lsp_expand(args.body)
+                end
+              '';
+            };
+          */
+          mapping = {
+            "<Tab>".__raw =
+              "cmp.mapping(cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }), {'i', 's'})";
+            "<S-Tab>".__raw =
+              "cmp.mapping(cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }), {'i', 's'})";
+            "<CR>".__raw = "cmp.mapping.confirm({ select = false })";
+            "<C-Space>".__raw = "cmp.mapping.complete()";
+            "<C-e>".__raw = "cmp.mapping.abort()";
+            "<C-d>".__raw = "cmp.mapping.scroll_docs(4)";
+            "<C-u>".__raw = "cmp.mapping.scroll_docs(-4)";
+          };
+          sources = [
+            {
+              name = "nvim_lsp";
+              priority = 1000;
+            }
+            # { name = "luasnip"; priority = 750; keyword_length = 2; }
+            {
+              name = "buffer";
+              priority = 500;
+              keyword_length = 3;
+            }
+            {
+              name = "path";
+              priority = 300;
+            }
+            {
+              name = "crates";
+              priority = 400;
+            } # For Rust crates
+          ];
+          window = {
+            completion.__raw = "cmp.config.window.bordered()";
+            documentation.__raw = "cmp.config.window.bordered()";
+          };
+          formatting = {
+            fields = [
+              "kind"
+              "abbr"
+              "menu"
+            ];
+            format = ''
+              function(entry, vim_item)
+                local kind_icons = {
+                  Text = "󰉿",
+                  Method = "󰆧",
+                  Function = "󰊕",
+                  Constructor = "",
+                  Field = "󰜢",
+                  Variable = "󰀫",
+                  Class = "󰠱",
+                  Interface = "",
+                  Module = "",
+                  Property = "󰜢",
+                  Unit = "󰑭",
+                  Value = "󰎠",
+                  Enum = "",
+                  Keyword = "󰌋",
+                  Snippet = "",
+                  Color = "󰏘",
+                  File = "󰈙",
+                  Reference = "󰈇",
+                  Folder = "󰉋",
+                  EnumMember = "",
+                  Constant = "󰏿",
+                  Struct = "󰙅",
+                  Event = "",
+                  Operator = "󰆕",
+                  TypeParameter = ""
+                }
+                vim_item.kind = string.format('%s %s', kind_icons[vim_item.kind], vim_item.kind)
+                vim_item.menu = ({
+                  nvim_lsp = "[LSP]",
+                  
+                  buffer = "[Buffer]",
+                  path = "[Path]",
+                  crates = "[Crates]",
+                })[entry.source.name]
+                return vim_item
+              end
+            '';
+          };
+        };
+      };
+
       cmp-rg.enable = true;
       cmp-nvim-lsp.enable = true;
+      cmp-buffer.enable = true;
+      cmp-path.enable = true;
       lsp-format.enable = true;
       # LSP
       lsp = {
@@ -572,35 +947,30 @@ in
           };
         };
       };
-      lspkind = {
-        enable = true;
-        settings.cmp = {
+      /*
+        lspkind = {
           enable = true;
-          menu = {
-            nvim_lsp = "[LSP]";
-            nvim_lua = "[api]";
-            path = "[path]";
-            #   luasnip = "[snip]";
-            buffer = "[buffer]";
-            neorg = "[neorg]";
+          settings.cmp = {
+            enable = true;
+            menu = {
+              nvim_lsp = "[LSP]";
+              nvim_lua = "[api]";
+              path = "[path]";
+              #   luasnip = "[snip]";
+              buffer = "[buffer]";
+              neorg = "[neorg]";
+            };
           };
         };
-      };
+      */
       #yazi.enable = true;
       #vim-surround.enable = true;
       todo-comments.enable = true;
-      lualine.enable = false;
       auto-save.enable = true;
       auto-save.settings.debounce_delay = 100000;
 
       dap.enable = true;
     };
-    autoCmd = [
-      {
-        event = "BufWrite";
-        command = "%s/\\s\\+$//e";
-        desc = "Remove Whitespaces";
-      }
-    ];
   };
+
 }
