@@ -1,89 +1,76 @@
 {
   programs.starship = {
     enable = true;
-
+    enableZshIntegration = true;
+    enableBashIntegration = true;
     settings = {
-      add_newline = false;
+      add_newline = true;
+      scan_timeout = 5;
+      command_timeout = 500;
 
-      directory = {
-        style = "purple";
-        read_only = " ro";
+      format = ''
+        [┌───](bold bright-blue) $hostname $os
+        [│](bold bright-blue) $directory$git_branch$git_status$nix_shell
+        [└─>](bold bright-blue) $character
+      '';
+
+      os = {
+        format = "on [($name $codename$version $symbol )]($style)";
+        style = "bold bright-blue";
+        disabled = false;
       };
 
-      git_branch = {
-        style = "yellow";
-        symbol = "";
+      hostname = {
+        ssh_only = false;
+        format = "[$hostname]($style)";
+        style = "bold bright-red";
+        disabled = false;
       };
 
       character = {
-        success_symbol = "[>](red)[>](green)[>](blue)";
-        error_symbol = "[>](cyan)[>](purple)[>](yellow)";
-        vicmd_symbol = "[<](bold green)";
+        format = "$symbol";
+        success_symbol = "[❯](bold bright-green) ";
+        error_symbol = "[✗](bold bright-red) ";
+        vicmd_symbol = "[](bold yellow) ";
+        disabled = false;
       };
-
-      line_break.disabled = true;
-
-      nodejs = {
-        format = "with [$symbol($version )]($style)";
-        symbol = "node ";
-        version_format = "\${major}";
-        disabled = true;
-      };
-
-      git_commit.tag_symbol = " tag ";
-
-      git_status = {
-        ahead = ">";
-        behind = "<";
-        diverged = "<>";
-        renamed = "r";
-        deleted = "x";
-      };
-
-      aws.symbol = "aws ";
-      cobol.symbol = "cobol ";
-      conda.symbol = "conda ";
-      crystal.symbol = "cr ";
-      cmake.symbol = "cmake ";
-      dart.symbol = "dart ";
-      deno.symbol = "deno ";
-      dotnet.symbol = ".NET ";
-      docker_context.symbol = "docker ";
-      elixir.symbol = "exs ";
-      elm.symbol = "elm ";
-      golang.symbol = "go ";
-      hg_branch.symbol = "hg ";
-      java.symbol = "java ";
-      julia.symbol = "jl ";
-      kotlin.symbol = "kt ";
-      memory_usage.symbol = "memory ";
-      nim.symbol = "nim ";
 
       nix_shell = {
-        format = "❄️ ";
-        symbol = "nix ";
+        disabled = false;
+        heuristic = false;
+        format = "[   ](fg:bright-blue bold)";
+        impure_msg = "";
+        pure_msg = "";
+        unknown_msg = "";
       };
 
-      ocaml.symbol = "ml ";
-      package.symbol = "pkg ";
-      perl.symbol = "pl ";
-      php.symbol = "php ";
-      purescript.symbol = "purs ";
-      python.symbol = "python ";
-      ruby.symbol = "ruby ";
-
-      rust = {
-        symbol = "rust ";
-        disabled = true;
+      aws.disabled = true;
+      gcloud.disabled = true;
+      nodejs.disabled = true;
+      ruby.disabled = true;
+      python.disabled = true;
+      rust.disabled = true;
+      golang.disabled = true;
+      java.disabled = true;
+      kotlin.disabled = true;
+      lua.disabled = true;
+      perl.disabled = true;
+      php.disabled = true;
+      swift.disabled = true;
+      terraform.disabled = true;
+      zig.disabled = true;
+      package.disabled = true;
+      conda.disabled = true;
+      docker_context.disabled = true;
+      kubernetes.disabled = true;
+      helm.disabled = true;
+      battery.disabled = true;
+      time.disabled = true;
+      cmd_duration = {
+        min_time = 500;
+        style = "bold yellow";
+        format = "took [$duration]($style) ";
       };
-
-      bun = {
-        symbol = "bun ";
-        disabled = true;
-      };
-
-      scala.symbol = "scala ";
-      swift.symbol = "swift ";
     };
   };
 }

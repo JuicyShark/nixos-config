@@ -3,10 +3,10 @@
   osConfig,
   lib,
   ...
-}:
-{
-  home.packages = with pkgs; lib.mkIf osConfig.modules.desktop.enable [ gsettings-desktop-schemas ];
-  gtk = lib.mkIf osConfig.modules.desktop.enable {
+}: {
+  home.packages = with pkgs;
+    lib.mkIf (builtins.elem "desktop" osConfig.modules.system.roles) [gsettings-desktop-schemas];
+  gtk = lib.mkIf (builtins.elem "desktop" osConfig.modules.system.roles) {
     enable = true;
 
     gtk3.extraConfig = {
@@ -16,11 +16,6 @@
       gtk-xft-hintstyle = "hintfull";
       gtk-xft-rgba = "rgb";
       gtk-recent-files-enabled = false;
-    };
-
-    iconTheme = {
-      package = pkgs.adwaita-icon-theme;
-      name = "Adwaita-dark";
     };
   };
 }

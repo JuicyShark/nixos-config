@@ -1,14 +1,30 @@
 {
-  xdg.mimeApps = {
-    enable = true;
+  osConfig,
+  lib,
+  ...
+}: let
+  hasRole = role: builtins.elem role osConfig.modules.system.roles;
+  browserDesktop =
+    if hasRole "desktop-bloat"
+    then "vivaldi-stable.desktop"
+    else "chromium-browser.desktop";
+  editorDesktop = "nvim.desktop";
+  filesDesktop = "yazi.desktop";
+in
+  lib.mkIf (hasRole "desktop") {
+    xdg.mimeApps = {
+      enable = true;
 
-    defaultApplications = {
-      "text/html" = "firefox.desktop";
-      "text/markdown" = "nvim.desktop";
-      "text/plain" = "nvim.desktop";
-      "image/png" = "timg.desktop";
-      "image/jpeg" = "timg.desktop";
-      "image/gif" = "timg.desktop";
+      defaultApplications = {
+        "text/html" = browserDesktop;
+        "x-scheme-handler/http" = browserDesktop;
+        "x-scheme-handler/https" = browserDesktop;
+        "text/markdown" = editorDesktop;
+        "text/plain" = editorDesktop;
+        "inode/directory" = filesDesktop;
+        "image/png" = "imv.desktop";
+        "image/jpeg" = "imv.desktop";
+        "image/gif" = "imv.desktop";
+      };
     };
-  };
-}
+  }

@@ -1,5 +1,6 @@
 *.qcow2
 .DS_Store
+._*
 .direnv
 .vscode
 .pre-commit-config.yaml

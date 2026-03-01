@@ -1,9 +1,22 @@
-{ lib, ... }:
-{
+{lib, ...}: let
+  ignoredFileGlobs = [
+    ".git/"
+    ".cache"
+    ".direnv"
+    "node_modules"
+    "result"
+    ".tox"
+    ".venv"
+  ];
+  fileSearchCommand =
+    "rg --files --hidden " + (lib.concatMapStringsSep " " (glob: "--glob=!" + glob) ignoredFileGlobs);
+in {
   programs.fzf = {
     enable = true;
+    enableZshIntegration = true;
+    enableBashIntegration = false;
 
-    colors = lib.mkForce { };
+    colors = lib.mkForce {};
 
     defaultOptions = [
       "--height 40%"
@@ -11,6 +24,6 @@
       "--border"
       "--color=16"
     ];
-    defaultCommand = "rg --files --hidden --glob=!.git/";
+    defaultCommand = fileSearchCommand;
   };
 }

@@ -3,22 +3,34 @@
   config,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (builtins) attrValues;
-in
-{
-  imports = attrValues nix-config.nixosModules;
+in {
+  imports = with nix-config.nixosModules; [
+    system
+    shell
+    desktop
+    stylix
+    fonts
+    emacs
+    sunshine
+    glance
+    monitoring
+    network
+    nfs
+  ];
 
   home-manager.sharedModules = attrValues nix-config.homeModules;
-  environment.systemPackages = attrValues nix-config.packages.${pkgs.system};
-  environment.sessionVariables.FLAKE = "/srv/chonk/nixos-config";
+  environment.sessionVariables.FLAKE = "/mnt/smol/nixos-config";
+
+  networking.firewall = {
+    allowedUDPPorts = [
+      47998 # Sunshine
+      48000 # Sunshine
+    ];
+  };
 
   age.secrets = {
-    juicy-password = {
-      file = ../../secrets/juicy-password.age;
-    };
-
     prowlarr-api = {
       file = ../../secrets/prowlarr-api.age;
     };
@@ -32,55 +44,121 @@ in
       file = ../../secrets/lidarr-api.age;
     };
 
-      bazarr-api = {
-        file = ../../secrets/bazarr-api.age;
-      };
+    bazarr-api = {
+      file = ../../secrets/bazarr-api.age;
+    };
 
-  };
-
- services = {
-    deluge.enable = true;
-    jellyfin.enable = true;
-    immich.enable = true;
-
+    jellyfin-api = {
+      file = ../../secrets/jellyfin-api.age;
+      owner = config.modules.system.username;
+      group = "users";
+      mode = "0400";
+    };
   };
 
   modules = {
-    hardware = {
-      bluetooth = true;
-      nvidia.enable = true;
-    };
-
     system = {
-      mullvad = true;
-      nomad = true;
-      iHaveLotsOfRam = true;
+      roles = [
+        "desktop"
+        "desktop-bloat"
+        "desktop-gaming"
+        "desktop-gui-fallback"
+        "desktop-streaming"
+        "desktop-sunshine"
+        "desktop-emacs"
+        "homelab-glance"
+        "keyboard-zsa"
+        "peon-ping"
+        "ram-high"
+      ];
       username = "juicy";
       hostName = "leo";
-
-      hashedPassword = config.age.secrets.juicy-password.path;
+      hashedPasswordFile = config.age.secrets.juicy-password.path;
     };
-
-    homelab = {
-      media = true;
-      nas = true;
-      hostMonitoring = true;
-      llm = true;
-      immich = true;
-      jellyfin = true;
-      deluge = true;
-    };
-
     desktop = {
-      enable = true;
-      apps = {
-        emacs = true;
-        bloat = true;
-        gaming = true;
-        streaming = true;
-        sunshine = false;
-        virtual = false;
-      };
+      primaryMonitorName = "DP-2";
+    };
+    nfs = {
+      exportPath = "/srv/smol";
     };
   };
+  services = {
+    hardware.openrgb = {
+      enable = true;
+      motherboard = "intel";
+      package = pkgs.openrgb-with-all-plugins;
+    };
+
+    journald.extraConfig = ''
+      SystemMaxUse=512M
+      RuntimeMaxUse=256M
+      MaxFileSec=7day
+    '';
+    fstrim.enable = true;
+    irqbalance.enable = true;
+  };
+  fileSystems."/mnt/games" = {
+    device = "/dev/disk/by-uuid/100E4A9B7EF0C278";
+    fsType = "ntfs3";
+    options = [
+      "uid=1000"
+      "gid=100"
+      "umask=022"
+      "windows_names"
+      "noatime"
+      "nofail"
+      "x-systemd.automount"
+      "x-systemd.device-timeout=5s"
+    ];
+  };
+  fileSystems."/mnt/games/SteamLibrary/steamapps/compatdata" = {
+    device = "/home/juicy/.steam/steamcompat";
+    fsType = "none";
+    options = ["bind"];
+  };
+  fileSystems."/mnt/games/SteamLibrary/steamapps/shadercache" = {
+    device = "/home/juicy/.steam/shadercache";
+    fsType = "none";
+    options = ["bind"];
+  };
+
+  fileSystems."/srv/smol" = {
+    device = "/dev/disk/by-uuid/85a1714c-447f-4324-99af-dc0bf3b16b3d";
+    fsType = "btrfs";
+    options = [
+      "noatime"
+      "nofail"
+      "x-systemd.automount"
+      "x-systemd.device-timeout=15s"
+    ];
+  };
+
+  fileSystems."/mnt/torrents" = {
+    device = "/dev/disk/by-uuid/b296f7f1-ac9e-411c-98ac-4d6b6b13a6b5";
+    fsType = "btrfs";
+    options = [
+      "noatime"
+      "nofail"
+      "x-systemd.automount"
+      "x-systemd.device-timeout=15s"
+    ];
+  };
+
+  fileSystems."/mnt/chonk" = {
+    device = "192.168.1.99:/srv/chonk";
+    fsType = "nfs";
+    options = [
+      "nfsvers=4"
+      "x-systemd.automount"
+      "nofail"
+    ];
+  };
+
+  fileSystems."/mnt/smol" = {
+    device = "/srv/smol";
+    fsType = "none";
+    options = ["bind"];
+  };
+
+  hardware.openrazer.enable = true;
 }

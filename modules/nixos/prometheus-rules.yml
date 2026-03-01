@@ -1,0 +1,113 @@
+groups:
+  - name: availability
+    rules:
+      - alert: NodeExporterDown
+        expr: up{job="node"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "node exporter down on {{ $labels.instance }}"
+          description: "Prometheus cannot scrape node exporter on {{ $labels.instance }} for 5 minutes."
+
+      - alert: BlackboxProbeFailed
+        expr: probe_success{job=~"blackbox_.*"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "probe failed for {{ $labels.instance }}"
+          description: "Blackbox probe {{ $labels.job }} is failing for {{ $labels.instance }}."
+
+      - alert: VaultwardenMetricsDown
+        expr: up{job="vaultwarden"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "vaultwarden metrics unavailable"
+          description: "Vaultwarden metrics endpoint has been down for 5 minutes."
+
+  - name: host-health
+    rules:
+      - alert: HighCpuUsage
+        expr: 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job="node",mode="idle"}[5m]))) > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "high CPU on {{ $labels.instance }}"
+          description: "CPU usage is above 90% for 10 minutes on {{ $labels.instance }}."
+
+      - alert: HighMemoryUsage
+        expr: 100 * (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})) > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "high memory on {{ $labels.instance }}"
+          description: "Memory usage is above 90% for 10 minutes on {{ $labels.instance }}."
+
+      - alert: DiskSpaceLow
+        expr: 100 * (node_filesystem_avail_bytes{job="node",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",fstype!~"tmpfs|overlay|squashfs"}) < 10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "low disk space on {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} has less than 10% free space on {{ $labels.instance }}."
+
+      - alert: DiskInodesLow
+        expr: 100 * (node_filesystem_files_free{job="node",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_files{job="node",fstype!~"tmpfs|overlay|squashfs"}) < 10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "low inode space on {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} has less than 10% free inodes on {{ $labels.instance }}."
+
+  - name: slos-and-capacity
+    rules:
+      - record: probe_success:ratio_1h
+        expr: avg_over_time(probe_success{job=~"blackbox_.*"}[1h])
+
+      - record: probe_success:ratio_24h
+        expr: avg_over_time(probe_success{job=~"blackbox_.*"}[24h])
+
+      - alert: ServiceSLOViolation24h
+        expr: probe_success:ratio_24h < 0.995
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "24h availability below SLO for {{ $labels.instance }}"
+          description: "Target {{ $labels.instance }} is below 99.5% availability over 24h."
+
+      - alert: DiskWillFillIn24h
+        expr: predict_linear(node_filesystem_avail_bytes{job="node",fstype!~"tmpfs|overlay|squashfs"}[6h], 24 * 3600) < 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "disk likely to fill within 24h on {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} is projected to run out of space within 24h."
+
+  - name: monitoring-meta
+    rules:
+      - alert: PrometheusTargetScrapeSlow
+        expr: histogram_quantile(0.95, sum by (job, le) (rate(prometheus_target_interval_length_seconds_bucket[5m]))) > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "scrape interval pressure on job {{ $labels.job }}"
+          description: "Prometheus scrape interval p95 is high for job {{ $labels.job }}."
+
+      - alert: PrometheusRuleEvalSlow
+        expr: prometheus_rule_group_last_duration_seconds > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "prometheus rule group evaluation is slow"
+          description: "Rule group {{ $labels.rule_group }} is taking over 10s to evaluate."

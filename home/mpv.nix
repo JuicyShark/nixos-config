@@ -4,20 +4,20 @@
   lib,
   osConfig,
   ...
-}:
-let
+}: let
   inherit (config.xdg.userDirs) videos;
   inherit (config.home) homeDirectory;
   shaders_dir = "${pkgs.mpv-shim-default-shaders}/share/mpv-shim-default-shaders/shaders";
-in
-{
-  home.packages = with pkgs; lib.mkIf osConfig.modules.desktop.enable [ jellyfin-mpv-shim ];
-  programs.mpv = lib.mkIf osConfig.modules.desktop.enable {
+  desktopEnabled = builtins.elem "desktop" osConfig.modules.system.roles;
+in {
+  #home.packages = with pkgs; lib.mkIf desktopEnabled [ jellyfin-mpv-shim ];
+  programs.mpv = lib.mkIf desktopEnabled {
     enable = true;
 
     config = {
       profile = "gpu-hq";
-      gpu-context = "wayland";
+      #    gpu-context = "waylandvk";
+      #    gpu-api = "vulkan";
       vo = "gpu-next";
       video-sync = "display-resample";
       interpolation = true;
@@ -64,9 +64,6 @@ in
     scripts = with pkgs.mpvScripts; [
       mpris
       uosc
-      thumbfast
-      sponsorblock
-      autocrop
     ];
   };
   programs.yt-dlp = {
@@ -75,7 +72,7 @@ in
       -o ${videos}/youtube/%(title)s.%(ext)s
     '';
   };
-  home.file = lib.mkIf osConfig.modules.desktop.enable {
+  home.file = lib.mkIf desktopEnabled {
     ".config/mpv/shaders/NVScaler.glsl".source = "${shaders_dir}/NVScaler.glsl";
   };
 }

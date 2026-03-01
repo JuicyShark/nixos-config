@@ -1,5 +1,10 @@
 {pkgs, ...}: {
-  home.packages = with pkgs; [tig lazygit gh mgitstatus];
+  home.packages = with pkgs; [
+    tig
+    lazygit
+    gh
+    mgitstatus
+  ];
 
   xdg.configFile."tig/config".text = ''
     color cursor black green bold
@@ -7,15 +12,18 @@
     color title-blur black blue bold
   '';
 
+  programs.diff-so-fancy = {
+    enable = true;
+    enableGitIntegration = true;
+  };
   programs.git = {
     enable = true;
 
-    userEmail = "maxwellb9879@gmail.com";
-    userName = "JuicyShark";
-
     attributes = ["*.lockb binary diff=lockb"];
 
-    extraConfig = {
+    settings = {
+      #userEmail = "maxwellb9879@gmail.com";
+      #userName = "JuicyShark";
       include.path = "~/.gituser";
 
       diff.lockb = {
@@ -37,7 +45,9 @@
       rerere.enabled = true;
       color.ui = true;
 
-      blame = {date = "relative";};
+      blame = {
+        date = "relative";
+      };
 
       "color \"diff-highlight\"" = {
         oldNormal = "red bold";
@@ -55,7 +65,5 @@
         whitespace = "red reverse";
       };
     };
-
-    diff-so-fancy.enable = true;
   };
 }

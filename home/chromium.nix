@@ -3,11 +3,9 @@
   osConfig,
   lib,
   ...
-}:
-
-{
+}: {
   programs.chromium = {
-    enable = lib.mkIf osConfig.modules.desktop.enable true;
+    enable = builtins.elem "desktop" osConfig.modules.system.roles;
     package = pkgs.chromium;
 
     commandLineArgs = [

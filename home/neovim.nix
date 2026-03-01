@@ -1,25 +1,29 @@
 {
   lib,
-  inputs,
   config,
   osConfig,
   nixosConfig,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (nixosConfig._module.specialArgs) nix-config;
-  inherit (nix-config.packages.${pkgs.system}) vim-hypr-nav;
-in
-{
-  imports = [ nix-config.inputs.nixvim.homeModules.nixvim ];
-  home.packages = with pkgs; [ nixfmt-rfc-style ];
+in {
+  imports = [nix-config.inputs.nixvim.homeModules.nixvim];
+  home.packages = with pkgs; [
+    nixfmt
+    lsof
+    glib
+  ];
 
   programs.nixvim = {
     enable = true;
-    defaultEditor = lib.mkIf (
-      osConfig.modules.desktop.enable == false && osConfig.modules.desktop.apps.emacs == false
-    ) true;
+    defaultEditor =
+      lib.mkIf (
+        builtins.elem "desktop" osConfig.modules.system.roles
+        == false
+        && builtins.elem "desktop-emacs" osConfig.modules.system.roles == false
+      )
+      true;
     vimdiffAlias = true;
     viAlias = true;
     vimAlias = true;
@@ -33,6 +37,8 @@ in
       loaded_ruby_provider = 0;
       loaded_perl_provider = 0;
       loaded_python_provider = 0;
+      loaded_python3_provider = 0;
+      loaded_node_provider = 0;
       loaded_npm_provider = 0;
     };
 
@@ -62,8 +68,15 @@ in
       termguicolors = true;
       mouse = "a";
       hidden = true;
+      autoread = true;
 
       scrolloff = 3;
+      splitright = true;
+      splitbelow = true;
+      ignorecase = true;
+      smartcase = true;
+      inccommand = "split";
+      undofile = true;
 
       # Misc
       swapfile = false;
@@ -79,9 +92,13 @@ in
       nil
       rust-analyzer
       vscode-langservers-extracted
+      bash-language-server
+      shellcheck
+      shfmt
+      tree-sitter
 
       prettierd
-      nixfmt-rfc-style
+      nixfmt
       stylua
     ];
     extraConfigLua = ''
@@ -95,7 +112,7 @@ in
           shortcut = {
             {
               desc = ' Find Files',
-              group = 'Label', 
+              group = 'Label',
               action = 'Telescope find_files',
               key = 'f',
             },
@@ -103,7 +120,7 @@ in
               desc = ' Recent Files',
               group = 'Number',
               action = 'Telescope oldfiles',
-              key = 'r', 
+              key = 'r',
             },
             {
               desc = ' Find Text',
@@ -112,10 +129,10 @@ in
               key = 'g',
             },
             {
-              desc = ' Terminal',
-              group = 'Function', 
-              action = 'ToggleTerm direction=float',
-              key = 't',
+              desc = ' Buffers',
+              group = 'Function',
+              action = 'Telescope buffers',
+              key = 'b',
             },
             {
               desc = ' Config',
@@ -128,7 +145,7 @@ in
             {
               desc = ' Git Status',
               group = 'Special',
-              action = 'LazyGit', 
+              action = 'LazyGit',
               key = 'G',
             },
             {
@@ -175,17 +192,35 @@ in
         end,
       })
 
-      -- Auto-pairs integration with nvim-cmp
-      local cmp_autopairs = require('nvim-autopairs.completion.cmp')
-      local cmp = require('cmp')
-      cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
+      -- opencode.nvim configuration
+      vim.g.opencode_opts = vim.tbl_deep_extend("force", vim.g.opencode_opts or {}, {
+        provider = {
+          enabled = "snacks",
+          terminal = {
+            split = "right",
+          },
+          snacks = {
+            win = {
+              position = "right",
+            },
+          },
+        },
+      })
+
+      vim.api.nvim_create_autocmd("VimEnter", {
+        once = true,
+        callback = function()
+          if Snacks and Snacks.picker and Snacks.input then
+            vim.ui.select = Snacks.picker.select
+            vim.ui.input = Snacks.input
+          end
+        end,
+      })
+
     '';
     extraPlugins = [
-      (pkgs.vimUtils.buildVimPlugin {
-        name = "vim-sway-nav";
-        src = /home/juicy/projects/vim-hypr-nav;
-      })
       pkgs.vimPlugins.neorg-telescope
+      pkgs.vimPlugins.vim-tmux-navigator
     ];
 
     keymaps = [
@@ -198,18 +233,6 @@ in
       {
         mode = "n";
         key = "<A-right>";
-        action = "<cmd>bnext<cr>";
-        options.desc = "Next Buffer";
-      }
-      {
-        mode = "n";
-        key = "<A-h>";
-        action = "<cmd>bprevious<cr>";
-        options.desc = "Prev Buffer";
-      }
-      {
-        mode = "n";
-        key = "<A-l>";
         action = "<cmd>bnext<cr>";
         options.desc = "Next Buffer";
       }
@@ -235,58 +258,168 @@ in
         action.__raw = "function() Snacks.explorer() end";
         options.desc = "Explorer (snacks)";
       }
-      # Window navigation with Ctrl + arrow keys
+      # Unified split movement: Ctrl+Arrow in all modes.
       {
         mode = "n";
         key = "<C-Left>";
-        action = "<C-w>h";
-        options.desc = "Go to left window";
+        action = "<cmd>TmuxNavigateLeft<CR>";
+        options.desc = "Focus left split";
       }
       {
         mode = "n";
         key = "<C-Down>";
-        action = "<C-w>j";
-        options.desc = "Go to lower window";
+        action = "<cmd>TmuxNavigateDown<CR>";
+        options.desc = "Focus lower split";
       }
       {
         mode = "n";
         key = "<C-Up>";
-        action = "<C-w>k";
-        options.desc = "Go to upper window";
+        action = "<cmd>TmuxNavigateUp<CR>";
+        options.desc = "Focus upper split";
       }
       {
         mode = "n";
         key = "<C-Right>";
-        action = "<C-w>l";
-        options.desc = "Go to right window";
+        action = "<cmd>TmuxNavigateRight<CR>";
+        options.desc = "Focus right split";
+      }
+      {
+        mode = "v";
+        key = "<C-Left>";
+        action = "<cmd>TmuxNavigateLeft<CR>";
+        options.desc = "Focus left split (visual)";
+      }
+      {
+        mode = "v";
+        key = "<C-Down>";
+        action = "<cmd>TmuxNavigateDown<CR>";
+        options.desc = "Focus lower split (visual)";
+      }
+      {
+        mode = "v";
+        key = "<C-Up>";
+        action = "<cmd>TmuxNavigateUp<CR>";
+        options.desc = "Focus upper split (visual)";
+      }
+      {
+        mode = "v";
+        key = "<C-Right>";
+        action = "<cmd>TmuxNavigateRight<CR>";
+        options.desc = "Focus right split (visual)";
+      }
+      {
+        mode = "i";
+        key = "<C-Left>";
+        action = "<C-o><C-w>h";
+        options.desc = "Focus left split (insert)";
+      }
+      {
+        mode = "i";
+        key = "<C-Down>";
+        action = "<C-o><C-w>j";
+        options.desc = "Focus lower split (insert)";
+      }
+      {
+        mode = "i";
+        key = "<C-Up>";
+        action = "<C-o><C-w>k";
+        options.desc = "Focus upper split (insert)";
+      }
+      {
+        mode = "i";
+        key = "<C-Right>";
+        action = "<C-o><C-w>l";
+        options.desc = "Focus right split (insert)";
+      }
+      {
+        mode = "t";
+        key = "<C-Left>";
+        action = ''<C-\><C-N><C-w>h'';
+        options.desc = "Focus left split (terminal)";
+      }
+      {
+        mode = "t";
+        key = "<C-Down>";
+        action = ''<C-\><C-N><C-w>j'';
+        options.desc = "Focus lower split (terminal)";
+      }
+      {
+        mode = "t";
+        key = "<C-Up>";
+        action = ''<C-\><C-N><C-w>k'';
+        options.desc = "Focus upper split (terminal)";
+      }
+      {
+        mode = "t";
+        key = "<C-Right>";
+        action = ''<C-\><C-N><C-w>l'';
+        options.desc = "Focus right split (terminal)";
       }
 
-      # Window split with Alt-v (vertical split and move current buffer to right)
+      # Tmux-only pane/window creation from Neovim
       {
         mode = "n";
         key = "<A-v>";
-        action = "<cmd>vsplit<cr><C-w>l";
-        options.desc = "Vertical split and move right";
+        action.__raw = ''
+          function()
+                    if vim.env.TMUX == nil or vim.env.TMUX == "" then
+                      vim.notify("Tmux-only split: run Neovim inside tmux", vim.log.levels.WARN)
+                      return
+                    end
+                    vim.fn.jobstart({ "tmux", "split-window", "-h", "-c", "#{pane_current_path}" }, { detach = true })
+                  end'';
+        options.desc = "Tmux split vertical";
       }
-
-      # Terminal toggle (from your toggleterm config)
       {
         mode = "n";
-        key = "<A-t>";
-        action = "<cmd>ToggleTerm direction=float<cr>";
-        options.desc = "Toggle Floating Terminal";
+        key = "<A-h>";
+        action.__raw = ''
+          function()
+                    if vim.env.TMUX == nil or vim.env.TMUX == "" then
+                      vim.notify("Tmux-only split: run Neovim inside tmux", vim.log.levels.WARN)
+                      return
+                    end
+                    vim.fn.jobstart({ "tmux", "split-window", "-v", "-c", "#{pane_current_path}" }, { detach = true })
+                  end'';
+        options.desc = "Tmux split horizontal";
       }
+      {
+        mode = "n";
+        key = "<A-n>";
+        action.__raw = ''
+          function()
+                    if vim.env.TMUX == nil or vim.env.TMUX == "" then
+                      vim.notify("Tmux-only window: run Neovim inside tmux", vim.log.levels.WARN)
+                      return
+                    end
+                    vim.fn.jobstart({ "tmux", "new-window", "-d", "-c", "#{pane_current_path}" }, { detach = true })
+                  end'';
+        options.desc = "Tmux new window (detached)";
+      }
+      {
+        mode = "n";
+        key = "<C-w>v";
+        action = "<A-v>";
+        options.desc = "Tmux split vertical";
+      }
+      {
+        mode = "n";
+        key = "<C-w>s";
+        action = "<A-h>";
+        options.desc = "Tmux split horizontal";
+      }
+      {
+        mode = "n";
+        key = "<C-w>n";
+        action = "<A-n>";
+        options.desc = "Tmux new window";
+      }
+
       {
         mode = "t";
         key = "<Esc>";
         action = ''<C-\><C-N>'';
         options.desc = "Unfocus terminal";
-      }
-      {
-        mode = "t";
-        key = "<A-t>";
-        action = "<cmd>ToggleTerm direction=float<cr>";
-        options.desc = "Toggle terminal from terminal mode";
       }
       {
         # [F]ind things, mainly uses Telescope
@@ -298,20 +431,6 @@ in
         action = "<cmd>Telescope find_files<CR>";
         options = {
           desc = "[F]ind [F]iles";
-        };
-      }
-      {
-        mode = [
-          "n"
-          "v"
-          "i"
-        ];
-        key = "<C-f>";
-        action = "<cmd>Tele find_files<CR>";
-        options = {
-          desc = "[F]ind [F]iles";
-          silent = true;
-          nowait = true;
         };
       }
       {
@@ -350,6 +469,15 @@ in
         action = "<cmd>Telescope buffers<CR>";
         options = {
           desc = "[F]ind [B]uffers";
+          nowait = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<leader>xx";
+        action = "<cmd>Trouble diagnostics toggle<CR>";
+        options = {
+          desc = "Workspace diagnostics";
           nowait = true;
         };
       }
@@ -412,6 +540,63 @@ in
           desc = "[G]it [C]ompete";
         };
       }
+      {
+        mode = [
+          "n"
+          "v"
+        ];
+        key = "<leader>oa";
+        action = "<cmd>lua require('opencode').ask('@this: ', { submit = true })<cr>";
+        options.desc = "OpenCode ask";
+      }
+      {
+        mode = [
+          "n"
+          "v"
+        ];
+        key = "<leader>oo";
+        action.__raw = "function() require('opencode').select() end";
+        options.desc = "OpenCode select";
+      }
+      {
+        mode = "n";
+        key = "<leader>ot";
+        action = "<cmd>lua require('opencode').toggle()<cr>";
+        options.desc = "OpenCode toggle";
+      }
+      {
+        mode = [
+          "n"
+          "v"
+        ];
+        key = "go";
+        action.__raw = "function() return require('opencode').operator('@this ') end";
+        options = {
+          desc = "OpenCode add range";
+          expr = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "goo";
+        action.__raw = "function() return require('opencode').operator('@this ') .. '_' end";
+        options = {
+          desc = "OpenCode add line";
+          expr = true;
+        };
+      }
+      {
+        mode = "n";
+        key = "<S-C-u>";
+        action.__raw = "function() require('opencode').command('session.half.page.up') end";
+        options.desc = "OpenCode scroll up";
+      }
+      {
+        mode = "n";
+        key = "<S-C-d>";
+        action.__raw = "function() require('opencode').command('session.half.page.down') end";
+        options.desc = "OpenCode scroll down";
+      }
       # Misc
       {
         mode = [
@@ -456,6 +641,15 @@ in
 
     plugins = {
       web-devicons.enable = true;
+      opencode = {
+        enable = true;
+        autoLoad = true;
+        setup = {
+          user_commands = {
+            "OpenCode" = "toggle";
+          };
+        };
+      };
       which-key = {
         enable = true;
         # show_help = true;
@@ -498,7 +692,6 @@ in
             "<c-r>"
             "z="
           ];
-
         };
       };
       rustaceanvim.enable = false;
@@ -507,34 +700,25 @@ in
       conform-nvim = {
         enable = true;
         settings = {
+          format_on_save = {
+            lsp_fallback = true;
+            timeout_ms = 2000;
+          };
           formatters_by_ft = {
-            lua = [ "stylua" ];
+            lua = ["stylua"];
+            nix = ["nixfmt"];
             #python = [ "black" ];
           };
           formatters = {
+            nixfmt = {
+              command = "nixfmt";
+            };
             stylua = {
               command = "stylua";
             };
           };
         };
       };
-      # Terminal (from your toggleterm.lua)
-      toggleterm = {
-        enable = true;
-        settings = {
-          hidden = true;
-          start_in_insert = true;
-          insert_mappings = true;
-          terminal_mappings = true;
-          direction = "float";
-          on_open.__raw = ''
-            function(term)
-              vim.cmd("startinsert!")
-            end
-          '';
-        };
-      };
-
       telescope = {
         enable = true;
         keymaps = {
@@ -597,9 +781,10 @@ in
           statuscolumn.enabled = true;
           words.enabled = true;
           explorer.enabled = true; # Enable file explorer
-          image.enabled = true;
+          image.enabled = false;
           input.enabled = true;
           picker.enabled = true;
+          picker.layout = "telescope";
           scroll.enabled = true;
           dim = {
             scope = {
@@ -650,7 +835,6 @@ in
             enabled = false;
             view = "notify";
           };
-
           lsp = {
             override = {
               "cmp.entry.get_documentation" = true;
@@ -659,12 +843,11 @@ in
             };
             documentation = {
               opts = {
-                format = [ "{message}" ];
+                format = ["{message}"];
                 lang = "markdown";
                 render = "plain";
                 replace = true;
                 win_options = {
-
                   conceallevel = 3;
                 };
               };
@@ -710,7 +893,7 @@ in
       headlines = {
         enable = true;
         settings.norg = {
-          headline_highlights = [ "Headline" ];
+          headline_highlights = ["Headline"];
           bullet_highlights = [
             "@neorg.headings.1.prefix"
             "@neorg.headings.2.prefix"
@@ -742,19 +925,24 @@ in
       #illuminate.enable = true;
       treesitter = {
         enable = true;
-        folding = true;
+        folding.enable = true;
         nixvimInjections = true;
         nixGrammars = true;
         grammarPackages = with pkgs.tree-sitter-grammars; [
           tree-sitter-bash
           tree-sitter-regex
           tree-sitter-vim
-          tree-sitter-norg
-          tree-sitter-norg-meta
+          #tree-sitter-norg
+          #tree-sitter-norg-meta
           tree-sitter-zig
           tree-sitter-rust
           tree-sitter-toml
           tree-sitter-lua
+          tree-sitter-javascript
+          tree-sitter-typescript
+          tree-sitter-html
+          tree-sitter-markdown
+          tree-sitter-markdown-inline
           tree-sitter-css
           tree-sitter-json
           tree-sitter-python
@@ -762,7 +950,7 @@ in
           tree-sitter-godot-resource
         ];
         languageRegister = {
-          norg = "norg";
+          #norg = "norg";
           css = "css";
         };
         settings = {
@@ -800,7 +988,7 @@ in
           '';
           open_fold_hl_timeout = 150;
           close_fold_kinds_for_ft = {
-            default = { }; # Don't auto-close any folds by default
+            default = {}; # Don't auto-close any folds by default
           };
         };
       };
@@ -809,20 +997,9 @@ in
       cmp = {
         enable = true;
         settings = {
-          /*
-            snippet = {
-              expand = ''
-                function(args)
-                  require('luasnip').lsp_expand(args.body)
-                end
-              '';
-            };
-          */
           mapping = {
-            "<Tab>".__raw =
-              "cmp.mapping(cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }), {'i', 's'})";
-            "<S-Tab>".__raw =
-              "cmp.mapping(cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }), {'i', 's'})";
+            "<Tab>".__raw = "cmp.mapping(cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }), {'i', 's'})";
+            "<S-Tab>".__raw = "cmp.mapping(cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }), {'i', 's'})";
             "<CR>".__raw = "cmp.mapping.confirm({ select = false })";
             "<C-Space>".__raw = "cmp.mapping.complete()";
             "<C-e>".__raw = "cmp.mapping.abort()";
@@ -834,7 +1011,11 @@ in
               name = "nvim_lsp";
               priority = 1000;
             }
-            # { name = "luasnip"; priority = 750; keyword_length = 2; }
+            {
+              name = "luasnip";
+              priority = 750;
+              keyword_length = 2;
+            }
             {
               name = "buffer";
               priority = 500;
@@ -891,7 +1072,7 @@ in
                 vim_item.kind = string.format('%s %s', kind_icons[vim_item.kind], vim_item.kind)
                 vim_item.menu = ({
                   nvim_lsp = "[LSP]",
-                  
+
                   buffer = "[Buffer]",
                   path = "[Path]",
                   crates = "[Crates]",
@@ -907,7 +1088,9 @@ in
       cmp-nvim-lsp.enable = true;
       cmp-buffer.enable = true;
       cmp-path.enable = true;
-      lsp-format.enable = true;
+      cmp_luasnip.enable = true;
+      luasnip.enable = true;
+      friendly-snippets.enable = true;
       # LSP
       lsp = {
         enable = true;
@@ -917,6 +1100,8 @@ in
             # Navigate in diagnostics
             "<leader>k" = "goto_prev";
             "<leader>j" = "goto_next";
+            "[d" = "goto_prev";
+            "]d" = "goto_next";
           };
 
           lspBuf = {
@@ -926,51 +1111,82 @@ in
             gi = "implementation";
             K = "hover";
             "<F2>" = "rename";
+            "<leader>ca" = "code_action";
+            "<leader>fm" = "format";
           };
         };
         servers = {
           nil_ls = {
             enable = true;
             settings = {
-              formatting.command = [ "nixfmt" ];
+              formatting.command = ["nixfmt"];
             };
           };
           lua_ls.enable = false;
           rust_analyzer = {
             enable = true;
             filetypes = [
-              "toml"
-              "rs"
+              "rust"
             ];
             installCargo = false;
             installRustc = false;
           };
+          bashls.enable = true;
+          ts_ls.enable = true;
+          jsonls.enable = true;
+          cssls.enable = true;
+          html.enable = true;
         };
       };
-      /*
-        lspkind = {
-          enable = true;
-          settings.cmp = {
-            enable = true;
-            menu = {
-              nvim_lsp = "[LSP]";
-              nvim_lua = "[api]";
-              path = "[path]";
-              #   luasnip = "[snip]";
-              buffer = "[buffer]";
-              neorg = "[neorg]";
+
+      trouble.enable = true;
+
+      godot.enable = true;
+      todo-comments = {
+        enable = true;
+        settings = {
+          keywords = {
+            TODO = {
+              icon = " ";
+              color = "info";
+              alt = [
+                "WANT"
+                "NEED"
+                "TASK"
+              ];
+            };
+            FIXME = {
+              icon = " ";
+              color = "error";
+              alt = [
+                "FIX"
+                "BUG"
+                "ISSUE"
+              ];
+            };
+            NOTE = {
+              icon = "󰏫 ";
+              color = "hint";
+              alt = [
+                "INFO"
+                "DOC"
+              ];
+            };
+            BUG = {
+              icon = " ";
+              color = "error";
+            };
+            HACK = {
+              icon = " ";
+              color = "warning";
             };
           };
         };
-      */
-      #yazi.enable = true;
-      #vim-surround.enable = true;
-      todo-comments.enable = true;
+      };
       auto-save.enable = true;
       auto-save.settings.debounce_delay = 100000;
 
       dap.enable = true;
     };
   };
-
 }

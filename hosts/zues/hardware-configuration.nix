@@ -3,9 +3,15 @@
   lib,
   modulesPath,
   ...
-}:
-{
-  imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
+}: {
+  imports = [(modulesPath + "/installer/scan/not-detected.nix")];
+
+  age.secrets = {
+    "cloudflare-token.env" = {
+      file = ../../secrets/cloudflare-token.env.age;
+      group = config.services.traefik.group;
+    };
+  };
 
   boot = {
     initrd.availableKernelModules = [
@@ -16,11 +22,11 @@
       "usbhid"
       "sd_mod"
     ];
-    initrd.kernelModules = [ ];
-    kernelModules = [ "kvm-intel" ];
-    extraModulePackages = [ ];
-    supportedFilesystems = [ "nfs" ];
-    # Bootloader.
+    initrd.kernelModules = [];
+    kernelModules = ["kvm-intel"];
+    extraModulePackages = [];
+    supportedFilesystems = ["nfs"];
+    # Bootloader
     loader.systemd-boot.enable = true;
     kernel = {
       sysctl = {
@@ -43,8 +49,9 @@
       "dmask=0022"
     ];
   };
-  fileSystems."/mnt" = {
-    device = "192.168.1.54:/srv/chonk";
+
+  fileSystems."/mnt/smol" = {
+    device = "192.168.1.54:/srv/smol";
     fsType = "nfs";
     options = [
       "nfsvers=4"
@@ -52,99 +59,72 @@
       "noauto"
     ];
   };
-  swapDevices = [ ];
+  fileSystems."/srv" = {
+    device = "/dev/storage_vg/root";
+    fsType = "btrfs";
+
+    options = [
+      "noatime"
+      "nofail"
+      "x-systemd.automount"
+      "x-systemd.device-timeout=15s"
+    ];
+  };
+  fileSystems."/mnt/chonk" = {
+    device = "/srv/chonk";
+    fsType = "none";
+    options = ["bind"];
+  };
+  swapDevices = [];
 
   powerManagement.cpuFreqGovernor = "ondemand";
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-  services.resolved.enable = false;
-  services.dnsmasq.enable = false;
+  services.resolved.enable = lib.mkForce false;
   networking = {
-    useNetworkd = true;
+    useNetworkd = false;
     useDHCP = false;
     wireless.enable = false;
     resolvconf.enable = false;
 
-    firewall.trustedInterfaces = [ "br0" ];
-
-    defaultGateway.interface = "br0";
-  };
-  #services.resolved.enable = true;
-  #environment.etc."resolv.conf".source = "/run/systemd/resolve/stub-resolv.conf";
-
-  # Netdev: define the bridge device
-  systemd.network.netdevs."10-br0" = {
-    netdevConfig = {
-      Name = "br0";
-      Kind = "bridge";
-    };
-  };
-
-  # Network: assign IP, gateway, and DNS to br0
-  systemd.network.networks."10-br0" = {
-    matchConfig.Name = "br0";
-    address = [ "192.168.1.99/24" ];
-    gateway = [ "192.168.1.1" ];
-    dns = [
-      "127.0.0.1"
-      #"8.8.8.8"
+    firewall.trustedInterfaces = [
+      "br0"
+      "tailscale0"
     ];
-    networkConfig = {
-      DHCP = "no";
-      IPv6AcceptRA = false;
-      LinkLocalAddressing = "no";
+
+    firewall.allowedTCPPorts = [
+      22
+      53
+      80
+      443
+      20241
+    ];
+    firewall.allowedUDPPorts = [
+      53
+      41641
+    ];
+
+    nameservers = [
+      "192.168.1.99"
+    ];
+
+    nat = {
+      enable = true;
+      externalInterface = "enp1s0"; # WAN (wired)
+      internalInterfaces = ["br0"]; # LAN bridge
     };
+    bridges.br0.interfaces = [
+      "enp3s0"
+      "enp4s0"
+    ];
+    interfaces.enp1s0.useDHCP = true;
+
+    interfaces.br0.ipv4.addresses = [
+      {
+        address = "192.168.1.99";
+        prefixLength = 24;
+      }
+    ];
   };
-  systemd.network.networks."10-enp1s0" = {
-    matchConfig.Name = "enp1s0";
-    networkConfig.Bridge = "br0";
-  };
-
-  systemd.network.networks."10-enp2s0" = {
-    matchConfig.Name = "enp2s0";
-    networkConfig.Bridge = "br0";
-  };
-
-  systemd.network.networks."10-enp3s0" = {
-    matchConfig.Name = "enp3s0";
-    networkConfig.Bridge = "br0";
-  };
-
-  systemd.network.networks."10-enp4s0" = {
-    matchConfig.Name = "enp4s0";
-    networkConfig.Bridge = "br0";
-  };
-
-  /*
-    networking = {
-
-      #   defaultGateway.interface = "br0";
-
-      resolvconf.enable = lib.mkForce true;
-      useDHCP = lib.mkForce false;
-      wireless.enable = false;
-
-      firewall.trustedInterfaces = [ "br0" ];
-
-      bridges = {
-        br0 = {
-          interfaces = [
-            "enp1s0"
-            "enp2s0"
-            "enp3s0"
-            "enp4s0"
-          ];
-        };
-      };
-
-      interfaces.br0.useDHCP = true;
-      interfaces.br0.ipv4.addresses = [
-        {
-          address = "192.168.1.99";
-          prefixLength = 24;
-        }
-      ];
-    };
-  */
 }

@@ -4,11 +4,10 @@
   lib,
   ...
 }:
-lib.mkIf osConfig.modules.desktop.apps.streaming {
+lib.mkIf (builtins.elem "desktop-streaming" osConfig.modules.system.roles) {
   home.packages = with pkgs; [
     wl-mirror
     chatterino2
-
   ];
   programs.obs-studio = {
     enable = true;
