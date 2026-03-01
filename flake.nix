@@ -72,9 +72,22 @@
 
       modulesFrom =
         dir:
-        genAttrs (map nameOf (
-          builtins.filter (path: hasSuffix ".nix" (toString path)) (listFilesRecursive dir)
-        )) (name: import (dir + "/${name}.nix"));
+        let
+          # Get all .nix files recursively
+          allFiles = builtins.filter (path: hasSuffix ".nix" (toString path)) (listFilesRecursive dir);
+          # Filter to only top-level files (not in subdirectories like base/)
+          dirStr = toString dir;
+          topLevelFiles = builtins.filter (
+            path:
+            let
+              pathStr = toString path;
+              relativePath = replaceStrings [ "${dirStr}/" ] [ "" ] pathStr;
+              # Check if path contains a slash (which means it's in a subdirectory)
+            in
+            !(builtins.match ".*/.+" relativePath != null)
+          ) allFiles;
+        in
+        genAttrs (map nameOf topLevelFiles) (name: import (dir + "/${name}.nix"));
 
       modulesFromRel =
         relPath:
