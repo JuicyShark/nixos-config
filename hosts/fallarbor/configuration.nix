@@ -4,12 +4,14 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (builtins) attrValues;
 
   domain = "nixlab.au";
   turnHost = "turn.nixlab.au";
-in {
+in
+{
   imports = with nix-config.nixosModules; [
     system
     shell
@@ -18,6 +20,7 @@ in {
     fonts
     emacs
     sunshine
+    ports
   ];
   home-manager.sharedModules = attrValues nix-config.homeModules;
   environment.systemPackages = lib.optionals (nix-config ? packages) (
@@ -63,8 +66,8 @@ in {
 
   networking.firewall = {
     enable = true;
-    allowedUDPPorts = [3478];
-    allowedTCPPorts = [3478];
+    allowedUDPPorts = [ 3478 ];
+    allowedTCPPorts = [ 3478 ];
     allowedUDPPortRanges = [
       {
         from = 49152;

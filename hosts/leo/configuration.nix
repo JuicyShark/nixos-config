@@ -3,9 +3,11 @@
   config,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (builtins) attrValues;
-in {
+in
+{
   imports = with nix-config.nixosModules; [
     system
     shell
@@ -17,6 +19,7 @@ in {
     glance
     monitoring
     network
+    ports
     nfs
   ];
 
@@ -114,12 +117,12 @@ in {
   fileSystems."/mnt/games/SteamLibrary/steamapps/compatdata" = {
     device = "/home/juicy/.steam/steamcompat";
     fsType = "none";
-    options = ["bind"];
+    options = [ "bind" ];
   };
   fileSystems."/mnt/games/SteamLibrary/steamapps/shadercache" = {
     device = "/home/juicy/.steam/shadercache";
     fsType = "none";
-    options = ["bind"];
+    options = [ "bind" ];
   };
 
   fileSystems."/srv/smol" = {
@@ -157,7 +160,7 @@ in {
   fileSystems."/mnt/smol" = {
     device = "/srv/smol";
     fsType = "none";
-    options = ["bind"];
+    options = [ "bind" ];
   };
 
   hardware.openrazer.enable = true;

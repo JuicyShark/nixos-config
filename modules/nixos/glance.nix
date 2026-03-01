@@ -2,7 +2,11 @@
   config,
   lib,
   ...
-}: {
+}:
+let
+  networkCfg = config.modules.network;
+in
+{
   services.glance = {
     enable = builtins.elem "homelab-glance" config.modules.system.roles;
     openFirewall = true;
@@ -51,58 +55,58 @@
                   sites = [
                     {
                       title = "Jellyfin";
-                      url = "http://192.168.1.52:8096";
-                      check-url = "http://192.168.1.52:8096/web/index.html";
+                      url = "http://${networkCfg.hosts.imac-machop}:8096";
+                      check-url = "http://${networkCfg.hosts.imac-machop}:8096/web/index.html";
                       icon = "di:jellyfin";
                     }
                     {
                       title = "Sonarr";
-                      url = "http://192.168.1.99:${toString config.services.sonarr.settings.server.port}";
-                      check-url = "http://192.168.1.99:${toString config.services.sonarr.settings.server.port}";
+                      url = "http://${networkCfg.hosts.zues}:${toString config.services.sonarr.settings.server.port}";
+                      check-url = "http://${networkCfg.hosts.zues}:${toString config.services.sonarr.settings.server.port}";
                       icon = "di:sonarr";
                     }
                     {
                       title = "Radarr";
-                      url = "http://192.168.1.99:${toString config.services.radarr.settings.server.port}";
-                      check-url = "http://192.168.1.99:${toString config.services.radarr.settings.server.port}";
+                      url = "http://${networkCfg.hosts.zues}:${toString config.services.radarr.settings.server.port}";
+                      check-url = "http://${networkCfg.hosts.zues}:${toString config.services.radarr.settings.server.port}";
                       icon = "di:radarr";
                     }
                     {
                       title = "Lidarr";
-                      url = "http://192.168.1.99:${toString config.services.lidarr.settings.server.port}";
-                      check-url = "http://192.168.1.99:${toString config.services.lidarr.settings.server.port}";
+                      url = "http://${networkCfg.hosts.zues}:${toString config.services.lidarr.settings.server.port}";
+                      check-url = "http://${networkCfg.hosts.zues}:${toString config.services.lidarr.settings.server.port}";
                       icon = "di:lidarr";
                     }
                     {
                       title = "Bazarr";
-                      url = "http://192.168.1.99:${toString config.services.bazarr.listenPort}";
-                      check-url = "http://192.168.1.99:${toString config.services.bazarr.listenPort}";
+                      url = "http://${networkCfg.hosts.zues}:${toString config.services.bazarr.listenPort}";
+                      check-url = "http://${networkCfg.hosts.zues}:${toString config.services.bazarr.listenPort}";
                       icon = "di:bazarr";
                     }
                     {
                       title = "Prowlarr";
-                      url = "http://192.168.1.99:${toString config.services.prowlarr.settings.server.port}";
-                      check-url = "http://192.168.1.99:${toString config.services.prowlarr.settings.server.port}";
+                      url = "http://${networkCfg.hosts.zues}:${toString config.services.prowlarr.settings.server.port}";
+                      check-url = "http://${networkCfg.hosts.zues}:${toString config.services.prowlarr.settings.server.port}";
                       icon = "di:prowlarr";
                     }
 
                     {
                       title = "Deluge";
-                      url = "http://192.168.1.99:${toString config.services.deluge.web.port}";
-                      check-url = "http://192.168.1.99:${toString config.services.deluge.web.port}";
+                      url = "http://${networkCfg.hosts.zues}:${toString config.services.deluge.web.port}";
+                      check-url = "http://${networkCfg.hosts.zues}:${toString config.services.deluge.web.port}";
                       icon = "di:deluge";
-                      alt-status-codes = [401];
+                      alt-status-codes = [ 401 ];
                     }
                     {
                       title = "Grafana";
-                      url = "http://192.168.1.99:${toString config.services.grafana.settings.server.http_port}";
-                      check-url = "http://192.168.1.99:${toString config.services.grafana.settings.server.http_port}";
+                      url = "http://${networkCfg.hosts.zues}:${toString config.services.grafana.settings.server.http_port}";
+                      check-url = "http://${networkCfg.hosts.zues}:${toString config.services.grafana.settings.server.http_port}";
                       icon = "di:grafana";
                     }
                     {
                       title = "Home-Assist";
-                      url = "http://192.168.1.49:8123";
-                      check-url = "http://192.168.1.49:8123";
+                      url = "http://${networkCfg.hosts.ring-doorbell}:8123";
+                      check-url = "http://${networkCfg.hosts.ring-doorbell}:8123";
                       icon = "di:home-assistant";
                     }
                     {

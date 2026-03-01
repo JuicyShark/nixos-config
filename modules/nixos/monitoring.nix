@@ -9,6 +9,7 @@
 let
   inherit (nix-config.lib.${system}.roles) mkHasRole;
   hasRole = mkHasRole config;
+  networkCfg = config.modules.network;
   homelabMonitoring = hasRole "homelab-monitoring";
   homelabHostMonitoring = hasRole "homelab-host-monitoring";
   homelabNas = hasRole "homelab-nas";
@@ -18,24 +19,8 @@ let
   prometheusRulesFile = "${moduleDir}/prometheus-rules.yml";
   hasGrafanaDashboards = builtins.pathExists grafanaDashboardsDir;
   hasPrometheusRules = builtins.pathExists prometheusRulesFile;
-  ports = {
-    grafana = 3000;
-    prometheus = 9090;
-    alertmanager = 9093;
-    promtail = 9080;
-    loki = 3100;
-    blackbox = 9115;
-    nginxExporter = 9113;
-    node = 3021;
-    unboundExporter = 9167;
-    jellyfinExporter = 9715;
-    prowlarrExporter = 9710;
-    sonarrExporter = 9712;
-    radarrExporter = 9711;
-    lidarrExporter = 9709;
-    bazarrExporter = 9708;
-    delugeExporter = 9720;
-  };
+  ports = config.modules.ports; # Use centralized port definitions
+  exporterPorts = config.modules.ports.exporters; # Exporter ports
 in
 {
   config = {
@@ -82,7 +67,7 @@ in
         blackbox = {
           enable = homelabMonitoring;
           openFirewall = true;
-          port = ports.blackbox;
+          port = exporterPorts.blackbox;
           enableConfigCheck = false;
           configFile = "/etc/blackbox-exporter/config.yml";
         };
@@ -93,12 +78,12 @@ in
           delugePasswordFile = config.age.secrets.deluge-pass.path;
           delugePort = config.services.deluge.config.daemon_port;
           openFirewall = true;
-          port = ports.delugeExporter;
+          port = exporterPorts.deluge;
         };
         exportarr-bazarr = {
           enable = config.services.bazarr.enable && homelabMonitoring;
           apiKeyFile = config.age.secrets.bazarr-api.path;
-          port = ports.bazarrExporter;
+          port = exporterPorts.bazarr;
           listenAddress = "0.0.0.0";
           url = "http://127.0.0.1:${toString config.services.bazarr.listenPort}";
           openFirewall = true;
@@ -111,7 +96,7 @@ in
         exportarr-lidarr = {
           enable = config.services.lidarr.enable && homelabMonitoring;
           apiKeyFile = config.age.secrets.lidarr-api.path;
-          port = ports.lidarrExporter;
+          port = exporterPorts.lidarr;
           listenAddress = "0.0.0.0";
           url = "http://127.0.0.1:${toString config.services.lidarr.settings.server.port}";
           openFirewall = true;
@@ -124,7 +109,7 @@ in
         exportarr-prowlarr = {
           enable = config.services.prowlarr.enable && homelabMonitoring;
           apiKeyFile = config.age.secrets.prowlarr-api.path;
-          port = ports.prowlarrExporter;
+          port = exporterPorts.prowlarr;
           listenAddress = "0.0.0.0";
           url = "http://127.0.0.1:${toString config.services.prowlarr.settings.server.port}";
           openFirewall = true;
@@ -137,7 +122,7 @@ in
         exportarr-radarr = {
           enable = config.services.radarr.enable && homelabMonitoring;
           apiKeyFile = config.age.secrets.radarr-api.path;
-          port = ports.radarrExporter;
+          port = exporterPorts.radarr;
           listenAddress = "0.0.0.0";
           url = "http://127.0.0.1:${toString config.services.radarr.settings.server.port}";
           openFirewall = true;
@@ -150,7 +135,7 @@ in
         exportarr-sonarr = {
           enable = config.services.sonarr.enable && homelabMonitoring;
           apiKeyFile = config.age.secrets.sonarr-api.path;
-          port = ports.sonarrExporter;
+          port = exporterPorts.sonarr;
           listenAddress = "0.0.0.0";
           url = "http://127.0.0.1:${toString config.services.sonarr.settings.server.port}";
           openFirewall = true;
@@ -178,7 +163,7 @@ in
           user = "jellyfin-exporter";
           group = "jellyfin-exporter";
           listenAddress = "0.0.0.0";
-          port = ports.jellyfinExporter;
+          port = exporterPorts.jellyfin;
           openFirewall = true;
           configFile = "/var/lib/json-exporter/config.yml";
         };
@@ -200,12 +185,12 @@ in
             "--collector.hwmon"
           ];
 
-          port = ports.node;
+          port = exporterPorts.node;
         };
 
         nginx = {
           enable = config.services.nginx.enable && homelabMonitoring;
-          port = ports.nginxExporter;
+          port = exporterPorts.nginx;
           openFirewall = true;
           listenAddress = "0.0.0.0";
           scrapeUri = "http://127.0.0.1/nginx_status";
@@ -229,7 +214,7 @@ in
 
           clients = [
             {
-              url = "http://192.168.1.99:${toString config.services.loki.configuration.server.http_listen_port}/loki/api/v1/push";
+              url = "http://${networkCfg.hosts.zues}:${toString config.services.loki.configuration.server.http_listen_port}/loki/api/v1/push";
             }
           ];
 
@@ -267,7 +252,7 @@ in
 
         settings = {
           server = {
-            http_addr = "192.168.1.99";
+            http_addr = "${networkCfg.hosts.zues}";
             http_port = ports.grafana;
           };
           security = {
@@ -353,7 +338,7 @@ in
 
           server = {
             http_listen_port = ports.loki;
-            http_listen_address = "192.168.1.99";
+            http_listen_address = "${networkCfg.hosts.zues}";
           };
 
           common = {
@@ -571,7 +556,7 @@ in
             scrape_interval = "120s";
             static_configs = [
               {
-                targets = [ "zues.home.arpa:${toString ports.node}" ];
+                targets = [ "zues.home.arpa:${toString exporterPorts.node}" ];
                 labels.instance = "zues";
               }
             ];
@@ -613,12 +598,12 @@ in
                   "http://grafana.home.arpa"
                   "http://prometheus.home.arpa/-/ready"
                   "http://loki.home.arpa/ready"
-                  "http://192.168.1.49:8123"
-                  "http://192.168.1.99:8989"
-                  "http://192.168.1.99:7878"
-                  "http://192.168.1.99:8686"
-                  "http://192.168.1.99:6767"
-                  "http://192.168.1.99:9696"
+                  "http://${networkCfg.hosts.ring-doorbell}:8123"
+                  "http://${networkCfg.hosts.zues}:8989"
+                  "http://${networkCfg.hosts.zues}:7878"
+                  "http://${networkCfg.hosts.zues}:8686"
+                  "http://${networkCfg.hosts.zues}:6767"
+                  "http://${networkCfg.hosts.zues}:9696"
                   "https://nixlab.au"
                   "https://pass.nixlab.au"
                   "https://jellyfin.nixlab.au/web/index.html"
@@ -636,7 +621,7 @@ in
               }
               {
                 target_label = "__address__";
-                replacement = "127.0.0.1:${toString ports.blackbox}";
+                replacement = "127.0.0.1:${toString exporterPorts.blackbox}";
               }
             ];
           }
@@ -647,7 +632,7 @@ in
             static_configs = [
               {
                 targets = [
-                  "http://192.168.1.99:9050"
+                  "http://${networkCfg.hosts.zues}:9050"
                 ];
               }
             ];
@@ -662,7 +647,7 @@ in
               }
               {
                 target_label = "__address__";
-                replacement = "127.0.0.1:${toString ports.blackbox}";
+                replacement = "127.0.0.1:${toString exporterPorts.blackbox}";
               }
             ];
           }
@@ -690,7 +675,7 @@ in
               }
               {
                 target_label = "__address__";
-                replacement = "127.0.0.1:${toString ports.blackbox}";
+                replacement = "127.0.0.1:${toString exporterPorts.blackbox}";
               }
             ];
           }
@@ -716,7 +701,7 @@ in
               }
               {
                 target_label = "__address__";
-                replacement = "127.0.0.1:${toString ports.jellyfinExporter}";
+                replacement = "127.0.0.1:${toString exporterPorts.jellyfin}";
               }
             ];
           }

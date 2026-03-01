@@ -19,6 +19,8 @@ let
   };
 
   hasRole = mkHasRole config;
+  networkCfg = config.modules.network;
+  ports = config.modules.ports; # Use centralized port definitions
   homelabVaultwarden = hasRole "homelab-vaultwarden";
   homelabJellyfin = hasRole "homelab-jellyfin";
   homelabDeluge = hasRole "homelab-deluge";
@@ -26,20 +28,6 @@ let
   homelabNas = hasRole "homelab-nas";
 
   cfg = config.modules.homelab;
-
-  ports = {
-    jellyseerr = 5055;
-    jellyfin = 8096;
-    delugeWeb = 9050;
-    delugeDaemon = 58846;
-    vaultwarden = 8521;
-    prowlarr = 9696;
-    sonarr = 8989;
-    radarr = 7878;
-    lidarr = 8686;
-    bazarr = 6767;
-    readarr = 8787;
-  };
 in
 {
   options.modules.homelab = {
@@ -178,7 +166,7 @@ in
         config = {
           DOMAIN = "https://pass.nixlab.au";
           SIGNUPS_ALLOWED = true;
-          ROCKET_ADDRESS = "192.168.1.99";
+          ROCKET_ADDRESS = networkCfg.hosts.zues;
           ROCKET_PORT = ports.vaultwarden;
           WEB_VAULT_ENABLED = true;
           ENABLE_PROMETHEUS_METRICS = true;
@@ -187,7 +175,7 @@ in
           EXTENDED_LOGGING = false;
 
           WEBSOCKET_ENABLED = true;
-          WEBSOCKET_ADDRESS = "192.168.1.99";
+          WEBSOCKET_ADDRESS = networkCfg.hosts.zues;
           WEBSOCKET_PORT = 3012;
 
           SMTP_HOST = "smtp.gmail.com";

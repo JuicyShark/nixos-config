@@ -2,10 +2,14 @@
   lib,
   config,
   ...
-}: {
+}:
+let
+  networkCfg = config.modules.network;
+in
+{
   environment.etc."resolv.conf" = lib.mkIf config.services.unbound.enable {
     text = ''
-      nameserver 192.168.1.99
+      nameserver ${networkCfg.hosts.zues}
       options timeout:2 attempts:2
     '';
   };

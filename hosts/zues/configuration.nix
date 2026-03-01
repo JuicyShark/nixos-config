@@ -17,6 +17,7 @@ in
     glance
     unbound
     network
+    ports
     nfs
   ];
   home-manager.sharedModules = attrValues nix-config.homeModules;
