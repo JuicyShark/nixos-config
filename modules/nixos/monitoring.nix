@@ -1,11 +1,14 @@
 {
+  nix-config,
+  system,
   config,
   lib,
   pkgs,
   ...
 }:
 let
-  hasRole = role: builtins.elem role config.modules.system.roles;
+  inherit (nix-config.lib.${system}.roles) mkHasRole;
+  hasRole = mkHasRole config;
   homelabMonitoring = hasRole "homelab-monitoring";
   homelabHostMonitoring = hasRole "homelab-host-monitoring";
   homelabNas = hasRole "homelab-nas";

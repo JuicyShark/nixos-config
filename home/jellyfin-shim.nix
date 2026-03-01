@@ -1,29 +1,34 @@
 {
+  nix-config,
+  system,
   config,
   lib,
   osConfig,
   pkgs,
   ...
-}: let
-  hasRole = role: builtins.elem role osConfig.modules.system.roles;
+}:
+let
+  inherit (nix-config.lib.${system}.roles) mkHasRoleHome;
+  hasRole = mkHasRoleHome osConfig;
   desktopEnabled = hasRole "desktop";
   jellyfinApiSecretPath = osConfig.age.secrets.jellyfin-api.path;
   jellyfinServerUrl = "http://jellyfin.home.arpa";
   jellyfinShimConfigDir = "${config.xdg.configHome}/jellyfin-mpv-shim";
 in
-  lib.mkIf (desktopEnabled && osConfig ? age && osConfig.age.secrets ? jellyfin-api) {
-    home.packages = [pkgs.jellyfin-mpv-shim];
+lib.mkIf (desktopEnabled && osConfig ? age && osConfig.age.secrets ? jellyfin-api) {
+  home.packages = [ pkgs.jellyfin-mpv-shim ];
 
-    systemd.user.services.jellyfin-mpv-shim = {
-      Unit = {
-        Description = "Jellyfin MPV Shim";
-        After = ["graphical-session.target"];
-        PartOf = ["graphical-session.target"];
-      };
+  systemd.user.services.jellyfin-mpv-shim = {
+    Unit = {
+      Description = "Jellyfin MPV Shim";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
 
-      Service = {
-        Type = "simple";
-        ExecStartPre = let
+    Service = {
+      Type = "simple";
+      ExecStartPre =
+        let
           bootstrapScript = pkgs.writeShellScript "jellyfin-mpv-shim-bootstrap" ''
             set -euo pipefail
 
@@ -65,12 +70,13 @@ in
             ]
             EOF
           '';
-        in [bootstrapScript];
-        ExecStart = "${lib.getExe pkgs.jellyfin-mpv-shim}";
-        Restart = "on-failure";
-        RestartSec = 5;
-      };
-
-      Install.WantedBy = ["graphical-session.target"];
+        in
+        [ bootstrapScript ];
+      ExecStart = "${lib.getExe pkgs.jellyfin-mpv-shim}";
+      Restart = "on-failure";
+      RestartSec = 5;
     };
-  }
+
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+}

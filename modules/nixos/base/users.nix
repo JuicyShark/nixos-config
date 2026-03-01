@@ -4,6 +4,8 @@
 # Extracted from system.nix for better modularity.
 
 {
+  nix-config,
+  system,
   config,
   lib,
   ...
@@ -49,6 +51,11 @@ in
     home-manager = {
       useGlobalPkgs = false;
       useUserPackages = true;
+
+      # Pass system and nix-config to home modules
+      extraSpecialArgs = {
+        inherit system nix-config;
+      };
 
       sharedModules = [
         {

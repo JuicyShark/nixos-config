@@ -1,11 +1,15 @@
 {
+  nix-config,
+  system,
   osConfig,
   config,
   pkgs,
   lib,
   ...
-}: let
-  hasRole = role: builtins.elem role osConfig.modules.system.roles;
+}:
+let
+  inherit (nix-config.lib.${system}.roles) mkHasRoleHome;
+  hasRole = mkHasRoleHome osConfig;
   desktop = hasRole "desktop";
   niriEnabled = hasRole "desktop-niri";
   desktopGaming = hasRole "desktop-gaming";
@@ -17,10 +21,11 @@
   primaryMonitorName = osConfig.modules.desktop.primaryMonitorName or "DP-1";
   primaryMonitorMode = osConfig.modules.desktop.primaryMonitorMode or "5120x1440@120";
 
-  tmuxTerminalAction = import ../lib/tmux-terminal-action.nix {inherit pkgs;};
+  tmuxTerminalAction = import ../lib/tmux-terminal-action.nix { inherit pkgs; };
 
   tmuxTerminalActionExe = lib.getExe tmuxTerminalAction;
-in {
+in
+{
   config = lib.mkIf (desktop && niriEnabled) {
     home.packages = [
       pkgs.runelite

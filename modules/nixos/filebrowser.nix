@@ -1,13 +1,19 @@
 {
+  nix-config,
+  system,
   lib,
   config,
+  pkgs,
   ...
-}: let
-  hasRole = role: builtins.elem role config.modules.system.roles;
+}:
+let
+  inherit (nix-config.lib.${system}.roles) mkHasRole;
+  hasRole = mkHasRole config;
   homelabFilebrowser = hasRole "homelab-filebrowser";
   filebrowserPort = 8095;
   filebrowserRoot = "/srv/chonk/family";
-in {
+in
+{
   config = lib.mkIf homelabFilebrowser {
     services.filebrowser = {
       enable = true;
@@ -31,6 +37,6 @@ in {
       "d ${filebrowserRoot}/Private/juicy 0770 media media -"
     ];
 
-    systemd.services.filebrowser.serviceConfig.RequiresMountsFor = ["/srv/chonk"];
+    systemd.services.filebrowser.serviceConfig.RequiresMountsFor = [ "/srv/chonk" ];
   };
 }

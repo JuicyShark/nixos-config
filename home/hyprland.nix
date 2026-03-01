@@ -1,13 +1,17 @@
 {
+  nix-config,
+  system,
   osConfig,
   config,
   pkgs,
   lib,
   ...
 }:
-with pkgs; let
+with pkgs;
+let
   stylix = config.lib.stylix.colors;
-  hasRole = role: builtins.elem role osConfig.modules.system.roles;
+  inherit (nix-config.lib.${system}.roles) mkHasRoleHome;
+  hasRole = mkHasRoleHome osConfig;
   desktop = hasRole "desktop";
   desktopGaming = hasRole "desktop-gaming";
   desktopBloat = hasRole "desktop-bloat";
@@ -24,23 +28,25 @@ with pkgs; let
   primaryMonitorOutput = primaryMonitorName;
   primaryMonitorMode = osConfig.modules.desktop.primaryMonitorMode or "preferred";
 
-  smartFocusAction = import ../lib/smart-focus-action.nix {inherit pkgs;};
+  smartFocusAction = import ../lib/smart-focus-action.nix { inherit pkgs; };
   smartFocusActionExe = lib.getExe smartFocusAction;
 
   submapReset = ''
     bind = , escape, submap, reset
   '';
 
-  directionName = d:
-    if d == "l"
-    then "left"
-    else if d == "r"
-    then "right"
-    else if d == "u"
-    then "up"
-    else if d == "d"
-    then "down"
-    else d;
+  directionName =
+    d:
+    if d == "l" then
+      "left"
+    else if d == "r" then
+      "right"
+    else if d == "u" then
+      "up"
+    else if d == "d" then
+      "down"
+    else
+      d;
 
   workspaces = map toString (lib.range 1 9);
 
@@ -60,7 +66,8 @@ with pkgs; let
     volume-mixer = "${pkgs.pwvucontrol}/bin/pwvucontrol";
     terminal = "${pkgs.kitty}/bin/kitty";
   };
-in {
+in
+{
   config = lib.mkIf desktop {
     home.packages = [
       pkgs.runelite
@@ -124,18 +131,17 @@ in {
           }
         ];
 
-        exec-once =
-          [
-            "wayscriber -d --no-tray"
-          ]
-          ++ lib.optionals desktopGaming ["[workspace 1 silent] steam"]
-          ++ [
-            "[workspace 2 silent] ${default-apps.browser}"
-          ]
-          ++ [
-            "[workspace 6 silent] bitwarden"
-          ]
-          ++ lib.optionals zsaEnabled ["[workspace 9 silent] keymapp"];
+        exec-once = [
+          "wayscriber -d --no-tray"
+        ]
+        ++ lib.optionals desktopGaming [ "[workspace 1 silent] steam" ]
+        ++ [
+          "[workspace 2 silent] ${default-apps.browser}"
+        ]
+        ++ [
+          "[workspace 6 silent] bitwarden"
+        ]
+        ++ lib.optionals zsaEnabled [ "[workspace 9 silent] keymapp" ];
 
         input = {
           kb_layout = kbLayout;
@@ -293,22 +299,24 @@ in {
             bar_text_size = 13;
             bar_color = "rgba(${stylix.base01}dd)";
             bar_text_font = config.wayland.windowManager.hyprland.settings.misc.font_family;
-            hyprbars-button = let
-              closeAction = "hyprctl dispatch killactive";
+            hyprbars-button =
+              let
+                closeAction = "hyprctl dispatch killactive";
 
-              isOnSpecial = ''hyprctl activewindow -j | jq -re 'select(.workspace.name == "minimized")' >/dev/null'';
-              moveToSpecial = "hyprctl dispatch movetoworkspacesilent minimized";
-              moveToActive = "hyprctl dispatch movetoworkspacesilent $(hyprctl -j activeworkspace | jq -re '.id')";
-              minimizeAction = "${isOnSpecial} && ${moveToActive} || ${moveToSpecial}";
+                isOnSpecial = ''hyprctl activewindow -j | jq -re 'select(.workspace.name == "minimized")' >/dev/null'';
+                moveToSpecial = "hyprctl dispatch movetoworkspacesilent minimized";
+                moveToActive = "hyprctl dispatch movetoworkspacesilent $(hyprctl -j activeworkspace | jq -re '.id')";
+                minimizeAction = "${isOnSpecial} && ${moveToActive} || ${moveToSpecial}";
 
-              maximizeAction = "hyprctl dispatch fullscreen 1";
-            in [
-              "rgb(ff4040),12,,${closeAction}"
-              # Yellow "minimize" (send to special workspace) button
-              "rgb(eeee11),12,,${minimizeAction}"
-              # Green "maximize" (fullscreen) button
-              "rgb(dddd11),12,,${maximizeAction}"
-            ];
+                maximizeAction = "hyprctl dispatch fullscreen 1";
+              in
+              [
+                "rgb(ff4040),12,,${closeAction}"
+                # Yellow "minimize" (send to special workspace) button
+                "rgb(eeee11),12,,${minimizeAction}"
+                # Green "maximize" (fullscreen) button
+                "rgb(dddd11),12,,${maximizeAction}"
+              ];
           };
         };
 
@@ -316,71 +324,73 @@ in {
           allow_workspace_cycles = true;
         };
 
-        windowrule = let
-          steamGame = "match:class (steam_app_[0-9]*)";
-          wineTray = "match:class explorer.exe";
+        windowrule =
+          let
+            steamGame = "match:class (steam_app_[0-9]*)";
+            wineTray = "match:class explorer.exe";
 
-          terminalClasses = "(kitty|com.mitchellh.ghostty)";
-          chatClasses = "(discord|vesktop|signal|org.telegram.desktop)";
-          utilityClasses = "(thunar|com.saivert.pwvucontrol|RimPy|org.keepassxc.KeePassXC|bitwarden|Tk|xdg-desktop-portal-gtk|nm-connection-editor|blueman-manager)";
-          devClasses = "(emacs|code|codium)";
-        in [
-          # Don’t steal focus when launching
-          "no_initial_focus on, match:class (steam|${chatClasses})"
+            terminalClasses = "(kitty|com.mitchellh.ghostty)";
+            chatClasses = "(discord|vesktop|signal|org.telegram.desktop)";
+            utilityClasses = "(thunar|com.saivert.pwvucontrol|RimPy|org.keepassxc.KeePassXC|bitwarden|Tk|xdg-desktop-portal-gtk|nm-connection-editor|blueman-manager)";
+            devClasses = "(emacs|code|codium)";
+          in
+          [
+            # Don’t steal focus when launching
+            "no_initial_focus on, match:class (steam|${chatClasses})"
 
-          # Modal/file dialogs should stay central and predictable.
-          "stay_focused on, match:title (Open|Save|Save As|Open File)"
-          "float on, center on, size (monitor_w*0.34) (monitor_h*0.62), match:title (Open|Save|Save As|Open File|Choose File|Preferences|Settings)"
+            # Modal/file dialogs should stay central and predictable.
+            "stay_focused on, match:title (Open|Save|Save As|Open File)"
+            "float on, center on, size (monitor_w*0.34) (monitor_h*0.62), match:title (Open|Save|Save As|Open File|Choose File|Preferences|Settings)"
 
-          # Tagging
-          "tag +terminal, match:class ${terminalClasses}"
-          "tag +chat, match:class ${chatClasses}"
-          "tag +utility, match:class ${utilityClasses}"
-          "tag +dev, match:class (${terminalClasses}|${devClasses})"
-          "tag +video, match:class mpv"
-          "tag +video, match:title (Picture-in-Picture|Picture in picture)"
+            # Tagging
+            "tag +terminal, match:class ${terminalClasses}"
+            "tag +chat, match:class ${chatClasses}"
+            "tag +utility, match:class ${utilityClasses}"
+            "tag +dev, match:class (${terminalClasses}|${devClasses})"
+            "tag +video, match:class mpv"
+            "tag +video, match:title (Picture-in-Picture|Picture in picture)"
 
-          # Tiling-first layout: only utilities (and PiP below) stay floating.
-          "workspace 3 silent, match:class ${chatClasses}"
-          "tile on, match:tag chat"
-          "float on, size (monitor_w*0.24) (monitor_h*0.70), move (monitor_w-window_w-(monitor_w*0.035)) ((monitor_h-window_h)/2), match:tag utility"
+            # Tiling-first layout: only utilities (and PiP below) stay floating.
+            "workspace 3 silent, match:class ${chatClasses}"
+            "tile on, match:tag chat"
+            "float on, size (monitor_w*0.24) (monitor_h*0.70), move (monitor_w-window_w-(monitor_w*0.035)) ((monitor_h-window_h)/2), match:tag utility"
 
-          # Screen share restrictions
-          "no_screen_share on, match:class (org.keepassxc.KeePassXC|bitwarden)"
-          "no_screen_share on, match:title (.*Private Browsing), match:class (chromium-browser|vivaldi-stable)"
+            # Screen share restrictions
+            "no_screen_share on, match:class (org.keepassxc.KeePassXC|bitwarden)"
+            "no_screen_share on, match:title (.*Private Browsing), match:class (chromium-browser|vivaldi-stable)"
 
-          # Video behavior for tagged windows
-          "content video, idle_inhibit always, border_size 0, no_dim on, match:tag video"
-          "suppress_event fullscreen fullscreenoutput maximize, match:class (vivaldi-stable|chromium-browser)"
+            # Video behavior for tagged windows
+            "content video, idle_inhibit always, border_size 0, no_dim on, match:tag video"
+            "suppress_event fullscreen fullscreenoutput maximize, match:class (vivaldi-stable|chromium-browser)"
 
-          # PiP and pinned windows: inset zones (not hard corners) for 32:9 ergonomics.
-          "float on, pin on, no_initial_focus on, persistent_size on, suppress_event activatefocus, size (monitor_w*0.22) (monitor_h*0.26), move (monitor_w-window_w-(monitor_w*0.03)) (monitor_h*0.05), match:title (Picture-in-Picture|Picture in picture)"
-          "float on, pin on, size (monitor_w*0.22) (monitor_h*0.28), move (monitor_w-window_w-(monitor_w*0.03)) (monitor_h-window_h-(monitor_h*0.06)), match:class (pinned)"
+            # PiP and pinned windows: inset zones (not hard corners) for 32:9 ergonomics.
+            "float on, pin on, no_initial_focus on, persistent_size on, suppress_event activatefocus, size (monitor_w*0.22) (monitor_h*0.26), move (monitor_w-window_w-(monitor_w*0.03)) (monitor_h*0.05), match:title (Picture-in-Picture|Picture in picture)"
+            "float on, pin on, size (monitor_w*0.22) (monitor_h*0.28), move (monitor_w-window_w-(monitor_w*0.03)) (monitor_h-window_h-(monitor_h*0.06)), match:class (pinned)"
 
-          # Game rules
-          "workspace 1 silent, match:class steam"
+            # Game rules
+            "workspace 1 silent, match:class steam"
 
-          "border_size 0, idle_inhibit always, no_dim on, workspace 5 silent, match:xdg_tag proton-game"
-          "border_size 0, idle_inhibit always, no_dim on, workspace 5 silent, ${steamGame}"
-          "workspace minimized silent, ${wineTray}"
-          "max_size 2000 1200, float on, center on, match:class battle.net.exe"
-          "suppress_event fullscreen, fullscreen on, match:initial_title (World of Warcraft)"
+            "border_size 0, idle_inhibit always, no_dim on, workspace 5 silent, match:xdg_tag proton-game"
+            "border_size 0, idle_inhibit always, no_dim on, workspace 5 silent, ${steamGame}"
+            "workspace minimized silent, ${wineTray}"
+            "max_size 2000 1200, float on, center on, match:class battle.net.exe"
+            "suppress_event fullscreen, fullscreen on, match:initial_title (World of Warcraft)"
 
-          # VM windows tile
-          "tile on, match:class (.qemu-system-x86_64-wrapped)"
+            # VM windows tile
+            "tile on, match:class (.qemu-system-x86_64-wrapped)"
 
-          # Opacity
-          "opacity ${opacity} ${opacity}, match:class thunar"
-          "opacity 0.97 0.92, match:tag dev"
-          "opacity 0.95 0.88, match:tag utility"
-          "opacity 0.96 0.89, match:tag chat"
+            # Opacity
+            "opacity ${opacity} ${opacity}, match:class thunar"
+            "opacity 0.97 0.92, match:tag dev"
+            "opacity 0.95 0.88, match:tag utility"
+            "opacity 0.96 0.89, match:tag chat"
 
-          # Workspace rules (TV, floating layouts)
-          "border_size 0, match:float 0, match:workspace w[tv1]"
-          "rounding 0, match:float 0, match:workspace w[tv1]"
-          "border_size 0, match:float 0, match:workspace f[1]"
-          "rounding 0, match:float 0, match:workspace f[1]"
-        ];
+            # Workspace rules (TV, floating layouts)
+            "border_size 0, match:float 0, match:workspace w[tv1]"
+            "rounding 0, match:float 0, match:workspace w[tv1]"
+            "border_size 0, match:float 0, match:workspace f[1]"
+            "rounding 0, match:float 0, match:workspace f[1]"
+          ];
 
         workspace = [
           "1, monitor:${primaryMonitorOutput}"
@@ -418,63 +428,61 @@ in {
           mouse_move_enables_dpms = false;
         };
 
-        bindd =
-          [
-            "${mod}, W, Windows, submap, window"
-            "${mod}, A, Apps, submap, openApps"
-            "${mod}, T, Terminal Apps, submap, openTerminal"
-            "${mod}, L, Layout, submap, layout"
-            "${mod}, G, Groups, submap, group"
-            "${mod}CONTROL, S, System, submap, system"
-            "${mod}, M, Media, submap, media"
+        bindd = [
+          "${mod}, W, Windows, submap, window"
+          "${mod}, A, Apps, submap, openApps"
+          "${mod}, T, Terminal Apps, submap, openTerminal"
+          "${mod}, L, Layout, submap, layout"
+          "${mod}, G, Groups, submap, group"
+          "${mod}CONTROL, S, System, submap, system"
+          "${mod}, M, Media, submap, media"
 
-            "${mod}, tab, Group next, changegroupactive, f"
-            "${mod}SHIFT, tab, Group previous, changegroupactive, b"
+          "${mod}, tab, Group next, changegroupactive, f"
+          "${mod}SHIFT, tab, Group previous, changegroupactive, b"
 
-            "${mod}, Space, Launcher, global, ${default-apps.global-launcher}"
-            "${mod}SHIFT, Q, Close window, killactive"
-            "${mod}CONTROL, M, Toggle fullscreen, fullscreen, 0"
-            "${mod}CONTROL, Enter, Toggle fullscreen, fullscreen, 0"
-            "${mod}CONTROL, F, Toggle floating, togglefloating"
-            "${mod}CONTROL, P, Toggle pin, pin"
-            "${mod}SHIFT, slash, Submap options, global, submap-cheatsheet:toggle-submap-options"
-            "${mod}CONTROL, Space, Swap split, layoutmsg, swapsplit"
+          "${mod}, Space, Launcher, global, ${default-apps.global-launcher}"
+          "${mod}SHIFT, Q, Close window, killactive"
+          "${mod}CONTROL, M, Toggle fullscreen, fullscreen, 0"
+          "${mod}CONTROL, Enter, Toggle fullscreen, fullscreen, 0"
+          "${mod}CONTROL, F, Toggle floating, togglefloating"
+          "${mod}CONTROL, P, Toggle pin, pin"
+          "${mod}SHIFT, slash, Submap options, global, submap-cheatsheet:toggle-submap-options"
+          "${mod}CONTROL, Space, Swap split, layoutmsg, swapsplit"
 
-            "${mod}, Return, terminal (tmux smart), exec, ${default-apps.terminal}"
-            "${mod}SHIFT, Return, kitty pinned, exec, ${default-apps.terminal} --class pinned"
-            #"${mod}, d, Toggle comms, exec, ${commsToggleCommand}"
-          ]
-          ++ lib.optionals desktopEmacs ["${mod}, E, Emacs, submap, emacs"]
-          ++
+          "${mod}, Return, terminal (tmux smart), exec, ${default-apps.terminal}"
+          "${mod}SHIFT, Return, kitty pinned, exec, ${default-apps.terminal} --class pinned"
+          #"${mod}, d, Toggle comms, exec, ${commsToggleCommand}"
+        ]
+        ++ lib.optionals desktopEmacs [ "${mod}, E, Emacs, submap, emacs" ]
+        ++
           # Change workspace//
           (map (n: "${mod},${n},Workspace ${n},workspace,${n}") workspaces)
-          ++
+        ++
           # Move window to workspace
           (map (n: "${mod}SHIFT,${n},Move to ws ${n},movetoworkspacesilent,${n}") workspaces)
-          ++
+        ++
           # Move focus
           (lib.mapAttrsToList (
-              key: direction: "${mod},${key},Focus ${directionName direction},exec,${smartFocusActionExe} ${direction} auto"
-            )
-            directions)
-          ++
+            key: direction:
+            "${mod},${key},Focus ${directionName direction},exec,${smartFocusActionExe} ${direction} auto"
+          ) directions)
+        ++
           # Move windows
           (lib.mapAttrsToList (
-              key: direction: "${mod}SHIFT,${key},Move ${directionName direction},movewindoworgroup,${direction}"
-            )
-            directions)
-          ++
+            key: direction: "${mod}SHIFT,${key},Move ${directionName direction},movewindoworgroup,${direction}"
+          ) directions)
+        ++
           # Open next window in given direction in dwindle
           (lib.mapAttrsToList (
-              key: direction: "${mod}CONTROL,${key},Preselect ${directionName direction},layoutmsg,preselect ${direction}"
-            )
-            directions)
-          ++
+            key: direction:
+            "${mod}CONTROL,${key},Preselect ${directionName direction},layoutmsg,preselect ${direction}"
+          ) directions)
+        ++
           # Open next window in given direction in dwindle
           (lib.mapAttrsToList (
-              key: direction: "${mod}CONTROL,${key},Move Focus ${directionName direction},layoutmsg,focus ${direction}"
-            )
-            directions);
+            key: direction:
+            "${mod}CONTROL,${key},Move Focus ${directionName direction},layoutmsg,focus ${direction}"
+          ) directions);
 
         bindmd = [
           "SUPER, mouse:272, Move window, movewindow"
@@ -654,20 +662,20 @@ in {
                     submap = reset
 
                     ${lib.optionalString desktopEmacs ''
-            submap = emacs
-              bindd = , E, Emacs raise, exec, emacsclient -r
-              bind = , E, submap, reset
-              bindd = , F, Emacs focus, focuswindow, class:(emacs)
-              bind = , F, submap, reset
-              bindd = , N, Emacs new frame, exec, emacsclient -c
-              bind = , N, submap, reset
-              bindd = , C, Emacs cwd, exec, emacsclient -r .
-              bind = , C, submap, reset
-              bindd = , D, Emacs org today, exec, emacsclient -c --eval "(call-interactively org-dailies-goto-today)"
-              bind = , D, submap, reset
-              ${submapReset}
-            submap = reset
-          ''}
+                      submap = emacs
+                        bindd = , E, Emacs raise, exec, emacsclient -r
+                        bind = , E, submap, reset
+                        bindd = , F, Emacs focus, focuswindow, class:(emacs)
+                        bind = , F, submap, reset
+                        bindd = , N, Emacs new frame, exec, emacsclient -c
+                        bind = , N, submap, reset
+                        bindd = , C, Emacs cwd, exec, emacsclient -r .
+                        bind = , C, submap, reset
+                        bindd = , D, Emacs org today, exec, emacsclient -c --eval "(call-interactively org-dailies-goto-today)"
+                        bind = , D, submap, reset
+                        ${submapReset}
+                      submap = reset
+                    ''}
 
                     submap = system
 

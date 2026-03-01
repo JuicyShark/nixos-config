@@ -1,19 +1,24 @@
 {
+  nix-config,
+  system,
   lib,
   config,
+  pkgs,
   ...
-}: let
+}:
+let
   inherit (lib) mkIf mkOption;
   inherit (lib.types) str;
+  inherit (nix-config.lib.${system}.roles) mkHasRole;
 
   srvMountExists = builtins.hasAttr "/srv/chonk" config.fileSystems;
 
   withSrvMount = lib.mkIf srvMountExists {
-    after = ["srv.mount"];
-    wants = ["srv.mount"];
+    after = [ "srv.mount" ];
+    wants = [ "srv.mount" ];
   };
 
-  hasRole = role: builtins.elem role config.modules.system.roles;
+  hasRole = mkHasRole config;
   homelabVaultwarden = hasRole "homelab-vaultwarden";
   homelabJellyfin = hasRole "homelab-jellyfin";
   homelabDeluge = hasRole "homelab-deluge";
@@ -35,7 +40,8 @@
     bazarr = 6767;
     readarr = 8787;
   };
-in {
+in
+{
   options.modules.homelab = {
     smtpEmail = mkOption {
       type = str;
@@ -65,19 +71,18 @@ in {
       };
       groups.media = {
         name = "media";
-        members =
-          [
-            "juicy"
-          ]
-          ++ lib.optionals homelabMedia [
-            config.services.jellyfin.user
-            config.services.sonarr.user
-            config.services.radarr.user
-            config.services.lidarr.user
-            config.services.bazarr.user
-            config.services.readarr.user
-          ]
-          ++ lib.optional config.services.deluge.enable config.services.deluge.user;
+        members = [
+          "juicy"
+        ]
+        ++ lib.optionals homelabMedia [
+          config.services.jellyfin.user
+          config.services.sonarr.user
+          config.services.radarr.user
+          config.services.lidarr.user
+          config.services.bazarr.user
+          config.services.readarr.user
+        ]
+        ++ lib.optional config.services.deluge.enable config.services.deluge.user;
       };
     };
 
@@ -158,7 +163,7 @@ in {
           allow_remote = false;
           daemon_port = ports.delugeDaemon;
           random_port = false;
-          enabled_plugins = ["Label"];
+          enabled_plugins = [ "Label" ];
         };
 
         web = {

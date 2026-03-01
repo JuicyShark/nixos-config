@@ -1,16 +1,19 @@
 {
   nix-config,
+  system,
   pkgs,
   config,
   lib,
   ...
-}: let
+}:
+let
   inherit (lib.types) str;
   inherit (config.modules.system) username;
   inherit (config.boot) isContainer;
   inherit (lib) mkIf mkOption;
+  inherit (nix-config.lib.${system}.roles) mkHasRole;
 
-  hasRole = role: builtins.elem role config.modules.system.roles;
+  hasRole = mkHasRole config;
 
   desktopEnabled = hasRole "desktop";
   desktopBloat = hasRole "desktop-bloat";
@@ -23,17 +26,7 @@
 
   hyprlandEnabled = desktopHyprland;
   niriEnabled = desktopNiri;
-  compositorCount =
-    (
-      if hyprlandEnabled
-      then 1
-      else 0
-    )
-    + (
-      if niriEnabled
-      then 1
-      else 0
-    );
+  compositorCount = (if hyprlandEnabled then 1 else 0) + (if niriEnabled then 1 else 0);
 
   desktopBasePackages = with pkgs; [
     btop
@@ -58,7 +51,7 @@
     vivaldi
   ];
 
-  streamingPackages = with pkgs; [streamlink];
+  streamingPackages = with pkgs; [ streamlink ];
 
   gamingPackages = with pkgs; [
     heroic
@@ -70,7 +63,8 @@
     # ryujinx
     # dolphin-emu
   ];
-in {
+in
+{
   options.modules.desktop = {
     primaryMonitorName = mkOption {
       type = str;
@@ -113,7 +107,7 @@ in {
       XDG_SCREENSHOTS_DIR = "/home/${username}/media/pictures/screenshots";
     };
 
-    systemd.settings.Manager = mkIf desktopGaming {DefaultLimitNOFILE = 1048576;};
+    systemd.settings.Manager = mkIf desktopGaming { DefaultLimitNOFILE = 1048576; };
     programs = {
       # Wayland Compositors
       hyprland.enable = !isContainer && hyprlandEnabled;
@@ -127,7 +121,7 @@ in {
         localNetworkGameTransfers.openFirewall = true;
         dedicatedServer.openFirewall = true;
         remotePlay.openFirewall = true;
-        extraCompatPackages = with pkgs; [proton-ge-bin];
+        extraCompatPackages = with pkgs; [ proton-ge-bin ];
       };
     };
     xdg.portal.enable = !isContainer;
@@ -156,7 +150,7 @@ in {
 
     security.rtkit.enable = true;
 
-    security.pam.services.quickshell = {};
+    security.pam.services.quickshell = { };
     boot.kernel.sysctl."vm.legacy_va_layout" = 0;
     security.pam.loginLimits = [
       {
@@ -196,12 +190,12 @@ in {
         pkgs.hyprland-qtutils
         pkgs.hyprwire
       ])
-      ++ (lib.optionals (!isContainer && niriEnabled) [pkgs.xwayland-satellite])
+      ++ (lib.optionals (!isContainer && niriEnabled) [ pkgs.xwayland-satellite ])
       ++ (lib.optionals desktopBloat bloatPackages)
       ++ (lib.optionals desktopStreaming streamingPackages)
       ++ (lib.optionals desktopGaming gamingPackages)
-      ++ (lib.optionals desktopVirtual [pkgs.quickemu])
-      ++ (lib.optionals desktopGuiFallback [pkgs.grsync])
+      ++ (lib.optionals desktopVirtual [ pkgs.quickemu ])
+      ++ (lib.optionals desktopGuiFallback [ pkgs.grsync ])
       ++ desktopBasePackages;
   };
 }

@@ -8,6 +8,7 @@
 
 {
   nix-config,
+  system,
   pkgs,
   lib,
   config,
@@ -26,7 +27,8 @@ let
   inherit (cfg) username;
 
   cfg = config.modules.system;
-  hasRole = role: builtins.elem role cfg.roles;
+  inherit (nix-config.lib.${system}.roles) mkHasRole;
+  hasRole = mkHasRole config;
   mkStrOption =
     default:
     mkOption {

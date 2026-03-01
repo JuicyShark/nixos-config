@@ -4,6 +4,8 @@
 # Extracted from system.nix for better modularity.
 
 {
+  nix-config,
+  system,
   config,
   lib,
   pkgs,
@@ -12,7 +14,8 @@
 with lib;
 let
   cfg = config.modules.system;
-  hasRole = role: builtins.elem role cfg.roles;
+  inherit (nix-config.lib.${system}.roles) mkHasRole;
+  hasRole = mkHasRole config;
 in
 {
   config = {

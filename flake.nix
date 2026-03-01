@@ -98,10 +98,13 @@
 
       mkNixosHost =
         hostName:
-        nixosSystem {
+        let
           system = "x86_64-linux";
+        in
+        nixosSystem {
+          inherit system;
           specialArgs = {
-            inherit inputs;
+            inherit inputs system;
             nix-config = self;
           };
           modules = listFilesRecursive ./hosts/${hostName};

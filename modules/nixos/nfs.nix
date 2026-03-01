@@ -1,14 +1,20 @@
 {
+  nix-config,
+  system,
   lib,
   config,
+  pkgs,
   ...
-}: let
+}:
+let
   inherit (lib) mkIf mkOption mkDefault;
   inherit (lib.types) str;
+  inherit (nix-config.lib.${system}.roles) mkHasRole;
 
-  hasRole = role: builtins.elem role config.modules.system.roles;
+  hasRole = mkHasRole config;
   cfg = config.modules.nfs;
-in {
+in
+{
   options.modules.nfs = {
     exportPath = mkOption {
       type = str;
