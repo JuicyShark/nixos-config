@@ -1,51 +1,25 @@
-# Monitoring Stack
-#
-# Comprehensive monitoring setup with Prometheus, Grafana, Loki, and exporters.
-# This module coordinates all monitoring-related services.
-#
-# Split from monolithic monitoring.nix (804 lines) for better maintainability.
-
 {
-  config,
   lib,
+  config,
   ...
-}:
-with lib;
-{
+}: {
   imports = [
-    ./prometheus.nix
-    ./grafana.nix
+    ./exporters.nix
     ./loki.nix
-    ./alertmanager.nix
-    ./exporters/media.nix
-    ./exporters/system.nix
-    ./exporters/network.nix
+    ./grafana.nix
+    ./prometheus.nix
   ];
 
   options.modules.monitoring = {
-    enable = mkEnableOption "monitoring stack";
-
-    enableHomelab = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Enable homelab service monitoring";
-    };
-
-    enableHostMonitoring = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Enable host-level system monitoring";
-    };
-
-    enableNas = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Enable NAS-specific monitoring";
-    };
+    enable = lib.mkEnableOption "monitoring stack (Prometheus, Grafana, Loki, Alertmanager)";
+    host.enable = lib.mkEnableOption "host-level monitoring (node exporter + alloy log shipping)";
+    nas.enable = lib.mkEnableOption "NAS disk monitoring (smartctl exporter)";
   };
 
-  config = mkIf config.modules.monitoring.enable {
-    # Monitoring stack enabled
-    # Individual services configured in submodules
-  };
+  config.assertions = [
+    {
+      assertion = config.modules.monitoring.nas.enable -> config.modules.monitoring.enable;
+      message = "modules.monitoring.nas requires modules.monitoring to be enabled";
+    }
+  ];
 }

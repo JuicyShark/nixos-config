@@ -38,10 +38,10 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Promtail Up",
+      "title": "Alloy Up",
       "datasource": "Prometheus",
       "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
-      "targets": [{"expr": "up{job=\"promtail\"}", "instant": true, "refId": "A"}],
+      "targets": [{"expr": "up{job=\"alloy\"}", "instant": true, "refId": "A"}],
       "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]}, "color": {"mode": "thresholds"}}, "overrides": []},
       "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
     },
@@ -82,6 +82,26 @@
       "datasource": "Prometheus",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 13},
       "targets": [{"expr": "sum(rate(loki_request_duration_seconds_count[5m]))", "legendFormat": "requests/s", "refId": "A"}],
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "ops"}, "overrides": []},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Alloy Running Components",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 21},
+      "targets": [{"expr": "alloy_component_controller_running_components", "legendFormat": "{{instance}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "short"}, "overrides": []},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Alloy Component Evaluations",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 21},
+      "targets": [{"expr": "sum by (instance) (rate(alloy_component_evaluation_seconds_count[5m]))", "legendFormat": "{{instance}}", "refId": "A"}],
       "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "ops"}, "overrides": []},
       "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
     }

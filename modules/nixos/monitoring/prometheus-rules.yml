@@ -1,0 +1,97 @@
+groups:
+  - name: baseline
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "{{ $labels.job }}/{{ $labels.instance }} has been unreachable for >5 minutes."
+
+      - alert: DiskUsageHigh
+        expr: |
+          (
+            node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs"}
+            - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs"}
+          )
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs"} > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk usage high on {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }} is {{ humanizePercentage $value }} full."
+
+      - alert: MemoryPressure
+        expr: |
+          node_memory_MemAvailable_bytes
+          / node_memory_MemTotal_bytes < 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low memory on {{ $labels.instance }}"
+          description: "Less than 10% memory available on {{ $labels.instance }}."
+
+      - alert: ServiceFailed
+        expr: node_systemd_unit_state{state="failed"} == 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "systemd unit failed on {{ $labels.instance }}"
+          description: "Unit {{ $labels.name }} is in a failed state on {{ $labels.instance }}."
+
+  - name: probes
+    rules:
+      - record: probe_success:ratio_24h
+        expr: avg_over_time(probe_success[24h])
+
+      - alert: BlackboxProbeFailed
+        expr: probe_success == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Probe failed for {{ $labels.instance }}"
+          description: "{{ $labels.job }} probe to {{ $labels.instance }} has been failing for >5 minutes."
+
+      - alert: ServiceSLOViolation24h
+        expr: probe_success:ratio_24h < 0.99
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "24h availability below 99% for {{ $labels.instance }}"
+          description: "Service {{ $labels.instance }} has {{ humanizePercentage $value }} availability over 24h."
+
+  - name: disk
+    rules:
+      - alert: SmartFailure
+        expr: smartctl_device_smart_status == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SMART failure on {{ $labels.device }}"
+          description: "Device {{ $labels.device }} on {{ $labels.instance }} has a SMART failure."
+
+      - alert: NvmeCriticalWarning
+        expr: smartctl_device_critical_warning > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NVMe critical warning on {{ $labels.device }}"
+          description: "NVMe {{ $labels.device }} reports critical warning {{ $value }}."
+
+      - alert: DiskHighTemperature
+        expr: smartctl_device_temperature_celsius > 65
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk temperature on {{ $labels.device }}"
+          description: "Device {{ $labels.device }} temperature is {{ $value }}°C."

@@ -9,7 +9,7 @@
       "title": "Jellyfin Sessions",
       "datasource": "Prometheus",
       "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
-      "targets": [{"expr": "sum(jellyfin_sessions_total)", "instant": true, "refId": "A"}],
+      "targets": [{"expr": "sum(jellyfin_active)", "instant": true, "refId": "A"}],
       "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "palette-classic"}}, "overrides": []},
       "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
     },
@@ -62,7 +62,7 @@
       "title": "Jellyfin Session Trend",
       "datasource": "Prometheus",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
-      "targets": [{"expr": "sum(jellyfin_sessions_total)", "legendFormat": "sessions", "refId": "A"}],
+      "targets": [{"expr": "sum(jellyfin_active)", "legendFormat": "sessions", "refId": "A"}],
       "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "palette-classic"}}, "overrides": []},
       "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
     },

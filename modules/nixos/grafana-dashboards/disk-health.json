@@ -1,0 +1,144 @@
+{
+  "annotations": {"list": [{"builtIn": 1, "datasource": "-- Grafana --", "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}]},
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Smartctl Exporter",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "targets": [{"expr": "up{job=\"smartctl\"}", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]}, "color": {"mode": "thresholds"}, "mappings": [{"type": "value", "options": {"0": {"text": "DOWN"}, "1": {"text": "UP"}}}]}, "overrides": []},
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "SMART Status",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 12, "x": 4, "y": 0},
+      "targets": [{"expr": "smartctl_device_smart_status{instance=\"zues\"}", "instant": true, "legendFormat": "{{device}}", "refId": "A"}],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]},
+          "color": {"mode": "thresholds"},
+          "mappings": [{"type": "value", "options": {"0": {"text": "FAIL", "color": "red"}, "1": {"text": "Pass", "color": "green"}}}]
+        },
+        "overrides": []
+      },
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "NVMe Critical Warnings",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "targets": [{"expr": "sum(smartctl_device_critical_warning{instance=\"zues\"})", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "red", "value": 1}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "NVMe Media Errors",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+      "targets": [{"expr": "sum(smartctl_device_media_errors_total{instance=\"zues\"})", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "orange", "value": 1}, {"color": "red", "value": 10}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Disk Temperature",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [{"expr": "smartctl_device_temperature_celsius{instance=\"zues\"}", "legendFormat": "{{device}}", "refId": "A"}],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "celsius",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "orange", "value": 50}, {"color": "red", "value": 65}]},
+          "custom": {"lineWidth": 2, "fillOpacity": 10}
+        },
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "NVMe Available Spare %",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "targets": [
+        {"expr": "smartctl_device_available_spare{instance=\"zues\"}", "legendFormat": "spare {{device}}", "refId": "A"},
+        {"expr": "smartctl_device_available_spare_threshold{instance=\"zues\"}", "legendFormat": "threshold {{device}}", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "percent"}, "overrides": []},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
+    },
+    {
+      "id": 7,
+      "type": "gauge",
+      "title": "NVMe Wear (% Used)",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 12},
+      "targets": [{"expr": "smartctl_device_percentage_used{instance=\"zues\"}", "instant": true, "legendFormat": "{{device}}", "refId": "A"}],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "orange", "value": 70}, {"color": "red", "value": 90}]},
+          "color": {"mode": "thresholds"}
+        },
+        "overrides": []
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "horizontal", "showThresholdLabels": false, "showThresholdMarkers": true}
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Error Log Entries",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 12},
+      "targets": [{"expr": "smartctl_device_num_err_log_entries{instance=\"zues\"}", "instant": true, "legendFormat": "{{device}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "orange", "value": 1}, {"color": "red", "value": 10}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Power On Time",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 12},
+      "targets": [{"expr": "smartctl_device_power_on_seconds_total{instance=\"zues\"} / 86400", "instant": true, "legendFormat": "{{device}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "d", "color": {"mode": "palette-classic"}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Disk Error Logs",
+      "datasource": "Loki",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 18},
+      "targets": [{"expr": "sum by (host) (count_over_time({job=\"systemd-journal\",unit=~\"smartd.service|smartmontools.service\"} |~ \"(?i)(error|fail|warning|offline|reallocated|pending)\" [5m]))", "legendFormat": "{{host}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "short"}, "overrides": []},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["homelab", "disk", "hardware"],
+  "time": {"from": "now-24h", "to": "now"},
+  "timezone": "browser",
+  "title": "Disk Health",
+  "uid": "disk-health",
+  "version": 1,
+  "weekStart": ""
+}
