@@ -2,15 +2,20 @@
 # https://github.com/doomemacs. This module sets it up to meet my particular
 # Doomy needs.
 {
-  nix-config,
+  inputs,
   lib,
   config,
   pkgs,
   ...
 }: let
-  cfg = builtins.elem "desktop-emacs" config.modules.system.roles;
+  cfg = config.modules.emacs;
+  # emacs-pgtk requires GTK/Wayland (Linux only); emacs-macport is the macOS native port
+  emacsBase =
+    if pkgs.stdenv.isDarwin
+    then pkgs.emacs-macport
+    else pkgs.emacs-pgtk;
   emacs = with pkgs;
-    (emacsPackagesFor emacs-pgtk).emacsWithPackages (
+    (emacsPackagesFor emacsBase).emacsWithPackages (
       epkgs:
         with epkgs; [
           treesit-grammars.with-all-grammars
@@ -19,87 +24,77 @@
         ]
     );
 in {
-  config = lib.mkIf cfg {
+  options.modules.emacs.enable = lib.mkEnableOption "Emacs with Doom Emacs configuration";
+
+  config = lib.mkIf cfg.enable {
     nixpkgs.overlays = [
-      nix-config.inputs.emacs-overlay.overlays.default
+      inputs.emacs-overlay.overlays.default
     ];
-    environment.systemPackages = with pkgs; [
-      ## Emacs itself
-      binutils # native-comp needs 'as', provided by this
-      emacs
+    environment.systemPackages = with pkgs;
+      lib.optionals pkgs.stdenv.isLinux [
+        binutils # native-comp needs 'as'
+      ]
+      ++ lib.optional (pkgs.stdenv.isLinux && config.programs.gnupg.agent.enable) pinentry-emacs
+      ++ [
+        emacs
 
-      ## Doom dependencies
-      git
-      ripgrep
-      gnutls # for TLS connectivity
-      sqlite
-      wordnet
-      ledger
+        ## Doom dependencies
+        git
+        ripgrep
+        gnutls # for TLS connectivity
+        sqlite
+        wordnet
+        ledger
 
-      #vterm
-      python311Packages.cmake
-      #go
-      gopls
-      gore
-      gotests
-      gomodifytags
+        #vterm
+        python3Packages.cmake
+        gopls
+        gore
+        gotests
+        gomodifytags
 
-      #python
-      python311Packages.black
-      python311Packages.pyflakes
-      python311Packages.isort
-      pipenv
-      #python311Packages.nosetests
-      python311Packages.pytest
-      #web
-      html-tidy
-      stylelint
-      nodePackages.js-beautify
-      #java
+        #python
+        python3Packages.black
+        python3Packages.pyflakes
+        python3Packages.isort
+        pipenv
+        python3Packages.pytest
 
-      ## Optional dependencies
-      fd # faster projectile indexing
-      imagemagick # for image-dired
-      (lib.mkIf (config.programs.gnupg.agent.enable) pinentry-emacs) # in-emacs gnupg prompts
-      zstd # for undo-fu-session/undo-tree compression
-      shellcheck
-      shfmt
-      rust-analyzer
+        #web
+        html-tidy
+        stylelint
+        js-beautify
 
-      ## Module dependencies
-      # :email mu4e
-      mu
-      isync
-      # :checkers spell
-      (aspellWithDicts (
-        ds:
-          with ds; [
-            en
-            en-computers
-            en-science
-          ]
-      ))
-      # :tools editorconfig
-      editorconfig-core-c # per-project style config
-      # :tools lookup & :lang org +roam
-      sqlite
-      graphviz
+        ## Optional dependencies
+        fd
+        imagemagick
+        zstd
+        shellcheck
+        shfmt
+        rust-analyzer
 
-      # :lang cc
-      clang-tools
-      gnumake
-      # :lang latex & :lang org (latex previews)
-      #texlive.combined.scheme-medium
-      # :lang beancount
-      #  beancount
-      # fava
-      # :lang nix
-      age
-      nixfmt
-    ];
+        ## Module dependencies
+        # :email mu4e
+        mu
+        isync
+        # :checkers spell
+        (aspellWithDicts (ds: with ds; [en en-computers en-science]))
+        # :tools editorconfig
+        editorconfig-core-c
+        sqlite
+        graphviz
 
-    environment.variables.PATH = ["$XDG_CONFIG_HOME/emacs/bin"];
+        # :lang cc
+        clang-tools
+        gnumake
 
-    fonts.packages = [(pkgs.nerd-fonts.symbols-only)];
+        # :lang nix
+        age
+        nixfmt
+      ];
+
+    fonts.packages = [pkgs.nerd-fonts.symbols-only];
+
+    environment.variables.VISUAL = lib.mkForce "emacs";
   };
 }

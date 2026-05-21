@@ -1,20 +1,19 @@
 {
-  nix-config,
-  system,
   lib,
   config,
-  pkgs,
   ...
-}:
-let
-  inherit (nix-config.lib.${system}.roles) mkHasRole;
-  hasRole = mkHasRole config;
-  homelabFilebrowser = hasRole "homelab-filebrowser";
-  filebrowserPort = 8095;
-  filebrowserRoot = "/srv/chonk/family";
-in
-{
-  config = lib.mkIf homelabFilebrowser {
+}: let
+  inherit (lib) mkEnableOption;
+  inherit (config.modules) ports;
+  cfg = config.modules.filebrowser;
+  inherit (config.modules.system) username;
+  rootPath = "/srv/chonk/family";
+in {
+  options.modules.filebrowser = {
+    enable = mkEnableOption "Filebrowser web file manager";
+  };
+
+  config = lib.mkIf cfg.enable {
     services.filebrowser = {
       enable = true;
       openFirewall = false;
@@ -22,21 +21,33 @@ in
       group = "media";
       settings = {
         address = "127.0.0.1";
-        port = filebrowserPort;
-        root = filebrowserRoot;
-        noauth = false;
+        port = ports.filebrowser;
+        root = rootPath;
+        noauth = true;
       };
     };
 
+    services.nginx.virtualHosts."files.home.arpa" = {
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString ports.filebrowser}";
+      };
+      # Restrict to LAN and Tailscale — noauth means anyone who reaches it has access
+      extraConfig = ''
+        allow ${config.modules.network.subnets.lan};
+        allow ${config.modules.network.subnets.tailscale};
+        deny all;
+      '';
+    };
+
     systemd.tmpfiles.rules = [
-      "d ${filebrowserRoot} 0770 media media -"
-      "d ${filebrowserRoot}/Shared 0770 media media -"
-      "d ${filebrowserRoot}/Uploads 0770 media media -"
-      "d ${filebrowserRoot}/Private 0770 media media -"
-      "d ${filebrowserRoot}/Uploads/juicy 0770 media media -"
-      "d ${filebrowserRoot}/Private/juicy 0770 media media -"
+      "d ${rootPath} 0770 media media -"
+      "d ${rootPath}/Shared 0770 media media -"
+      "d ${rootPath}/Uploads 0770 media media -"
+      "d ${rootPath}/Private 0770 media media -"
+      "d ${rootPath}/Uploads/${username} 0770 media media -"
+      "d ${rootPath}/Private/${username} 0770 media media -"
     ];
 
-    systemd.services.filebrowser.serviceConfig.RequiresMountsFor = [ "/srv/chonk" ];
+    systemd.services.filebrowser.serviceConfig.RequiresMountsFor = ["/srv/chonk"];
   };
 }

@@ -1,231 +1,73 @@
 # Port Configuration
 #
 # Centralizes all port definitions for services and exporters.
-# This eliminates duplicate port definitions across modules.
-#
-# Usage:
-#   services.jellyfin.port = config.modules.ports.jellyfin;
-#   services.prometheus.exportarr.sonarr.port = config.modules.ports.exporters.sonarr;
-
-{ lib, ... }:
-with lib;
-{
+{lib, ...}: let
+  mkPortOption = default: description:
+    lib.mkOption {
+      type = lib.types.port;
+      inherit default description;
+    };
+in {
   options.modules.ports = {
-    # Web services and dashboards
-    grafana = mkOption {
-      type = types.port;
-      default = 3000;
-      description = "Grafana dashboard";
-    };
+    grafana = mkPortOption 3000 "Grafana dashboard";
+    glance = mkPortOption 5678 "Glance dashboard";
+    prometheus = mkPortOption 9090 "Prometheus server";
+    alertmanager = mkPortOption 9093 "Prometheus Alertmanager";
+    loki = mkPortOption 3100 "Loki log aggregation";
+    alloy = mkPortOption 9080 "Grafana Alloy agent";
+    jellyfin = mkPortOption 8096 "Jellyfin media server";
+    jellyseerr = mkPortOption 5055 "Jellyseerr request management";
+    prowlarr = mkPortOption 9696 "Prowlarr indexer manager";
+    sonarr = mkPortOption 8989 "Sonarr TV show management";
+    radarr = mkPortOption 7878 "Radarr movie management";
+    lidarr = mkPortOption 8686 "Lidarr music management";
+    bazarr = mkPortOption 6767 "Bazarr subtitle management";
+    readarr = mkPortOption 8787 "Readarr book management";
+    delugeWeb = mkPortOption 9050 "Deluge web interface";
+    delugeDaemon = mkPortOption 58846 "Deluge daemon";
+    homeAssistant = mkPortOption 8123 "Home Assistant";
+    immich = mkPortOption 2283 "Immich photos and videos";
+    mqtt = mkPortOption 1883 "MQTT broker (Mosquitto)";
+    headscale = mkPortOption 8085 "Headscale coordination server";
+    miniflux = mkPortOption 8090 "Miniflux RSS reader";
+    paperless = mkPortOption 28981 "Paperless-ngx document archive";
+    uptimeKuma = mkPortOption 3001 "Uptime Kuma status monitor";
+    gatus = mkPortOption 8888 "Gatus status monitor";
+    syncthing = mkPortOption 8384 "Syncthing web GUI";
+    vaultwarden = mkPortOption 8521 "Vaultwarden password manager";
+    vaultwardenWs = mkPortOption 3012 "Vaultwarden websocket";
+    filebrowser = mkPortOption 8095 "File browser";
+    dhcpServer = mkPortOption 67 "DHCP server (bootps)";
+    dhcpClient = mkPortOption 68 "DHCP client (bootpc)";
+    barrier = mkPortOption 24800 "Barrier KVM software";
+    kdeConnect = mkPortOption 60344 "KDE Connect / Valent";
+    localsend = mkPortOption 53317 "LocalSend (cross-platform file share)";
 
-    glance = mkOption {
-      type = types.port;
-      default = 8080;
-      description = "Glance dashboard";
-    };
-
-    # Monitoring stack
-    prometheus = mkOption {
-      type = types.port;
-      default = 9090;
-      description = "Prometheus server";
-    };
-
-    alertmanager = mkOption {
-      type = types.port;
-      default = 9093;
-      description = "Prometheus Alertmanager";
-    };
-
-    loki = mkOption {
-      type = types.port;
-      default = 3100;
-      description = "Loki log aggregation";
-    };
-
-    promtail = mkOption {
-      type = types.port;
-      default = 9080;
-      description = "Promtail log shipper";
-    };
-
-    # Media services
-    jellyfin = mkOption {
-      type = types.port;
-      default = 8096;
-      description = "Jellyfin media server";
-    };
-
-    jellyseerr = mkOption {
-      type = types.port;
-      default = 5055;
-      description = "Jellyseerr request management";
-    };
-
-    # Media management (*arr stack)
-    prowlarr = mkOption {
-      type = types.port;
-      default = 9696;
-      description = "Prowlarr indexer manager";
-    };
-
-    sonarr = mkOption {
-      type = types.port;
-      default = 8989;
-      description = "Sonarr TV show management";
-    };
-
-    radarr = mkOption {
-      type = types.port;
-      default = 7878;
-      description = "Radarr movie management";
-    };
-
-    lidarr = mkOption {
-      type = types.port;
-      default = 8686;
-      description = "Lidarr music management";
-    };
-
-    bazarr = mkOption {
-      type = types.port;
-      default = 6767;
-      description = "Bazarr subtitle management";
-    };
-
-    readarr = mkOption {
-      type = types.port;
-      default = 8787;
-      description = "Readarr book management";
-    };
-
-    # Download clients
-    delugeWeb = mkOption {
-      type = types.port;
-      default = 9050;
-      description = "Deluge web interface";
-    };
-
-    delugeDaemon = mkOption {
-      type = types.port;
-      default = 58846;
-      description = "Deluge daemon";
-    };
-
-    # Other services
-    vaultwarden = mkOption {
-      type = types.port;
-      default = 8521;
-      description = "Vaultwarden password manager";
-    };
-
-    filebrowser = mkOption {
-      type = types.port;
-      default = 8084;
-      description = "File browser";
-    };
-
-    # Prometheus exporters
     exporters = {
-      node = mkOption {
-        type = types.port;
-        default = 9100;
-        description = "Node exporter";
-      };
-
-      nginx = mkOption {
-        type = types.port;
-        default = 9113;
-        description = "Nginx exporter";
-      };
-
-      blackbox = mkOption {
-        type = types.port;
-        default = 9115;
-        description = "Blackbox exporter";
-      };
-
-      unbound = mkOption {
-        type = types.port;
-        default = 9167;
-        description = "Unbound DNS exporter";
-      };
-
-      smartctl = mkOption {
-        type = types.port;
-        default = 9633;
-        description = "Smartctl disk health exporter";
-      };
-
-      zfs = mkOption {
-        type = types.port;
-        default = 9134;
-        description = "ZFS exporter";
-      };
-
-      # Media service exporters (exportarr)
-      jellyfin = mkOption {
-        type = types.port;
-        default = 9707;
-        description = "Jellyfin exporter";
-      };
-
-      prowlarr = mkOption {
-        type = types.port;
-        default = 9710;
-        description = "Prowlarr exporter";
-      };
-
-      sonarr = mkOption {
-        type = types.port;
-        default = 9712;
-        description = "Sonarr exporter";
-      };
-
-      radarr = mkOption {
-        type = types.port;
-        default = 9711;
-        description = "Radarr exporter";
-      };
-
-      lidarr = mkOption {
-        type = types.port;
-        default = 9709;
-        description = "Lidarr exporter";
-      };
-
-      bazarr = mkOption {
-        type = types.port;
-        default = 9708;
-        description = "Bazarr exporter";
-      };
-
-      deluge = mkOption {
-        type = types.port;
-        default = 9720;
-        description = "Deluge exporter";
-      };
+      node = mkPortOption 9100 "Node exporter";
+      nginx = mkPortOption 9113 "Nginx exporter";
+      blackbox = mkPortOption 9115 "Blackbox exporter";
+      unbound = mkPortOption 9167 "Unbound DNS exporter";
+      smartctl = mkPortOption 9633 "Smartctl disk health exporter";
+      jellyfin = mkPortOption 9707 "Jellyfin exporter";
+      prowlarr = mkPortOption 9710 "Prowlarr exporter";
+      sonarr = mkPortOption 9712 "Sonarr exporter";
+      radarr = mkPortOption 9711 "Radarr exporter";
+      lidarr = mkPortOption 9709 "Lidarr exporter";
+      bazarr = mkPortOption 9708 "Bazarr exporter";
+      deluge = mkPortOption 9720 "Deluge exporter";
     };
 
-    # Sunshine game streaming
     sunshine = {
-      https = mkOption {
-        type = types.port;
-        default = 47984;
-        description = "Sunshine HTTPS port";
-      };
-
-      http = mkOption {
-        type = types.port;
-        default = 47989;
-        description = "Sunshine HTTP port";
-      };
-
-      web = mkOption {
-        type = types.port;
-        default = 47990;
-        description = "Sunshine web UI port";
-      };
+      discovery = mkPortOption 5353 "Sunshine/Moonlight mDNS discovery port";
+      https = mkPortOption 47984 "Sunshine HTTPS port";
+      http = mkPortOption 47989 "Sunshine HTTP port";
+      web = mkPortOption 47990 "Sunshine web UI port";
+      rtsp = mkPortOption 48010 "Sunshine RTSP port";
+      video = mkPortOption 47998 "Sunshine video stream port";
+      control = mkPortOption 47999 "Sunshine control stream port";
+      audio = mkPortOption 48000 "Sunshine audio stream port";
+      mic = mkPortOption 48002 "Sunshine microphone stream port";
     };
   };
 }

@@ -2,14 +2,7 @@
 #
 # Manages timezone, locale, and system state version.
 # Extracted from system.nix for better modularity.
-
-{
-  config,
-  lib,
-  ...
-}:
-with lib;
-{
+_: {
   config = {
     time.timeZone = "Australia/Brisbane";
 

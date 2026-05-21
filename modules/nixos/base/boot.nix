@@ -2,27 +2,23 @@
 #
 # Manages boot loader, kernel, initrd, and early boot settings.
 # Extracted from system.nix for better modularity.
-
 {
-  nix-config,
-  system,
   config,
   lib,
   pkgs,
   ...
-}:
-with lib;
-let
+}: let
+  inherit (lib) mkIf;
   cfg = config.modules.system;
-  inherit (nix-config.lib.${system}.roles) mkHasRole;
-  hasRole = mkHasRole config;
-in
-{
+in {
   config = {
     boot = {
       initrd.systemd.emergencyAccess = true;
 
-      tmp = if hasRole "ram-high" then { useTmpfs = true; } else { cleanOnBoot = true; };
+      tmp =
+        if cfg.highMemory.enable
+        then {useTmpfs = true;}
+        else {cleanOnBoot = true;};
 
       binfmt.emulatedSystems = mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [
         "aarch64-linux"
@@ -36,11 +32,12 @@ in
         };
 
         timeout = 0;
-        efi.canTouchEfiVariables = builtins.pathExists "/sys/firmware/efi";
+        efi.canTouchEfiVariables = lib.mkDefault true;
       };
 
       kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_stable;
-      blacklistedKernelModules = [ "floppy" ];
+      blacklistedKernelModules = ["floppy"];
+      zfs.forceImportRoot = lib.mkDefault false;
     };
 
     # Systemd boot-related settings
@@ -49,9 +46,10 @@ in
       services.NetworkManager-wait-online.enable = false;
     };
 
-    # ZRam swap configuration
+    # ZRam swap: enabled on high-memory machines to absorb transient pressure
+    # without hitting the swap partition (especially under gaming + compile loads).
     zramSwap = {
-      enable = false;
+      inherit (cfg.highMemory) enable;
       memoryPercent = 25;
     };
   };

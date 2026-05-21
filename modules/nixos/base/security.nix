@@ -1,26 +1,17 @@
 # Security Configuration
 #
 # Manages SSH, sudo, PAM, and security-related settings.
-# Extracted from system.nix for better modularity.
-
 {
-  nix-config,
-  system,
   config,
   lib,
   ...
-}:
-with lib;
-let
+}: let
   cfg = config.modules.system;
-  inherit (nix-config.lib.${system}.roles) mkHasRole;
-  hasRole = mkHasRole config;
-in
-{
+in {
   config = {
     services.openssh = {
       enable = true;
-      openFirewall = true;
+      openFirewall = false;
       settings = {
         PubkeyAuthentication = true;
         PasswordAuthentication = false;
@@ -30,6 +21,12 @@ in
         UseDns = false;
       };
     };
+
+    # Allow SSH only from LAN and Tailscale CGNAT range; block WAN scanners
+    networking.firewall.extraInputRules = ''
+      ip saddr ${config.modules.network.subnets.lan} tcp dport 22 accept
+      ip saddr ${config.modules.network.subnets.tailscale} tcp dport 22 accept
+    '';
 
     programs = {
       command-not-found.enable = true;
@@ -42,10 +39,15 @@ in
 
     security.pam.sshAgentAuth = {
       enable = true;
-      authorizedKeysFiles = [ "/etc/ssh/authorized_keys.d/%u" ];
+      authorizedKeysFiles = ["/etc/ssh/authorized_keys.d/%u"];
     };
 
-    # Hardware-specific security
-    hardware.keyboard.zsa.enable = mkIf (hasRole "keyboard-zsa") true;
+    services.fail2ban = {
+      enable = true;
+      maxretry = 5;
+      bantime = "1h";
+    };
+
+    hardware.keyboard.zsa.enable = lib.mkIf cfg.keyboard.zsa true;
   };
 }

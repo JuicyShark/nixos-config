@@ -3,19 +3,21 @@
   config,
   lib,
   ...
-}:
-lib.mkIf (builtins.elem "desktop" config.modules.system.roles) {
-  fonts = {
-    enableDefaultPackages = false;
-    packages = with pkgs; [roboto-serif];
+}: let
+  stylixFonts = config.stylix.fonts;
+in
+  lib.mkIf config.modules.desktop.enable {
+    fonts = {
+      enableDefaultPackages = false;
+      packages = with pkgs; [roboto-serif];
 
-    fontconfig = {
-      defaultFonts = {
-        serif = ["Mononoki Nerd Font"];
-        sansSerif = ["Iosevka Nerd Font"];
-        monospace = ["IosevkaTerm Nerd Font Mono"];
+      fontconfig = {
+        defaultFonts = {
+          serif = [stylixFonts.serif.name];
+          sansSerif = [stylixFonts.sansSerif.name];
+          monospace = [stylixFonts.monospace.name];
+        };
+        allowBitmaps = false;
       };
-      allowBitmaps = false;
     };
-  };
-}
+  }

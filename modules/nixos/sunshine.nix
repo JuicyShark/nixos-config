@@ -4,87 +4,90 @@
   pkgs,
   ...
 }: let
-  cfg = builtins.elem "desktop-sunshine" config.modules.system.roles;
-  primaryMonitorName = config.modules.desktop.primaryMonitorName or "DP-1";
-  primaryMonitorMode = config.modules.desktop.primaryMonitorMode or "5120x1440@120";
-  virtualMonitorName = "Virtual";
+  cfg = config.modules.desktop;
+  sunshinePorts = config.modules.ports.sunshine;
+  streamCfg = cfg.sunshine.streamingMonitor;
+  hyprctl = "${config.programs.hyprland.package}/bin/hyprctl";
+  setStreamingMonitor = pkgs.writeShellScript "sunshine-streaming-monitor" ''
+    set -eu
 
-  getHyprlandSignature = pkgs.writeShellScript "getHyprlandSignature" ''
-    ${pkgs.findutils}/bin/find "$XDG_RUNTIME_DIR/hypr/" -maxdepth 1 -type d |
-      ${pkgs.gnugrep}/bin/grep -v "^$XDG_RUNTIME_DIR/hypr/$" |
-      ${pkgs.gawk}/bin/awk -F'/' 'NR==1 {print $NF; exit}'
-  '';
+    monitor=${lib.escapeShellArg streamCfg.output}
+    mode=${lib.escapeShellArg streamCfg.mode}
+    position=${lib.escapeShellArg streamCfg.position}
+    scale=${lib.escapeShellArg streamCfg.scale}
+    steam_workspace=${lib.escapeShellArg streamCfg.steamWorkspace}
+    game_workspace=${lib.escapeShellArg streamCfg.gameWorkspace}
 
-  onConnect = pkgs.writeShellScript "onConnect" ''
-    set -euo pipefail
-    export PATH="${pkgs.hyprland}/bin:$PATH"
-    HYPRLAND_INSTANCE_SIGNATURE=$(${getHyprlandSignature})
-    export HYPRLAND_INSTANCE_SIGNATURE
-
-    if ! hyprctl -j monitors | ${pkgs.gnugrep}/bin/grep -Eq '"name"[[:space:]]*:[[:space:]]*"Virtual"'; then
-      hyprctl output create headless ${virtualMonitorName}
-    fi
-
-    hyprctl dispatch moveworkspacetomonitor 6 ${virtualMonitorName};
-    hyprctl dispatch moveworkspacetomonitor 7 ${virtualMonitorName};
-    hyprctl dispatch moveworkspacetomonitor 8 ${virtualMonitorName};
-    hyprctl dispatch moveworkspacetomonitor 9 ${virtualMonitorName};
-  '';
-
-  moveMainWorkspacesToVirtual = pkgs.writeShellScript "moveMainWorkspacesToVirtual" ''
-    set -euo pipefail
-    export PATH="${pkgs.hyprland}/bin:$PATH"
-    HYPRLAND_INSTANCE_SIGNATURE=$(${getHyprlandSignature})
-    export HYPRLAND_INSTANCE_SIGNATURE
-
-    for workspace in 1 2 3 4 5; do
-      hyprctl dispatch moveworkspacetomonitor "$workspace" '${virtualMonitorName}'
-    done
-    hyprctl dispatch workspace 5
-  '';
-
-  moveMainWorkspacesToPrimary = pkgs.writeShellScript "moveMainWorkspacesToPrimary" ''
-    set -euo pipefail
-    export PATH="${pkgs.hyprland}/bin:$PATH"
-    HYPRLAND_INSTANCE_SIGNATURE=$(${getHyprlandSignature})
-    export HYPRLAND_INSTANCE_SIGNATURE
-
-    for workspace in 1 2 3 4 5; do
-      hyprctl dispatch moveworkspacetomonitor "$workspace" '${primaryMonitorName}'
-    done
-  '';
-
-  onDisconnect = pkgs.writeShellScript "onDisconnect" ''
-    set -euo pipefail
-    export PATH="${pkgs.hyprland}/bin:$PATH"
-    HYPRLAND_INSTANCE_SIGNATURE=$(${getHyprlandSignature})
-    export HYPRLAND_INSTANCE_SIGNATURE
-
-    hyprctl dispatch moveworkspacetomonitor '6' '${primaryMonitorName}'
-    hyprctl dispatch moveworkspacetomonitor '7' '${primaryMonitorName}'
-    hyprctl dispatch moveworkspacetomonitor '8' '${primaryMonitorName}'
-    hyprctl dispatch moveworkspacetomonitor '9' '${primaryMonitorName}'
-
-    if hyprctl -j monitors | ${pkgs.gnugrep}/bin/grep -Eq '"name"[[:space:]]*:[[:space:]]*"Virtual"'; then
-      hyprctl output remove ${virtualMonitorName}
-    fi
-    hyprctl keyword monitor "${primaryMonitorName},${primaryMonitorMode},0x0,1"
-    hyprctl keyword misc:vrr 1
+    case "''${1:-}" in
+      enable)
+        ${hyprctl} keyword monitor "$monitor,$mode,$position,$scale"
+        ${hyprctl} dispatch moveworkspacetomonitor "$steam_workspace" "$monitor"
+        ${hyprctl} dispatch moveworkspacetomonitor "$game_workspace" "$monitor"
+        ${hyprctl} dispatch workspace "$game_workspace"
+        ;;
+      disable)
+        ${hyprctl} keyword monitor "$monitor,disable"
+        ;;
+      *)
+        echo "usage: $0 enable|disable" >&2
+        exit 64
+        ;;
+    esac
   '';
 in {
-  config = lib.mkIf cfg {
-    networking.firewall.allowedTCPPortRanges = [
-      {
-        from = 47984;
-        to = 48010;
-      }
+  options.modules.desktop.sunshine = {
+    enable = lib.mkEnableOption "Sunshine game streaming host";
+
+    streamingMonitor = {
+      output = lib.mkOption {
+        type = lib.types.str;
+        default = "HDMI-A-1";
+        description = "Hyprland output name for the dummy-plug display used by Sunshine streams.";
+      };
+      mode = lib.mkOption {
+        type = lib.types.str;
+        default = "1920x1080@120";
+        description = "Hyprland mode for the Sunshine dummy-plug display while streaming.";
+      };
+      position = lib.mkOption {
+        type = lib.types.str;
+        default = "0x1440";
+        description = "Hyprland position for the Sunshine dummy-plug display while streaming.";
+      };
+      scale = lib.mkOption {
+        type = lib.types.str;
+        default = "1";
+        description = "Hyprland scale for the Sunshine dummy-plug display while streaming.";
+      };
+      steamWorkspace = lib.mkOption {
+        type = lib.types.str;
+        default = "21";
+        description = "Workspace used for Steam and Steam Big Picture while the Sunshine dummy-plug display is enabled.";
+      };
+      gameWorkspace = lib.mkOption {
+        type = lib.types.str;
+        default = "22";
+        description = "Workspace used for games while the Sunshine dummy-plug display is enabled.";
+      };
+    };
+  };
+
+  config = lib.mkIf cfg.sunshine.enable {
+    networking.firewall.allowedTCPPorts = with sunshinePorts; [
+      https
+      http
+      web
+      rtsp
     ];
-    networking.firewall.allowedUDPPortRanges = [
-      {
-        from = 47998;
-        to = 48010;
-      }
+    networking.firewall.allowedUDPPorts = with sunshinePorts; [
+      discovery
+      video
+      control
+      audio
+      mic
+      rtsp
     ];
+
     assertions = [
       {
         assertion = config.programs.steam.enable;
@@ -92,72 +95,48 @@ in {
       }
     ];
 
-    environment.systemPackages = with pkgs; [
-      moonlight-qt
-    ];
-
-    hardware.xone.enable = true;
-
     services = {
       sunshine = {
         enable = true;
-        applications = {
-          env = {
-            PATH = "$PATH:$HOME/.local/bin";
-          };
-          apps = lib.mkAfter [
-            # Workspaces 6-9 now the clients, leave main monitor on
-            {
-              name = "Add Virtual Monitor";
-              prep-cmd = [
-                {
-                  do = onConnect;
-                  undo = onDisconnect;
-                }
-                {
-                  do = "hyprctl dispatch focusmonitor '${virtualMonitorName}'";
-                  undo = "hyprctl dispatch focusmonitor '${primaryMonitorName}'";
-                }
-              ];
-              exclude-global-prep-cmd = "false";
-            }
-            # Move all workspace to Virtual Screen and disable monitor
-            {
-              name = "Virtual Monitor Only";
-              prep-cmd = [
-                {
-                  do = onConnect;
-                  undo = onDisconnect;
-                }
-                {
-                  do = moveMainWorkspacesToVirtual;
-                  undo = moveMainWorkspacesToPrimary;
-                }
-                {
-                  do = "hyprctl keyword monitor '${primaryMonitorName},disable'";
-                  undo = "hyprctl keyword monitor '${primaryMonitorName},${primaryMonitorMode},0x0,1'";
-                }
-              ];
-              exclude-global-prep-cmd = "false";
-            }
-          ];
-        };
+
+        applications.env.PATH = "$PATH:$HOME/.local/bin";
+        applications.apps = [
+          {
+            name = "Desktop";
+            image-path = "desktop.png";
+            prep-cmd = [
+              {
+                do = "${setStreamingMonitor} enable";
+                undo = "${setStreamingMonitor} disable";
+              }
+            ];
+            exclude-global-prep-cmd = "false";
+            auto-detach = "true";
+          }
+        ];
 
         autoStart = true;
         capSysAdmin = true;
-        openFirewall = true;
+        openFirewall = false;
         settings = {
-          port = 47989;
+          port = config.modules.ports.sunshine.http;
           controller = "enabled";
+          capture = "kms";
+          encoder = "vaapi";
+          adapter_name = "/dev/dri/renderD128";
+          output_name = streamCfg.output;
+          hevc_mode = 1;
+          av1_mode = 1;
           gamepad = "xone";
           stream_audio = "disabled";
         };
       };
 
       udev.extraRules = ''
-        ## Controller support for Sunshine.
         KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"
       '';
     };
+
+    systemd.user.services.sunshine.environment.LIBVA_DRIVER_NAME = "radeonsi";
   };
 }
