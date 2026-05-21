@@ -6,13 +6,6 @@
 }: {
   imports = [(modulesPath + "/installer/scan/not-detected.nix")];
 
-  age.secrets = {
-    "cloudflare-token.env" = {
-      file = ../../secrets/cloudflare-token.env.age;
-      group = config.services.traefik.group;
-    };
-  };
-
   boot = {
     initrd.availableKernelModules = [
       "xhci_pci"
@@ -36,77 +29,94 @@
     };
   };
 
-  fileSystems."/" = {
-    device = "/dev/disk/by-uuid/6dba17bd-db95-4818-ae40-12b0378bfe2e";
-    fsType = "ext4";
-  };
+  fileSystems = {
+    "/" = {
+      device = "/dev/disk/by-uuid/6dba17bd-db95-4818-ae40-12b0378bfe2e";
+      fsType = "ext4";
+    };
 
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/6532-9B98";
-    fsType = "vfat";
-    options = [
-      "fmask=0022"
-      "dmask=0022"
-    ];
-  };
+    "/boot" = {
+      device = "/dev/disk/by-uuid/6532-9B98";
+      fsType = "vfat";
+      options = [
+        "fmask=0022"
+        "dmask=0022"
+      ];
+    };
 
-  fileSystems."/mnt/smol" = {
-    device = "192.168.1.54:/srv/smol";
-    fsType = "nfs";
-    options = [
-      "nfsvers=4"
-      "x-systemd.automount"
-      "noauto"
-    ];
-  };
-  fileSystems."/srv" = {
-    device = "/dev/storage_vg/root";
-    fsType = "btrfs";
+    "/mnt/smol" = {
+      device = "192.168.1.54:/srv/smol";
+      fsType = "nfs";
+      options = [
+        "nfsvers=4"
+        "x-systemd.automount"
+        "x-systemd.idle-timeout=600"
+        "noauto"
+        "nofail"
+        "_netdev"
+        "soft"
+        "timeo=30"
+        "retrans=3"
+      ];
+    };
 
-    options = [
-      "noatime"
-      "nofail"
-      "x-systemd.automount"
-      "x-systemd.device-timeout=15s"
-    ];
-  };
-  fileSystems."/mnt/chonk" = {
-    device = "/srv/chonk";
-    fsType = "none";
-    options = ["bind"];
+    "/srv" = {
+      device = "/dev/storage_vg/root";
+      fsType = "btrfs";
+
+      options = [
+        "noatime"
+        "nofail"
+        "x-systemd.automount"
+        "x-systemd.device-timeout=30s"
+      ];
+    };
+
+    "/mnt/chonk" = {
+      device = "/srv/chonk";
+      fsType = "none";
+      options = [
+        "bind"
+        "nofail"
+        "x-systemd.requires-mounts-for=/srv"
+      ];
+    };
   };
   swapDevices = [];
 
-  powerManagement.cpuFreqGovernor = "ondemand";
+  powerManagement.cpuFreqGovernor = "powersave";
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
   services.resolved.enable = lib.mkForce false;
+  networking.nftables.enable = true;
   networking = {
     useNetworkd = false;
     useDHCP = false;
     wireless.enable = false;
     resolvconf.enable = false;
 
-    firewall.trustedInterfaces = [
-      "br0"
-      "tailscale0"
-    ];
+    firewall = {
+      trustedInterfaces = [
+        "br0"
+        "tailscale0"
+      ];
 
-    firewall.allowedTCPPorts = [
-      22
-      53
-      80
-      443
-      20241
-    ];
-    firewall.allowedUDPPorts = [
-      53
-      41641
-    ];
+      # Tailscale subnet routing sends packets in on tailscale0 but returns them
+      # via br0/enp1s0 — strict reverse path check would drop these.
+      checkReversePath = "loose";
+
+      allowedTCPPorts = [
+        53
+      ];
+      allowedUDPPorts = [
+        53
+        41641
+      ];
+    };
 
     nameservers = [
-      "192.168.1.99"
+      config.modules.network.hosts.zues
     ];
 
     nat = {

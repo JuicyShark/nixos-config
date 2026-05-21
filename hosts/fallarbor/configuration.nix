@@ -1,35 +1,27 @@
 {
-  nix-config,
+  self,
+  homeProfiles,
   config,
-  lib,
   pkgs,
+  lib,
   ...
-}:
-let
-  inherit (builtins) attrValues;
-
+}: let
   domain = "nixlab.au";
   turnHost = "turn.nixlab.au";
-in
-{
-  imports = with nix-config.nixosModules; [
+  leoBuilderKey = lib.removeSuffix "\n" (builtins.readFile ../leo/id_ed25519.pub);
+in {
+  imports = with self.nixosModules; [
     system
     shell
-    desktop
-    stylix
-    fonts
-    emacs
-    sunshine
-    ports
+    tailscale
+    monitoring
   ];
-  home-manager.sharedModules = attrValues nix-config.homeModules;
-  environment.systemPackages = lib.optionals (nix-config ? packages) (
-    attrValues nix-config.packages.${pkgs.stdenv.hostPlatform.system}
-  );
-  environment.sessionVariables.FLAKE = "/home/juicy/nixos-config";
+  environment.systemPackages = with pkgs; [
+    tcpdump
+    iperf3
+  ];
 
   age.secrets = {
-    juicy-password.file = ../../secrets/juicy-password.age;
     coturn-key = {
       file = ../../secrets/coturn-key.age;
       owner = "turnserver";
@@ -38,62 +30,83 @@ in
     };
   };
 
-  # Custom modules
   modules = {
     system = {
-      username = "juicy";
+      flakePath = "/home/juicy/nixos-config";
       hostName = "fallarbor";
       hashedPasswordFile = config.age.secrets.juicy-password.path;
+      homeModules = homeProfiles.cli;
+    };
+    monitoring.host.enable = true; # ship logs to zues Loki + expose node metrics
+    tailscale.enable = true;
+  };
+  nix = {
+    gc = {
+      automatic = true;
+      dates = "daily";
+      options = "--delete-older-than 7d";
+    };
+
+    settings = {
+      max-jobs = 1;
+      build-cores = 1;
+    };
+
+    sshServe = {
+      enable = true;
+      protocol = "ssh-ng";
+      write = true;
+      trusted = true;
+      keys = [leoBuilderKey];
     };
   };
-  nix.gc = {
-    automatic = true;
-    dates = "daily";
-    options = "--delete-older-than 7d";
-  };
 
-  services.journald.extraConfig = ''
-    SystemMaxUse=100M
-    RuntimeMaxUse=50M
-    MaxFileSec=1day
-  '';
-  nix.settings = {
-    max-jobs = 1;
-    build-cores = 1;
-  };
-
-  services.fail2ban.enable = true;
+  boot.kernel.sysctl."vm.swappiness" = 10;
 
   networking.firewall = {
     enable = true;
-    allowedUDPPorts = [ 3478 ];
-    allowedTCPPorts = [ 3478 ];
+    allowedUDPPorts = [3478];
+    allowedTCPPorts = [3478];
     allowedUDPPortRanges = [
       {
         from = 49152;
         to = 49999;
       }
     ];
+    # Open node_exporter for Tailscale scraping from zues
+    interfaces.tailscale0.allowedTCPPorts = [config.modules.ports.exporters.node];
   };
 
-  # Coturn reads the auth secret from an age-managed file.
-  services.coturn = {
-    enable = true;
-    use-auth-secret = true;
-    static-auth-secret-file = config.age.secrets.coturn-key.path;
-    realm = domain;
-    no-tls = true;
-    no-tcp-relay = true;
-    listening-port = 3478;
-    min-port = 49152;
-    max-port = 49999;
-    extraConfig = ''
-      fingerprint
-      stale-nonce=600
-      no-cli
-      no-loopback-peers
-      no-multicast-peers
+  services = {
+    journald.extraConfig = ''
+      SystemMaxUse=100M
+      RuntimeMaxUse=50M
+      MaxFileSec=1day
+      RateLimitInterval=30s
+      RateLimitBurst=1000
     '';
+
+    fail2ban.enable = true;
+
+    # Coturn reads the auth secret from an age-managed file.
+    coturn = {
+      enable = true;
+      use-auth-secret = true;
+      static-auth-secret-file = config.age.secrets.coturn-key.path;
+      realm = domain;
+      no-tls = true;
+      no-tcp-relay = true;
+      listening-port = 3478;
+      min-port = 49152;
+      max-port = 49999;
+      extraConfig = ''
+        fingerprint
+        stale-nonce=600
+        no-cli
+        no-loopback-peers
+        no-multicast-peers
+      '';
+    };
   };
 
   # Secret provisioning via systemd credentials + runtime conf merge
