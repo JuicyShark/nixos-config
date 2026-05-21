@@ -13,6 +13,9 @@ let
 in {
   "juicy-password.age".publicKeys = users ++ systems;
   "cloudflare-token.env.age".publicKeys = systems;
+  "cloudflared-cert.age".publicKeys = [host_zues] ++ users;
+  "cloudflared-credentials.age".publicKeys = [host_zues] ++ users;
+  "grafana-secret-key.age".publicKeys = [host_zues] ++ users;
 
   "deluge-auth.age".publicKeys = systems;
   "deluge-pass.age".publicKeys = systems;
@@ -27,4 +30,6 @@ in {
 
   "coturn-key.age".publicKeys = systems;
   "wifi-pass.age".publicKeys = systems ++ users;
+
+  "ha-mqtt-pass.age".publicKeys = [host_leo] ++ users;
 }
