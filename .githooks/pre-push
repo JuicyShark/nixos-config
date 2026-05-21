@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Run flake checks before pushing. Bypass with `git push --no-verify`.
+set -euo pipefail
+
+echo "==> nix flake check --all-systems"
+nix flake check --all-systems

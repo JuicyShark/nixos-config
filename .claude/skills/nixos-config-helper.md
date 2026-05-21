@@ -565,7 +565,7 @@ The default dev shell runs `fastfetch` on entry (see `flake.nix:109-111`).
 | Home module | `home/` | `home-manager.sharedModules` | `git.nix`, `neovim.nix` |
 | Host config | `hosts/<name>/` | `nixosConfigurations` in flake | `leo/configuration.nix` |
 | Package | `packages/` | Auto-discovered | `peon-ping/default.nix` |
-| Library | `lib/` | Manual import | `smart-focus-action.nix` |
+| Library | `lib/` | Manual import | `services.nix`, `streamer-mode.nix` |
 
 ## Best Practices
 

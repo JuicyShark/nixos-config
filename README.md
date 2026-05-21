@@ -1,33 +1,56 @@
 # nix-config
 
-My [NixOS] configuration with [Nix Flakes], [Home Manager], [Stylix], [Agenix], and Wayland compositors like [Hyprland] and [Niri].
+Personal NixOS and nix-darwin configuration.
 
-## Features
+## Shape
 
-- Clean, readable code that can be easily modified to add/remove things as needed.
-- Fully reproducible and declarative environment thanks to NixOS.
-- Nix Flakes + Home Manager + Btrfs on LUKS.
-- Simple yet effective Neovim setup with nvim-lspconfig.
-- Modern Wayland support with Hyprland and Niri
-- A universal color scheme inherited by all applications.
-
-## Session selection
-
-You can enable both Hyprland and Niri sessions with roles and pick one at login with greetd (auto-enabled when both are enabled):
-
-```nix
-modules.system.roles = [
-  "desktop"
-  "desktop-niri"
-  # optional: "desktop-hyprland" (hyprland is enabled by default for desktop)
-];
-
-modules.desktop = {
-  primaryMonitorName = "DP-2";
-};
+```text
+flake.nix       Explicit hosts, modules, shells, formatter, and checks.
+hosts/          Machine-specific NixOS/nix-darwin configuration.
+modules/        Reusable NixOS, Home Manager, and nix-darwin modules.
+lib/            Pure helper functions used by modules and checks.
+secrets/        agenix-encrypted secrets.
 ```
 
+## Common Commands
 
+```bash
+nix flake check --keep-going
+nix flake check --all-systems --no-build
+nix fmt
+sudo nixos-rebuild switch --flake .#leo
+sudo nixos-rebuild switch --flake .#zues
+nix build .#nixosConfigurations.iso.config.system.build.isoImage
+```
+
+## Validation
+
+CI mirrors the local fast path:
+
+```bash
+nix flake check --all-systems --no-build
+nix build \
+  .#checks.x86_64-linux.format \
+  .#checks.x86_64-linux.lint \
+  .#checks.x86_64-linux.dead-code \
+  .#checks.x86_64-linux.hyprland-lua-lint \
+  --no-link
+```
+
+The repo has an optional pre-push hook in `.githooks/pre-push`. To install it from the dev shell:
+
+```bash
+NIX_CONFIG_AUTO_HOOKS=1 nix develop
+```
+
+## Backup Recovery Notes
+
+`zues` creates restic repository passwords on first backup run:
+
+- `/var/lib/restic-services/password`
+- `/var/lib/restic-family/password`
+
+Keep offline copies of both files. A restore requires the matching password file; copy it back to the same path with root-only permissions before running restic or pass it with `restic --password-file`.
 
 [NixOS]: https://nixos.org/
 [Nix Flakes]: https://wiki.nixos.org/wiki/Flakes
@@ -35,5 +58,3 @@ modules.desktop = {
 [Home Manager]: https://nix-community.github.io/home-manager/
 [Stylix]: https://danth.github.io/stylix/
 [Hyprland]: https://hyprland.org/
-[Niri]: https://github.com/YaLTeR/niri
-[Caelestia-shell]: github.com/caelestia-dots/shell/

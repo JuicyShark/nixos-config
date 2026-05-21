@@ -2,54 +2,30 @@ name: ci
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
-  build:
-    name: nix build packages/*.nix
+  eval:
+    name: flake evaluation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v27
-      - run: basename -s .nix packages/* | sed 's/.*/.#&/' | xargs nix build
-  test:
-    name: nix flake check --all-systems
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: cachix/install-nix-action@v27
-      with:
-        extra_nix_config: "extra-platforms = aarch64-linux"
-    - run: nix flake check --all-systems
-  format:
-    name: nix fmt -- --check **/*.nix
+        with:
+          extra_nix_config: |
+            extra-platforms = aarch64-linux
+      - run: nix flake check --all-systems --no-build
+
+  static:
+    name: static checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v27
-      - run: nix fmt -- --check **/*.nix
-  example:
-    name: nix flake check ./example
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v27
-      - run: cp ./hosts/laptop/hardware-configuration.nix ./example/hardware-configuration.nix
-      - run: git add .
-      - run: nix flake check ./example --no-write-lock-file --override-input nix-config "git+file://$(pwd | sed -e 's/\s/%20/g')?shallow=1"
-  statix:
-    name: statix check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v27
-      - run: nix run nixpkgs#statix check
-  nixd:
-    name: nixf-tidy --variable-lookup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v27
-      - run: nix run .#nixf-tidy
+      - run: >
+          nix build
+          .#checks.x86_64-linux.treefmt
+          .#checks.x86_64-linux.hyprland-lua-lint
+          --no-link

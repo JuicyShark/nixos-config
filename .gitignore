@@ -5,3 +5,6 @@
 .vscode
 .pre-commit-config.yaml
 result
+result-*
+.claude/worktrees/
+.codex
