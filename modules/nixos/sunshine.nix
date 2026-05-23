@@ -8,25 +8,37 @@
   sunshinePorts = config.modules.ports.sunshine;
   streamCfg = cfg.sunshine.streamingMonitor;
   hyprctl = "${config.programs.hyprland.package}/bin/hyprctl";
+  luaString = builtins.toJSON;
+  enableStreamingMonitor = ''
+    hl.monitor({
+      output = ${luaString streamCfg.output},
+      mode = ${luaString streamCfg.mode},
+      position = ${luaString streamCfg.position},
+      scale = tonumber(${luaString streamCfg.scale}),
+    })
+  '';
+  disableStreamingMonitor = ''
+    hl.monitor({
+      output = ${luaString streamCfg.output},
+      disabled = true,
+    })
+  '';
   setStreamingMonitor = pkgs.writeShellScript "sunshine-streaming-monitor" ''
     set -eu
 
     monitor=${lib.escapeShellArg streamCfg.output}
-    mode=${lib.escapeShellArg streamCfg.mode}
-    position=${lib.escapeShellArg streamCfg.position}
-    scale=${lib.escapeShellArg streamCfg.scale}
     steam_workspace=${lib.escapeShellArg streamCfg.steamWorkspace}
     game_workspace=${lib.escapeShellArg streamCfg.gameWorkspace}
 
     case "''${1:-}" in
       enable)
-        ${hyprctl} keyword monitor "$monitor,$mode,$position,$scale"
+        ${hyprctl} eval ${lib.escapeShellArg enableStreamingMonitor}
         ${hyprctl} dispatch moveworkspacetomonitor "$steam_workspace" "$monitor"
         ${hyprctl} dispatch moveworkspacetomonitor "$game_workspace" "$monitor"
         ${hyprctl} dispatch workspace "$game_workspace"
         ;;
       disable)
-        ${hyprctl} keyword monitor "$monitor,disable"
+        ${hyprctl} eval ${lib.escapeShellArg disableStreamingMonitor}
         ;;
       *)
         echo "usage: $0 enable|disable" >&2

@@ -39,6 +39,11 @@ in {
 
     programs.hyprlock.enable = true;
 
+    stylix.targets.hyprland = {
+      enable = false;
+      hyprpaper.enable = false;
+    };
+
     xdg.configFile = {
       "uwsm/env".text = renderUwsmEnv {
         LIBVA_DRIVER_NAME = "radeonsi";

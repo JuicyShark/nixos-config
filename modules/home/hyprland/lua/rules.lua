@@ -38,7 +38,7 @@ return function(ctx)
 		"7",
 		"8",
 		"9",
-		"0",
+		"10",
 		"special:minimized",
 		"special:dropdown",
 		"special:steam",

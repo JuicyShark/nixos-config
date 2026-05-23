@@ -110,7 +110,6 @@ in {
           ++ mkOptionalLocalScrape config.services.loki.enable "loki" ports.loki
           ++ mkAlloyScrape
           ++ mkOptionalLocalScrape config.services.vaultwarden.enable "vaultwarden" ports.vaultwarden
-          ++ mkExporterScrape "bazarr" promCfg.exportarr-bazarr
           ++ mkExporterScrape "lidarr" promCfg.exportarr-lidarr
           ++ mkExporterScrape "prowlarr" promCfg.exportarr-prowlarr
           ++ mkExporterScrape "radarr" promCfg.exportarr-radarr

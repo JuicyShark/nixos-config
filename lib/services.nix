@@ -159,30 +159,6 @@
         glance = "private";
       };
 
-      readarr = {
-        title = "Readarr";
-        aliases = ["readarr"];
-        icon = "di:readarr";
-        url = home "readarr";
-        upstream = local "readarr";
-        quickmarkName = "readarr";
-        gatus.url = local "readarr";
-        blackbox = true;
-        glance = "private";
-      };
-
-      bazarr = {
-        title = "Bazarr";
-        aliases = ["bazarr"];
-        icon = "di:bazarr";
-        url = home "bazarr";
-        upstream = local "bazarr";
-        quickmarkName = "bazarr";
-        gatus.url = local "bazarr";
-        blackbox = true;
-        glance = "private";
-      };
-
       prowlarr = {
         title = "Prowlarr";
         aliases = ["prowlarr"];
@@ -360,8 +336,6 @@
       "sonarr"
       "radarr"
       "lidarr"
-      "bazarr"
-      "readarr"
       "prowlarr"
       "deluge"
       "vaultwarden"
@@ -382,8 +356,6 @@
       "sonarr"
       "radarr"
       "lidarr"
-      "readarr"
-      "bazarr"
       "prowlarr"
       "deluge"
       "grafana"

@@ -62,7 +62,7 @@ return function(ctx)
 		{ "L", "layout", "Layout" },
 		{ "G", "group", "Groups" },
 		{ "bracketleft", "system", "System" },
-		{ "ALT + BackSpace", "passthrough", "Passthrough" },
+		{ "V", "media", "Media" },
 	}) do
 		mbindSubmap(e[1], e[2], e[3])
 	end
@@ -76,6 +76,8 @@ return function(ctx)
 	mbind("M", function()
 		toggle_fake_fullscreen(0, 2)
 	end, "Maximize")
+	mbind("F", hl.dsp.window.fullscreen({ mode = "fullscreen" }), "Toggle fullscreen")
+	mbind("T", hl.dsp.window.float({ action = "toggle" }), "Toggle floating")
 	mbind("CONTROL + Return", hl.dsp.workspace.toggle_special("dropdown"), "Dropdown terminal")
 	mbind("CONTROL + P", hl.dsp.window.pin(), "Toggle pin")
 	mbind("SHIFT + slash", hl.dsp.exec_cmd(cfg.submapCheatsheetToggle), "Submap options")
@@ -84,22 +86,31 @@ return function(ctx)
 	mbind("X", function()
 		mark_or_swap()
 	end, "Mark / swap window")
+	mbindSubmap("ALT + BackSpace", "passthrough", "Passthrough")
+
+	for _, d in ipairs(directions) do
+		local key, dir = d.key, d.hypr
+		mbind(key, function()
+			smart_focus(key)
+		end, "Focus " .. key, { cheatsheet = false })
+		mbind("SHIFT + " .. key, hl.dsp.window.move({ direction = dir }), "Move " .. key)
+		mbind("CONTROL + " .. key, hl.dsp.layout("focus " .. dir), "Move focus " .. key, { cheatsheet = false })
+	end
 
 	-- Terminal
 	mbind("Return", hl.dsp.exec_cmd(cfg.terminalCommands.main), "Terminal")
 	mbind("SHIFT + Return", hl.dsp.exec_cmd(cfg.terminalCommands.pinned), "Kitty pinned")
 
-	-- Workspace switch + move-to (1..10, with key 0 for workspace 10/0)
-	for i = 1, 10 do
+	-- Workspace switch + move-to (1..10, with key 0 mapped to workspace ID 10)
+	for i = 1, 9 do
 		local key = tostring(i % 10)
-		local workspace = key
-		mbind(key, hl.dsp.focus({ workspace = workspace }), "Workspace " .. workspace)
-		mbind(
-			"SHIFT + " .. key,
-			hl.dsp.window.move({ workspace = workspace, follow = false }),
-			"Move to ws " .. workspace
-		)
+		local workspace = tostring(i)
+		local label = key
+		mbind(key, hl.dsp.focus({ workspace = workspace }), "Workspace " .. label)
+		mbind("SHIFT + " .. key, hl.dsp.window.move({ workspace = workspace, follow = false }), "Move to ws " .. label)
 	end
+	mbind("0", hl.dsp.focus({ workspace = "10" }), "Workspace 10")
+	mbind("SHIFT +" .. "0", hl.dsp.window.move({ workspace = "10", follow = false }), "Move to ws 10")
 
 	-- Screenshots
 	for _, s in ipairs({
@@ -192,15 +203,6 @@ return function(ctx)
 			mark_or_swap()
 		end, "Mark / swap")
 		bind("N", hl.dsp.exec_cmd(cfg.noctalia .. " ipc call notifications dismissAll"), "Clear notifs")
-
-		for _, d in ipairs(directions) do
-			local key, dir = d.key, d.hypr
-			bind(key, function()
-				smart_focus(key)
-			end, "Focus " .. key, { cheatsheet = false })
-			bind("SHIFT + " .. key, hl.dsp.window.move({ direction = dir }), "Move " .. key)
-			bind("CONTROL + " .. key, hl.dsp.layout("focus " .. dir), "Move focus " .. key, { cheatsheet = false })
-		end
 	end)
 
 	submap("apps", function()
@@ -244,12 +246,6 @@ return function(ctx)
 	end)
 
 	submap("window", function()
-		for _, d in ipairs(directions) do
-			local key = d.key
-			bind(key, function()
-				smart_focus(key)
-			end, "Focus " .. key, { cheatsheet = false })
-		end
 		bind("M", function()
 			toggle_fake_fullscreen(2, 0)
 		end, "Maximize")
@@ -277,12 +273,6 @@ return function(ctx)
 
 	submap("windowResize", function()
 		bindBack("window", "Back to windows")
-		for _, d in ipairs(directions) do
-			local key = d.key
-			bind(key, function()
-				smart_focus(key)
-			end, "Focus " .. key, { cheatsheet = false })
-		end
 		for _, r in ipairs(resize_steps) do
 			bind(
 				"SHIFT + " .. r.key,

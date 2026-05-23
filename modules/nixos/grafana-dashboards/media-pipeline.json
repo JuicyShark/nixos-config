@@ -39,7 +39,7 @@
       "title": "Media Jobs Up",
       "datasource": "Prometheus",
       "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
-      "targets": [{"expr": "sum(up{job=~\"sonarr|radarr|lidarr|bazarr|prowlarr|deluge\"})", "instant": true, "refId": "A"}],
+      "targets": [{"expr": "sum(up{job=~\"sonarr|radarr|lidarr|prowlarr|deluge\"})", "instant": true, "refId": "A"}],
       "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]}, "color": {"mode": "thresholds"}, "unit": "short"}, "overrides": []},
       "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
     },
@@ -73,7 +73,7 @@
       "datasource": "Loki",
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 13},
       "targets": [
-        {"expr": "sum by (unit) (count_over_time({job=\"systemd-journal\",unit=~\"sonarr.service|radarr.service|lidarr.service|bazarr.service|prowlarr.service|deluged.service|deluge-web.service\"} |~ \"(?i)(error|failed|exception|timeout)\" [5m]))", "legendFormat": "{{unit}}", "refId": "A"}
+        {"expr": "sum by (unit) (count_over_time({job=\"systemd-journal\",unit=~\"sonarr.service|radarr.service|lidarr.service|prowlarr.service|deluged.service|deluge-web.service\"} |~ \"(?i)(error|failed|exception|timeout)\" [5m]))", "legendFormat": "{{unit}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "palette-classic"}}, "overrides": []},
       "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}

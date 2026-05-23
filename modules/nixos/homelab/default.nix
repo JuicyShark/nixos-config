@@ -49,7 +49,7 @@ in {
       };
     };
     jellyfin.enable = mkEnableOption "Jellyfin media server";
-    media.enable = mkEnableOption "*arr media acquisition stack (sonarr, radarr, lidarr, bazarr, prowlarr, jellyseerr)";
+    media.enable = mkEnableOption "*arr media acquisition stack (sonarr, radarr, lidarr, prowlarr, jellyseerr)";
     miniflux.enable = mkEnableOption "Miniflux RSS reader";
     paperless = {
       enable = mkEnableOption "Paperless-ngx document archive";

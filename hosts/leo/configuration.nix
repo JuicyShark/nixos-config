@@ -63,6 +63,11 @@ in {
     };
   };
 
+  networking.hosts.${config.modules.network.hosts.zues} = [
+    "zues"
+    "zues.home.arpa"
+  ];
+
   # lact daemon for AMD GPU fan/power control
   systemd.services.lactd = {
     description = "AMDGPU Control Daemon";

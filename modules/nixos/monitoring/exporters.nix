@@ -9,8 +9,17 @@
   homelabMonitoring = config.modules.monitoring.enable;
   homelabHostMonitoring = config.modules.monitoring.host.enable;
   homelabNas = config.modules.monitoring.nas.enable;
+  inherit (config.modules) ports;
   exporterPorts = config.modules.ports.exporters;
   inherit (config.modules.system) username;
+
+  mkNixflixService = service: port:
+    lib.attrByPath ["nixflix" service] {
+      enable = false;
+      connectionAddress = "127.0.0.1";
+      config.hostConfig.port = port;
+    }
+    config;
 
   # Produces an agenix secret entry gated on a service-enable condition.
   mkExporterSecret = secretName: condition: owner:
@@ -32,7 +41,6 @@ in {
       radarr-api = mkExporterSecret "radarr-api" config.services.prometheus.exporters.exportarr-radarr.enable config.services.prometheus.exporters.exportarr-radarr.user;
       sonarr-api = mkExporterSecret "sonarr-api" config.services.prometheus.exporters.exportarr-sonarr.enable config.services.prometheus.exporters.exportarr-sonarr.user;
       lidarr-api = mkExporterSecret "lidarr-api" config.services.prometheus.exporters.exportarr-lidarr.enable config.services.prometheus.exporters.exportarr-lidarr.user;
-      bazarr-api = mkExporterSecret "bazarr-api" config.services.prometheus.exporters.exportarr-bazarr.enable config.services.prometheus.exporters.exportarr-bazarr.user;
       deluge-pass = mkExporterSecret "deluge-pass" config.services.prometheus.exporters.deluge.enable config.services.prometheus.exporters.deluge.delugeUser;
     };
 
@@ -54,23 +62,11 @@ in {
         port = exporterPorts.deluge;
       };
 
-      exportarr-bazarr = {
-        enable = config.services.bazarr.enable && homelabMonitoring;
-        apiKeyFile = config.age.secrets.bazarr-api.path;
-        port = exporterPorts.bazarr;
-        url = "http://127.0.0.1:${toString config.services.bazarr.listenPort}";
-        openFirewall = false;
-        environment = {
-          ENABLE_ADDITIONAL_METRICS = "true";
-          PROWLARR__BACKFILL = "true";
-        };
-      };
-
       exportarr-lidarr = {
-        enable = config.services.lidarr.enable && homelabMonitoring;
+        enable = (mkNixflixService "lidarr" ports.lidarr).enable && homelabMonitoring;
         apiKeyFile = config.age.secrets.lidarr-api.path;
         port = exporterPorts.lidarr;
-        url = "http://127.0.0.1:${toString config.services.lidarr.settings.server.port}";
+        url = let service = mkNixflixService "lidarr" ports.lidarr; in "http://${service.connectionAddress}:${toString service.config.hostConfig.port}";
         openFirewall = false;
         environment = {
           ENABLE_ADDITIONAL_METRICS = "true";
@@ -79,10 +75,10 @@ in {
       };
 
       exportarr-prowlarr = {
-        enable = config.services.prowlarr.enable && homelabMonitoring;
+        enable = (mkNixflixService "prowlarr" ports.prowlarr).enable && homelabMonitoring;
         apiKeyFile = config.age.secrets.prowlarr-api.path;
         port = exporterPorts.prowlarr;
-        url = "http://127.0.0.1:${toString config.services.prowlarr.settings.server.port}";
+        url = let service = mkNixflixService "prowlarr" ports.prowlarr; in "http://${service.connectionAddress}:${toString service.config.hostConfig.port}";
         openFirewall = false;
         environment = {
           ENABLE_ADDITIONAL_METRICS = "true";
@@ -91,10 +87,10 @@ in {
       };
 
       exportarr-radarr = {
-        enable = config.services.radarr.enable && homelabMonitoring;
+        enable = (mkNixflixService "radarr" ports.radarr).enable && homelabMonitoring;
         apiKeyFile = config.age.secrets.radarr-api.path;
         port = exporterPorts.radarr;
-        url = "http://127.0.0.1:${toString config.services.radarr.settings.server.port}";
+        url = let service = mkNixflixService "radarr" ports.radarr; in "http://${service.connectionAddress}:${toString service.config.hostConfig.port}";
         openFirewall = false;
         environment = {
           ENABLE_ADDITIONAL_METRICS = "true";
@@ -103,10 +99,10 @@ in {
       };
 
       exportarr-sonarr = {
-        enable = config.services.sonarr.enable && homelabMonitoring;
+        enable = (mkNixflixService "sonarr" ports.sonarr).enable && homelabMonitoring;
         apiKeyFile = config.age.secrets.sonarr-api.path;
         port = exporterPorts.sonarr;
-        url = "http://127.0.0.1:${toString config.services.sonarr.settings.server.port}";
+        url = let service = mkNixflixService "sonarr" ports.sonarr; in "http://${service.connectionAddress}:${toString service.config.hostConfig.port}";
         openFirewall = false;
         environment = {
           ENABLE_ADDITIONAL_METRICS = "true";

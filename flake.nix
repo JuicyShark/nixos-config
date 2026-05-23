@@ -19,6 +19,11 @@
 
     nix-wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";
 
+    nixflix = {
+      url = "github:kiriwalawren/nixflix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     emacs-overlay.url = "github:nix-community/emacs-overlay";
     emacs-overlay.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -189,6 +194,7 @@
     deploymentApps = pkgs: let
       app = mkApp pkgs;
       flakePath = "\${NH_FLAKE:-\${FLAKE:-$PWD}}";
+      zuesTargetHost = "juicy@192.168.1.99";
       localHostArg = ''
         host="''${1:-$(hostname)}"
         if [ "$#" -gt 0 ]; then
@@ -198,10 +204,9 @@
       '';
       zuesRebuild = action: ''
         flake="${flakePath}"
-        exec sudo nixos-rebuild ${action} \
+        exec nixos-rebuild ${action} \
           --flake "$flake#zues" \
-          --target-host zues \
-          --sudo \
+          --target-host ${zuesTargetHost} \
           --ask-sudo-password \
           "$@"
       '';
@@ -226,8 +231,8 @@
       zues-switch = app "zues-switch" (zuesRebuild "switch");
       zues-diff = app "zues-diff" ''
         flake="${flakePath}"
-        old="$(ssh zues readlink -f /run/current-system)"
-        nix copy --from ssh://zues "$old"
+        old="$(ssh ${zuesTargetHost} readlink -f /run/current-system)"
+        nix copy --from ssh://${zuesTargetHost} "$old"
         new="$(nix build "$flake#nixosConfigurations.zues.config.system.build.toplevel" --no-link --print-out-paths "$@")"
         exec nvd diff "$old" "$new"
       '';
@@ -254,6 +259,7 @@
             name = "zues";
             system = "x86_64-linux";
             extraModules = [
+              inputs.nixflix.nixosModules.default
               ./hosts/zues/networking.nix
               ./hosts/zues/services.nix
               ./hosts/zues/gatus.nix

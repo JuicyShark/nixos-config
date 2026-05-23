@@ -36,8 +36,6 @@ in {
           "/var/lib/sonarr"
           "/var/lib/radarr"
           "/var/lib/lidarr"
-          "/var/lib/readarr"
-          "/var/lib/bazarr"
           "/var/lib/prowlarr"
           "/var/lib/paperless"
           "/var/lib/headscale"
