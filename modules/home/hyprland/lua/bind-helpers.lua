@@ -35,9 +35,6 @@ return function(ctx)
 		return function()
 			dispatch_action(action)
 			hl.dispatch(hl.dsp.submap(reset))
-			if opts.closeCheatsheet ~= false then
-				cheatsheet.hide()
-			end
 		end
 	end
 
@@ -50,7 +47,6 @@ return function(ctx)
 		cheatsheet.recordSubmap(keys, target, desc, opts)
 		hl.bind(keys, function()
 			hl.dispatch(hl.dsp.submap(target))
-			cheatsheet.show(target)
 		end, bind_opts(desc, opts))
 	end
 
@@ -59,7 +55,6 @@ return function(ctx)
 		cheatsheet.recordSubmap("BackSpace", target, desc)
 		hl.bind("BackSpace", function()
 			hl.dispatch(hl.dsp.submap(target))
-			cheatsheet.show(target)
 		end, { description = desc })
 	end
 
@@ -76,7 +71,6 @@ return function(ctx)
 				cheatsheet.recordExit()
 				hl.bind("escape", function()
 					hl.dispatch(hl.dsp.submap("reset"))
-					cheatsheet.hide()
 				end)
 			end)
 		end

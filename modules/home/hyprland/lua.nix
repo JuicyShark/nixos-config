@@ -61,8 +61,9 @@
   # Each file returns function(ctx), then the generated config executes it.
   # Order is still meaningful: desktop and commands define local policy tables,
   # cheatsheet tracks sidecar state, bind-helpers decorates direct hl.bind calls,
-  # runtime modules register event handlers, binds registers top-level shortcuts,
-  # and binds/submaps consumes the helper-domain modules.
+  # cheatsheet.events follows compositor submap truth, runtime modules register
+  # event handlers, binds registers top-level shortcuts, and binds/submaps
+  # consumes the helper-domain modules.
   initModules = [
     {
       name = "desktop";
@@ -83,6 +84,10 @@
     {
       name = "workspace-layout";
       path = "workspace-layout.lua";
+    }
+    {
+      name = "cheatsheet.events";
+      path = "cheatsheet/events.lua";
     }
     {
       name = "window-state";

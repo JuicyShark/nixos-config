@@ -109,6 +109,9 @@ function hl.get_active_special_workspace() end
 ---@return HlMonitor[]
 function hl.get_monitors() end
 
+---@return string
+function hl.get_current_submap() end
+
 ---@param name string
 ---@param reset_or_body string|fun()
 ---@param body fun()?
