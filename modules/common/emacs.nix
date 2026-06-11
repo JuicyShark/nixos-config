@@ -2,7 +2,6 @@
 # https://github.com/doomemacs. This module sets it up to meet my particular
 # Doomy needs.
 {
-  inputs,
   lib,
   config,
   pkgs,
@@ -27,9 +26,6 @@ in {
   options.modules.emacs.enable = lib.mkEnableOption "Emacs with Doom Emacs configuration";
 
   config = lib.mkIf cfg.enable {
-    nixpkgs.overlays = [
-      inputs.emacs-overlay.overlays.default
-    ];
     environment.systemPackages = with pkgs;
       lib.optionals pkgs.stdenv.isLinux [
         binutils # native-comp needs 'as'

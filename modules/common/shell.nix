@@ -1,13 +1,10 @@
 {
-  inputs,
   system,
-  config,
   pkgs,
   lib,
   ...
 }: let
   isLinux = lib.hasSuffix "-linux" system;
-  systemCfg = config.modules.system;
 in {
   options.modules.shell.atuin.syncUrl = lib.mkOption {
     type = lib.types.str;
@@ -17,8 +14,6 @@ in {
 
   config = lib.mkMerge [
     {
-      nixpkgs.overlays = [inputs.nix-claude-code.overlays.default];
-
       environment.systemPackages = with pkgs;
         [
           jq
@@ -80,10 +75,6 @@ in {
     # and pkgs depends on config, which causes infinite recursion.
     (lib.optionalAttrs isLinux {
       users.defaultUserShell = pkgs.zsh;
-      programs.nh = {
-        enable = true;
-        flake = systemCfg.flakePath;
-      };
       environment = {
         shells = with pkgs; [
           zsh
@@ -95,8 +86,11 @@ in {
         ];
       };
       # NixOS manages neovim system-wide; on darwin home-manager handles it
-      programs.neovim.enable = true;
-      programs.direnv.silent = true;
+      programs = {
+        nh.enable = true;
+        neovim.enable = true;
+        direnv.silent = true;
+      };
     })
   ];
 }

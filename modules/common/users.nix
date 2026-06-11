@@ -8,15 +8,18 @@
   ...
 }: let
   inherit (lib) optionalAttrs;
-  cfg = config.modules.system;
+  cfg = config.modules.profile;
   inherit (cfg) username;
-  inherit (cfg) hashedPasswordFile;
   # boot.isContainer only exists on NixOS; safe via lazy &&
   isContainer = pkgs.stdenv.isLinux && config.boot.isContainer;
-  homeDirectory =
+  defaultHomeDirectory =
     if pkgs.stdenv.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
+  homeDirectory =
+    if cfg.homeDirectory != null
+    then cfg.homeDirectory
+    else defaultHomeDirectory;
 in {
   config = {
     users =
@@ -56,8 +59,8 @@ in {
                   "media"
                 ];
             }
-            // optionalAttrs (pkgs.stdenv.isLinux && hashedPasswordFile != null) {
-              inherit hashedPasswordFile;
+            // optionalAttrs (pkgs.stdenv.isLinux && cfg.hashedPasswordFile != null) {
+              inherit (cfg) hashedPasswordFile;
             }
           )
           # Darwin: set home dir (shell is set in darwin/system.nix)
@@ -67,28 +70,25 @@ in {
       };
 
     home-manager = {
-      useGlobalPkgs = false;
+      useGlobalPkgs = true;
       useUserPackages = true;
 
       extraSpecialArgs = {
         inherit inputs self system;
       };
 
-      sharedModules =
-        cfg.homeModules
-        ++ [
-          {
-            home.stateVersion = "25.11";
-            # generateCaches is slow/broken on darwin
-            programs.man.generateCaches = !pkgs.stdenv.isDarwin;
-          }
-        ];
+      sharedModules = [
+        {
+          home.stateVersion = cfg.homeStateVersion;
+          # generateCaches is slow/broken on darwin
+          programs.man.generateCaches = !pkgs.stdenv.isDarwin;
+        }
+      ];
 
       users.${username} = {
         home = {
           inherit username homeDirectory;
         };
-        nixpkgs.config.allowUnfree = true;
       };
     };
   };

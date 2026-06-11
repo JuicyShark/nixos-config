@@ -3,15 +3,14 @@
 # Manages Nix package manager settings, garbage collection,
 # binary caches, and experimental features.
 {
-  config,
   pkgs,
+  lib,
+  config,
   ...
 }: let
-  inherit (config.modules.system) username;
+  username = config.modules.profile.username;
 in {
   config = {
-    nixpkgs.config.allowUnfree = true;
-
     nix = {
       package = pkgs.nixVersions.latest;
       gc.automatic = true;
@@ -33,7 +32,7 @@ in {
 
         auto-optimise-store = true;
         warn-dirty = true;
-        keep-going = true;
+        keep-going = lib.mkDefault true;
 
         experimental-features = [
           "nix-command"
