@@ -44,7 +44,6 @@ in {
           "/var/backup/headscale"
           "/var/backup/postgresql"
           "/var/backup/vaultwarden"
-          "/srv/chonk/immich"
           "/srv/chonk/paperless"
         ];
         pruneOpts = [

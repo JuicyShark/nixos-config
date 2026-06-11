@@ -31,7 +31,8 @@ return function(ctx)
 		}))
 	end
 
-	ctx.mark_or_swap = function()
+	ctx.window = ctx.window or {}
+	ctx.window.markOrSwap = function()
 		local active = hl.get_active_window and hl.get_active_window()
 		if not active then
 			return

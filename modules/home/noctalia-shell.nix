@@ -6,27 +6,43 @@
   ...
 }: let
   desktopEnabled = osConfig.modules.desktop.enable or false;
+  noctaliaPackage = inputs.noctalia.packages.${system}.default;
+  officialPluginSource = "https://github.com/noctalia-dev/noctalia-plugins";
 in {
   imports = [inputs.noctalia.homeModules.default];
 
   config = lib.optionalAttrs desktopEnabled {
-    xdg.configFile = {
-      "noctalia/plugins/hyprland-minimized/manifest.json".text =
-        builtins.readFile ./noctalia-shell/manifest.json;
-      "noctalia/plugins/hyprland-minimized/BarWidget.qml".text =
-        builtins.readFile ./noctalia-shell/BarWidget.qml;
-    };
-
     programs.noctalia-shell = {
       enable = true;
-      package = inputs.noctalia.packages.${system}.default;
+      package = noctaliaPackage;
+
+      plugins = {
+        version = 2;
+        sources = [
+          {
+            enabled = true;
+            name = "Noctalia Plugins";
+            url = officialPluginSource;
+          }
+        ];
+        states = {
+          privacy-indicator = {
+            enabled = true;
+            sourceUrl = officialPluginSource;
+          };
+          special-workspaces = {
+            enabled = true;
+            sourceUrl = officialPluginSource;
+          };
+        };
+      };
 
       settings = {
-        settingsVersion = 0;
+        settingsVersion = 59;
         bar = {
           barType = "simple";
           position = "left";
-          monitors = [(osConfig.modules.desktop.primaryMonitor.output or "DP-1")];
+          monitors = ["DP-2"];
           density = "spacious";
           showOutline = false;
           showCapsule = false;
@@ -52,7 +68,16 @@ in {
                 id = "Launcher";
               }
               {
-                id = "plugin:hyprland-minimized";
+                id = "Clock";
+              }
+              {
+                id = "SystemMonitor";
+              }
+              {
+                id = "ActiveWindow";
+              }
+              {
+                id = "MediaMini";
               }
             ];
             center = [
@@ -65,7 +90,16 @@ in {
                 id = "Tray";
               }
               {
+                id = "plugin:privacy-indicator";
+              }
+              {
+                id = "plugin:special-workspaces";
+              }
+              {
                 id = "NotificationHistory";
+              }
+              {
+                id = "Battery";
               }
               {
                 id = "Volume";
@@ -74,7 +108,7 @@ in {
                 id = "Brightness";
               }
               {
-                id = "Clock";
+                id = "ControlCenter";
               }
             ];
           };
@@ -242,9 +276,9 @@ in {
           position = "center";
           pinnedApps = [];
           sortByMostUsed = true;
-          terminalCommand = "kitty -e";
-          customLaunchPrefixEnabled = false;
-          customLaunchPrefix = "";
+          terminalCommand = "uwsm app -- kitty -e";
+          customLaunchPrefixEnabled = true;
+          customLaunchPrefix = "uwsm app --";
           viewMode = "list";
           showCategories = true;
           iconMode = "tabler";
@@ -532,6 +566,21 @@ in {
           monitorWidgets = [];
         };
       };
+    };
+
+    xdg.configFile."noctalia/plugins.json".force = true;
+
+    xdg.desktopEntries."dev.noctalia.noctalia-qs" = {
+      name = "Noctalia Shell";
+      comment = "Wayland desktop shell";
+      exec = lib.getExe noctaliaPackage;
+      icon = "${noctaliaPackage}/share/noctalia-shell/Assets/noctalia.svg";
+      terminal = false;
+      type = "Application";
+      categories = [
+        "System"
+        "Utility"
+      ];
     };
 
     stylix.targets.noctalia-shell.enable = true;

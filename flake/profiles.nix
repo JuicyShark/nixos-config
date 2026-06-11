@@ -25,7 +25,6 @@ in {
     desktop =
       cli
       ++ (with hm; [
-        barrier
         chromium
         emacs
         gtk
@@ -37,7 +36,9 @@ in {
         noctalia-shell
         obs
         qutebrowser
+        rbw
         shairport
+        walker
         xdg-desktop-entries
         xdg-user-dirs
         xresources

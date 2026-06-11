@@ -6,68 +6,67 @@
   inputs,
   system,
 }: let
-  inherit (config.lib.stylix) colors;
-
   inherit (osConfig.modules) desktop;
-  inherit (desktop) primaryMonitor;
-  terminal = lib.getExe pkgs.kitty;
-  primaryDesc = primaryMonitor.desc or null;
-  primaryOutput = primaryMonitor.output or "DP-1";
-  primarySelector =
-    if primaryDesc != null && primaryDesc != ""
-    then "desc:${primaryDesc}"
-    else primaryOutput;
   hasBloat = desktop.bloat.enable or false;
+  hasGaming = desktop.gaming.enable or false;
+  hasZsa = osConfig.modules.system.keyboard.zsa or false;
+  hasHaPresence = osConfig.modules.haPresence.enable or false;
+  hasTmux = config.programs.tmux.enable or false;
 
   hyprctl = "${osConfig.programs.hyprland.package}/bin/hyprctl";
+  quickshell = lib.getExe pkgs.quickshell;
+  uwsmAppPrefix = "${lib.getExe pkgs.uwsm} app --";
+  uwsmApp = command: "${uwsmAppPrefix} ${command}";
   screenshotPath = ''dir="''${XDG_SCREENSHOTS_DIR:-$HOME/media/pictures/screenshots}"; mkdir -p "$dir"; tmp="$(mktemp /tmp/screenshot-XXXXXX.png)"'';
-  screenshotFinish = ''if [ -s "$tmp" ]; then ${lib.getExe pkgs.satty} --filename "$tmp" --output-filename "$dir/screenshot-$(date +%Y%m%d-%H%M%S).png" --copy-command "${pkgs.wl-clipboard-rs}/bin/wl-copy"; fi; rm -f "$tmp"'';
+  screenshotFinish = ''if [ -s "$tmp" ]; then ${uwsmApp "${lib.getExe pkgs.satty} --filename \"$tmp\" --output-filename \"$dir/screenshot-$(date +%Y%m%d-%H%M%S).png\" --copy-command \"${pkgs.wl-clipboard-rs}/bin/wl-copy\""}; fi; rm -f "$tmp"'';
   submapCheatsheetStart = ''
-    if [ -d "$HOME/projects/submap-cheatsheet" ]; then
-      nix run "$HOME/projects/submap-cheatsheet" -- --no-duplicate --daemonize
+    if [ -f "$HOME/projects/submap-cheatsheet/config/shell.qml" ]; then
+      ${quickshell} --path "$HOME/projects/submap-cheatsheet/config/shell.qml" --no-duplicate --daemonize
     elif [ -x "$HOME/projects/submap-cheatsheet/result/bin/submap-widget" ]; then
       "$HOME/projects/submap-cheatsheet/result/bin/submap-widget" --no-duplicate --daemonize
     fi
   '';
+  submapCheatsheetCallScript = ''
+    ${submapCheatsheetStart}
+    sleep 0.15
+    if [ -f "$HOME/projects/submap-cheatsheet/config/shell.qml" ]; then
+      ${quickshell} --path "$HOME/projects/submap-cheatsheet/config/shell.qml" ipc call submapCheatsheet "$@"
+    else
+      ${quickshell} ipc --newest call submapCheatsheet "$@"
+    fi
+  '';
+  submapCheatsheetCommand = pkgs.writeShellScript "submap-cheatsheet-start" submapCheatsheetStart;
+  submapCheatsheetCallCommand = pkgs.writeShellScript "submap-cheatsheet-call" submapCheatsheetCallScript;
 in {
-  terminalCommands = {
-    main = "${terminal} --title terminal";
-    dropdown = "${terminal} --class dropdown --title dropdown";
-    pinned = "${terminal} --class pinned --title pinned";
+  inherit uwsmAppPrefix;
+
+  apps = {
+    terminal = lib.getExe pkgs.kitty;
+    yazi = lib.getExe pkgs.yazi;
+    elephant = lib.getExe' inputs.elephant.packages.${system}.default "elephant";
+    walker = lib.getExe inputs.walker.packages.${system}.default;
+    noctalia = lib.getExe inputs.noctalia.packages.${system}.default;
+    qutebrowser = lib.getExe pkgs.qutebrowser;
+    vivaldi =
+      if hasBloat
+      then lib.getExe pkgs.vivaldi
+      else null;
+    hyprlock = lib.getExe pkgs.hyprlock;
+    pwvucontrol = lib.getExe pkgs.pwvucontrol;
+    hyprpicker = lib.getExe pkgs.hyprpicker;
+    wayscriber = lib.getExe pkgs.wayscriber;
   };
-  browser =
-    if hasBloat
-    then lib.getExe pkgs.vivaldi
-    else lib.getExe pkgs.qutebrowser;
-  privateBrowser =
-    if hasBloat
-    then "${lib.getExe pkgs.vivaldi} --incognito"
-    else "${lib.getExe pkgs.qutebrowser} --target private-window";
-  passManager = "${pkgs.bitwarden-desktop}/bin/bitwarden";
-  locker = lib.getExe pkgs.hyprlock;
-  volumeMixer = lib.getExe pkgs.pwvucontrol;
+
   inherit hyprctl;
-  hyprpicker = lib.getExe pkgs.hyprpicker;
-  noctalia = lib.getExe inputs.noctalia.packages.${system}.default;
-  submapCheatsheet = ''bash -lc '${submapCheatsheetStart}' '';
-  submapCheatsheetToggle = ''bash -lc '${submapCheatsheetStart}; sleep 0.6; ${hyprctl} dispatch global submap-cheatsheet:toggle-submap-options >/dev/null' '';
+  scripts = {
+    submapCheatsheet = toString submapCheatsheetCommand;
+    submapCheatsheetCall = toString submapCheatsheetCallCommand;
+  };
 
   screenshot = {
     fullscreen = ''sh -c '${screenshotPath}; ${lib.getExe pkgs.grim} "$tmp"; ${screenshotFinish}' '';
     region = ''sh -c '${screenshotPath}; ${lib.getExe pkgs.grim} -g "$(${lib.getExe pkgs.slurp})" "$tmp"; ${screenshotFinish}' '';
     window = ''sh -c '${screenshotPath}; win="$(${hyprctl} activewindow -j)"; x="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".at[0]")"; y="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".at[1]")"; w="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".size[0]")"; h="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".size[1]")"; ${lib.getExe pkgs.grim} -g "$x,$y ''${w}x$h" "$tmp"; ${screenshotFinish}' '';
-  };
-
-  primary = {
-    output = primaryOutput;
-    selector = primarySelector;
-    wideColor = primaryMonitor.wideColor or false;
-  };
-
-  monitorWorkspace = {
-    enable = true;
-    target = "HDMI-A-2";
-    workspaces = ["6" "7" "8" "9" "10"];
   };
 
   sunshine = {
@@ -80,22 +79,12 @@ in {
     gameWorkspace = desktop.sunshine.streamingMonitor.gameWorkspace or "22";
   };
 
-  flags = {
-    gaming = desktop.gaming.enable or false;
+  features = {
+    gaming = hasGaming;
     bloat = hasBloat;
-    zsa = osConfig.modules.system.keyboard.zsa or false;
+    zsa = hasZsa;
     emacs = osConfig.modules.emacs.enable or false;
-    haPresence = osConfig.modules.haPresence.enable or false;
-  };
-
-  theme = {
-    gaps_in = 12;
-    gaps_out = 24;
-    rounding = 25;
-  };
-
-  # Stylix base16 palette: only bases referenced by the generated Lua config.
-  colors = {
-    inherit (colors) base00 base01 base02 base04 base05 base07 base08 base09 base0A base0B base0C base0D base0E;
+    haPresence = hasHaPresence;
+    tmux = hasTmux;
   };
 }

@@ -40,7 +40,7 @@ in {
           magic_dns = true;
           # Nodes resolve as <name>.<user>.ts — keep it short.
           base_domain = "ts";
-          nameservers.global = [config.modules.network.hosts.zues];
+          nameservers.global = ["192.168.1.99"];
         };
 
         log.level = "warn";

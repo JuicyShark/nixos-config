@@ -32,9 +32,12 @@ return function(ctx)
 		hl.workspace_rule({ workspace = workspace_name, layout = layout })
 	end
 
-	ctx.currentWorkspace = current_workspace
-	ctx.setWorkspaceLayout = set_workspace_layout
-	ctx.cycleWorkspaceLayout = function()
+	ctx.layout = {
+		currentWorkspace = current_workspace,
+		setWorkspaceLayout = set_workspace_layout,
+	}
+
+	ctx.layout.cycleWorkspaceLayout = function()
 		local workspace = current_workspace()
 		if not workspace then
 			return
@@ -51,7 +54,7 @@ return function(ctx)
 
 		set_workspace_layout(workspace.name, next_layout)
 	end
-	ctx.layoutBind = function(bind_table)
+	ctx.layout.bind = function(bind_table)
 		return function()
 			local workspace = current_workspace()
 			if not workspace then
@@ -66,7 +69,7 @@ return function(ctx)
 			dispatch_action(action)
 		end
 	end
-	ctx.layoutSpecificBind = function(layout, action)
+	ctx.layout.specific = function(layout, action)
 		return function()
 			local workspace = current_workspace()
 			if not workspace then

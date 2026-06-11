@@ -4,16 +4,15 @@
   ...
 }: let
   inherit (inputs.home-manager.darwinModules) home-manager;
-  cfg = config.modules.system;
-  inherit (cfg) username;
+  username = config.modules.profile.username;
 in {
   imports = [
     home-manager
     inputs.agenix.darwinModules.default
-    ../nixos/base/options.nix
-    ../nixos/base/nix.nix
-    ../nixos/base/users.nix
-    ../nixos/base/environment.nix
+    ../common/options.nix
+    ../common/nix.nix
+    ../common/users.nix
+    ../common/environment.nix
   ];
 
   config = {
@@ -23,8 +22,6 @@ in {
     ];
 
     time.timeZone = "Australia/Brisbane";
-
-    networking.hostName = cfg.hostName;
 
     users.users.${username}.shell = "/run/current-system/sw/bin/zsh";
 

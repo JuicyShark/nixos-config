@@ -44,7 +44,8 @@ return function(ctx)
 		return fallback
 	end
 
-	ctx.openSpecialApp = function(spec)
+	ctx.apps = ctx.apps or {}
+	ctx.apps.openSpecial = function(spec)
 		local workspace = "special:" .. spec.name
 		if hl.get_active_special_workspace then
 			local active = hl.get_active_special_workspace()

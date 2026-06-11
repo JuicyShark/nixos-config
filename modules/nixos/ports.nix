@@ -26,10 +26,8 @@ in {
     delugeWeb = mkPortOption 9050 "Deluge web interface";
     delugeDaemon = mkPortOption 58846 "Deluge daemon";
     homeAssistant = mkPortOption 8123 "Home Assistant";
-    immich = mkPortOption 2283 "Immich photos and videos";
     mqtt = mkPortOption 1883 "MQTT broker (Mosquitto)";
     headscale = mkPortOption 8085 "Headscale coordination server";
-    miniflux = mkPortOption 8090 "Miniflux RSS reader";
     paperless = mkPortOption 28981 "Paperless-ngx document archive";
     uptimeKuma = mkPortOption 3001 "Uptime Kuma status monitor";
     gatus = mkPortOption 8888 "Gatus status monitor";
@@ -39,7 +37,6 @@ in {
     filebrowser = mkPortOption 8095 "File browser";
     dhcpServer = mkPortOption 67 "DHCP server (bootps)";
     dhcpClient = mkPortOption 68 "DHCP client (bootpc)";
-    barrier = mkPortOption 24800 "Barrier KVM software";
     kdeConnect = mkPortOption 60344 "KDE Connect / Valent";
     localsend = mkPortOption 53317 "LocalSend (cross-platform file share)";
 

@@ -2,11 +2,19 @@
 -- SUBMAP LOADER
 -- ============================================================
 return function(ctx)
+	require("binds.groups")(ctx)
+	require("binds.layouts.master")(ctx)
+	require("binds.layouts.dwindle")(ctx)
+	require("binds.layouts.scrolling")(ctx)
 	require("binds.submaps.core")(ctx)
 
-	for _, module in ipairs(ctx.cfg.submapModules or {}) do
-		require(module)(ctx)
+	if ctx.features.emacs then
+		require("binds.submaps.emacs")(ctx)
 	end
 
-	ctx.writeCheatsheet()
+	if ctx.features.tmux then
+		require("binds.submaps.tmux")(ctx)
+	end
+
+	ctx.bindHelpers.writeCheatsheet()
 end

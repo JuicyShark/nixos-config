@@ -116,7 +116,7 @@
     };
 
     nameservers = [
-      config.modules.network.hosts.zues
+      "192.168.1.99"
     ];
 
     nat = {

@@ -3,28 +3,28 @@
     enable = true;
     enableDefaultConfig = false;
 
-    matchBlocks = {
+    settings = {
       "*" = {
-        addKeysToAgent = "yes";
-        compression = true;
-        forwardAgent = false;
-        hashKnownHosts = true;
-        serverAliveInterval = 30;
-        serverAliveCountMax = 3;
-        controlMaster = "auto";
-        controlPersist = "10m";
-        controlPath = "~/.ssh/control-%C";
-        identityFile = [
+        AddKeysToAgent = "yes";
+        Compression = true;
+        ForwardAgent = false;
+        HashKnownHosts = true;
+        ServerAliveInterval = 30;
+        ServerAliveCountMax = 3;
+        ControlMaster = "auto";
+        ControlPersist = "10m";
+        ControlPath = "~/.ssh/control-%C";
+        IdentityFile = [
           "~/.ssh/id_ed25519"
           "~/.ssh/id_rsa"
         ];
-        identitiesOnly = true;
-        user = config.home.username;
+        IdentitiesOnly = true;
+        User = config.home.username;
       };
 
-      leo.hostname = "leo.home.arpa";
-      zues.hostname = "zues.home.arpa";
-      fallarbor.hostname = "fallarbor";
+      leo.HostName = "leo.home.arpa";
+      zues.HostName = "zues.home.arpa";
+      fallarbor.HostName = "fallarbor";
     };
   };
 }

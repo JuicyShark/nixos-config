@@ -6,7 +6,7 @@
 }: let
   inherit (lib) getExe;
   inherit (pkgs) stdenv;
-  flake = osConfig.modules.system.flakePath or ".";
+  flake = osConfig.environment.variables.FLAKE or ".";
 
   navBindings = ''
     bindkey -M viins '^[[1;3D' backward-char
@@ -79,12 +79,7 @@
     zues-build = "nix run ${flake}#zues-switch --";
   };
 
-  htbAliases = lib.optionalAttrs (osConfig.modules.htb.enable or false) {
-    htb = "nix develop ${osConfig.modules.system.flakePath or "/mnt/smol/nixos-config"}#htb --command zsh";
-    htb-vpn = "htb-vpn-toggle";
-  };
-
-  shellAliases = baseAliases // lib.optionalAttrs stdenv.isLinux linuxAliases // htbAliases;
+  shellAliases = baseAliases // lib.optionalAttrs stdenv.isLinux linuxAliases;
 in {
   home.sessionVariables = {
     CARAPACE_BRIDGES = "carapace,zsh,bash";
@@ -133,6 +128,13 @@ in {
         setopt hist_reduce_blanks
         setopt hist_verify
         setopt hist_expire_dups_first
+
+        if [[ -t 1 ]]; then
+          export GPG_TTY="$(tty)"
+          if command -v gpg-connect-agent >/dev/null 2>&1; then
+            gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
+          fi
+        fi
 
         autoload -Uz run-help
         alias help=run-help
@@ -222,8 +224,10 @@ in {
       historyFileSize = 10000;
       inherit shellAliases;
       bashrcExtra = ''
-        bind 'set completion-ignore-case on'
-        bind 'set show-all-if-ambiguous on'
+        if [[ $- == *i* ]]; then
+          bind 'set completion-ignore-case on'
+          bind 'set show-all-if-ambiguous on'
+        fi
       '';
     };
   };

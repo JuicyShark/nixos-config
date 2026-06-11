@@ -3,14 +3,15 @@
 -- ============================================================
 return function(ctx)
 	local hl = ctx.hl
-	local monitorWorkspace = ctx.cfg.monitorWorkspace or {}
+	local desktop = ctx.desktop
+	local monitorWorkspace = desktop.monitorWorkspace or {}
 
 	if not monitorWorkspace.enable then
 		return
 	end
 
 	local targetMonitor = monitorWorkspace.target
-	local primaryMonitor = ctx.cfg.primary.selector
+	local primaryMonitor = desktop.primary.selector
 	local workspaces = monitorWorkspace.workspaces or {}
 	local lastMonitor = nil
 

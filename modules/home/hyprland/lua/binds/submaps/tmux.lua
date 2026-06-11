@@ -3,15 +3,15 @@
 -- ============================================================
 return function(ctx)
 	local hl = ctx.hl
-	local cfg = ctx.cfg
-	local bind = ctx.bind
-	local submap = ctx.submap
+	local commands = ctx.commands
+	local bind = ctx.bindHelpers.bind
+	local defineSubmap = ctx.bindHelpers.defineSubmap
 
 	local function tmux_terminal(args)
-		return cfg.terminalCommands.main .. " -- tmux " .. args
+		return commands.terminal.main .. " -- tmux " .. args
 	end
 
-	submap("tmux", function()
+	defineSubmap("tmux", function()
 		bind("S", hl.dsp.exec_cmd(tmux_terminal("new-session")), "Tmux new session")
 		bind("L", hl.dsp.exec_cmd(tmux_terminal("list-sessions")), "Tmux list sessions")
 		bind("A", hl.dsp.exec_cmd(tmux_terminal("attach-session")), "Tmux attach")

@@ -22,13 +22,13 @@ in {
 
     deviceId = lib.mkOption {
       type = lib.types.str;
-      default = "${config.modules.system.hostName}_presence";
+      default = "${config.networking.hostName}_presence";
       description = "MQTT device/object id; used in topic and HA entity_id.";
     };
 
     brokerHost = lib.mkOption {
       type = lib.types.str;
-      default = config.modules.network.hosts.homeAssistant;
+      default = "192.168.1.49";
       description = "MQTT broker hostname/IP (HA Mosquitto add-on).";
     };
 
@@ -61,7 +61,7 @@ in {
     age.secrets = {
       ha-mqtt-pass = {
         file = ../../secrets/ha-mqtt-pass.age;
-        owner = config.modules.system.username;
+        owner = "juicy";
         mode = "0400";
       };
     };

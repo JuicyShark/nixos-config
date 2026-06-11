@@ -7,11 +7,9 @@
 
   homelabJellyfin = config.modules.homelab.jellyfin.enable;
   homelabMedia = config.modules.homelab.media.enable;
-  homelabDeluge = config.modules.homelab.deluge.enable;
 
   inherit (config.modules) ports;
-  networkCfg = config.modules.network;
-  inherit (config.modules.system) username;
+  username = "juicy";
 
   apiSecret = name: config.age.secrets.${name}.path;
   arrHostConfig = port: {
@@ -105,7 +103,7 @@ in {
         };
       };
 
-      downloadarr.deluge = mkIf homelabDeluge {
+      downloadarr.deluge = mkIf config.services.deluge.enable {
         enable = true;
         dependencies = ["delugeweb.service"];
         port = ports.delugeWeb;
@@ -193,15 +191,12 @@ in {
       };
     };
 
-    users.groups.media = {
-      name = "media";
-      gid = mkForce 2000;
-      members =
-        [
-          username
-        ]
-        ++ lib.optional config.services.deluge.enable config.services.deluge.user;
-    };
+    users.groups.media.gid = lib.mkOverride 10 2000;
+    users.groups.media.members =
+      [
+        username
+      ]
+      ++ lib.optional config.services.deluge.enable config.services.deluge.user;
 
     services = {
       seerr = {
@@ -211,12 +206,12 @@ in {
       };
 
       nginx = {
-        enable = mkIf (homelabMedia || homelabJellyfin || homelabDeluge) true;
+        enable = mkIf (homelabMedia || homelabJellyfin || config.services.deluge.enable) true;
         virtualHosts =
           lib.optionalAttrs homelabJellyfin {
             # Jellyfin needs WebSocket upgrade for live TV / casting
             "jellyfin.home.arpa".locations."/" = {
-              proxyPass = "http://${networkCfg.hosts.imac-machop}:${toString ports.jellyfin}";
+              proxyPass = "http://192.168.1.52:${toString ports.jellyfin}";
               extraConfig = ''
                 proxy_http_version 1.1;
                 proxy_set_header Upgrade $http_upgrade;
@@ -229,7 +224,7 @@ in {
               proxyPass = "http://127.0.0.1:${toString ports.jellyseerr}";
             };
           }
-          // lib.optionalAttrs homelabDeluge {
+          // lib.optionalAttrs config.services.deluge.enable {
             "deluge.home.arpa".locations."/" = {
               proxyPass = "http://127.0.0.1:${toString ports.delugeWeb}";
             };

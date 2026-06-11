@@ -3,28 +3,27 @@
 -- ============================================================
 return function(ctx)
 	local hl = ctx.hl
-	local cfg = ctx.cfg
-	local appCmd = ctx.appCmd
+	local commands = ctx.commands
+	local features = ctx.features
 
 	hl.on("hyprland.start", function()
-		local commands = cfg.autostartCommands or {}
 		local autostart = {
-			{ cmd = "ha-presence-discover", when = cfg.flags.haPresence },
-			{ cmd = "ha-presence-update active", when = cfg.flags.haPresence },
+			{ cmd = "ha-presence-discover", when = features.haPresence },
+			{ cmd = "ha-presence-update active", when = features.haPresence },
 			{ cmd = "systemctl --user start hyprpolkitagent.service" },
-			{ cmd = commands.elephant },
-			{ cmd = commands.walkerService },
-			{ cmd = commands.noctalia },
-			{ cmd = commands.submapCheatsheet },
-			{ cmd = commands.wayscriber },
-			{ cmd = cfg.browser, workspace = "2 silent" },
-			{ cmd = appCmd("qutebrowser"), workspace = "1 silent", when = cfg.flags.bloat },
-			{ cmd = commands.terminal, workspace = "1 silent" },
-			{ cmd = commands.dropdown, workspace = "special:dropdown silent" },
-			{ cmd = appCmd("steam"), workspace = "special:steam silent", when = cfg.flags.gaming },
-			{ cmd = appCmd("discord"), workspace = "special:discord silent", when = cfg.flags.bloat },
-			{ cmd = appCmd("tidal-hifi"), workspace = "8 silent", when = cfg.flags.bloat },
-			{ cmd = appCmd("keymapp"), workspace = "9 silent", when = cfg.flags.zsa },
+			{ cmd = commands.autostart.elephant },
+			{ cmd = commands.walker.service },
+			{ cmd = commands.autostart.noctalia },
+			{ cmd = commands.autostart.submapCheatsheet },
+			{ cmd = commands.autostart.wayscriber },
+			{ cmd = commands.browser, workspace = "2 silent" },
+			{ cmd = commands.app("qutebrowser"), workspace = "1 silent", when = features.bloat },
+			{ cmd = commands.terminal.main, workspace = "1 silent" },
+			{ cmd = commands.terminal.dropdown, workspace = "special:dropdown silent" },
+			{ cmd = commands.app("steam"), workspace = "special:steam silent", when = features.gaming },
+			{ cmd = commands.app("discord"), workspace = "special:discord silent", when = features.bloat },
+			{ cmd = commands.app("tidal-hifi"), workspace = "8 silent", when = features.bloat },
+			{ cmd = commands.app("keymapp"), workspace = "9 silent", when = features.zsa },
 		}
 
 		for _, e in ipairs(autostart) do

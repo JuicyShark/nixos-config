@@ -6,7 +6,7 @@
   inherit (lib) concatMapStringsSep mkIf mkOption;
   inherit (lib.types) ints listOf str;
   cfg = config.modules.nfs;
-  lanSubnet = config.modules.network.subnets.lan;
+  lanSubnet = "192.168.1.0/24";
   nfsPorts = [
     111
     2049

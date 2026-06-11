@@ -8,19 +8,18 @@
   inherit (inputs.home-manager.nixosModules) home-manager;
   inherit (lib) mkIf optionals;
   cfg = config.modules.system;
-  inherit (cfg) username;
+  username = config.modules.profile.username;
 in {
   imports = [
     home-manager
     inputs.agenix.nixosModules.default
-    ./base/options.nix
+    ../common/options.nix
     ./base/boot.nix
-    ./base/nix.nix
-    ./base/users.nix
+    ../common/nix.nix
+    ../common/users.nix
     ./base/locale.nix
     ./base/security.nix
-    ./base/environment.nix
-    ./network.nix
+    ../common/environment.nix
     ./ports.nix
     ./base/networking.nix
   ];
@@ -48,7 +47,6 @@ in {
     };
 
     networking = {
-      inherit (cfg) hostName;
       useDHCP = lib.mkDefault true;
       enableIPv6 = lib.mkDefault true;
       domain = "local";
@@ -61,7 +59,6 @@ in {
             ports.dhcpClient
             ports.dhcpServer
             ports.kdeConnect
-            ports.barrier
           ]
           ++ optionals cfg.openSrb2Port [5029];
         allowedTCPPorts = optionals cfg.openDevPort [3000];

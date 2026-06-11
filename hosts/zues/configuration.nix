@@ -15,15 +15,19 @@ in {
     filebrowser
     monitoring
     stylix
-    tailscale
     unbound
     nfs
     acme
   ];
 
+  networking.hostName = "zues";
+  environment.variables.FLAKE = "/mnt/chonk/self";
+  programs.nh.flake = "/mnt/chonk/self";
+  home-manager.sharedModules = homeProfiles.cli;
+
   system.autoUpgrade = {
     enable = true;
-    flake = config.modules.system.flakePath;
+    flake = "/mnt/chonk/self";
     dates = "Sun 04:00";
     randomizedDelaySec = "45min";
     persistent = true;
@@ -37,20 +41,13 @@ in {
   };
 
   modules = {
-    system = {
-      flakePath = "/mnt/chonk/self";
-      hostName = "zues";
-      hashedPasswordFile = config.age.secrets.juicy-password.path;
-      homeModules = homeProfiles.cli;
-    };
+    profile.hashedPasswordFile = config.age.secrets.juicy-password.path;
     homelab = {
       smtpEmail = "maxwellb9879@gmail.com";
       deluge.enable = true;
       headscale.enable = true;
-      immich.enable = false;
       jellyfin.enable = true;
       media.enable = true;
-      miniflux.enable = false;
       paperless.enable = false;
       syncthing.enable = false;
       gatus.enable = true;
@@ -64,17 +61,12 @@ in {
     filebrowser = {
       enable = true;
     };
-    tailscale = {
-      enable = true;
-      routingMode = "both";
-      advertiseRoutes = [config.modules.network.subnets.lan];
-    };
     nfs = {
       exportPath = "/srv/chonk";
       # Restrict to known clients only; all clients are squashed to media.
-      allowedHosts = with config.modules.network.hosts; [
-        leo
-        imac-machop
+      allowedHosts = [
+        "192.168.1.54"
+        "192.168.1.52"
       ];
       anonUid = 2000;
       anonGid = 2000;
@@ -102,5 +94,17 @@ in {
     write = true;
     trusted = true;
     keys = [leoBuilderKey];
+  };
+
+  services.tailscale = {
+    enable = true;
+    openFirewall = true;
+    useRoutingFeatures = "both";
+    extraUpFlags = [
+      "--login-server=https://ts.nixlab.au"
+      "--accept-dns=false"
+      "--accept-routes"
+      "--advertise-routes=192.168.1.0/24"
+    ];
   };
 }

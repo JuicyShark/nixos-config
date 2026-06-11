@@ -6,7 +6,6 @@
   ...
 }: let
   endpoints = self.lib.${pkgs.stdenv.hostPlatform.system}.services.mkHomelabEndpoints {inherit config;};
-  networkCfg = config.modules.network;
   homelabMonitoring = config.modules.monitoring.enable;
   promCfg = config.services.prometheus.exporters;
   inherit (config.modules) ports;
@@ -36,7 +35,7 @@
           };
         }
         {
-          targets = ["${networkCfg.hosts.fallarbor}:${toString ports.alloy}"];
+          targets = ["100.112.235.76:${toString ports.alloy}"];
           labels = {
             instance = "fallarbor";
             host = "fallarbor";
@@ -98,7 +97,7 @@ in {
         globalConfig.scrape_interval = "60s";
         port = ports.prometheus;
         ruleFiles = [rulesFile];
-        alertmanagers = lib.optional homelabMonitoring {
+        alertmanagers = lib.optional config.services.prometheus.enable {
           static_configs = [{targets = ["127.0.0.1:${toString ports.alertmanager}"];}];
         };
         scrapeConfigs =
@@ -135,7 +134,7 @@ in {
                   labels.instance = "zues";
                 }
                 {
-                  targets = ["${networkCfg.hosts.fallarbor}:${toString exporterPorts.node}"];
+                  targets = ["100.112.235.76:${toString exporterPorts.node}"];
                   labels.instance = "fallarbor";
                 }
               ];
@@ -183,7 +182,7 @@ in {
             }
           ];
 
-        alertmanager = lib.mkIf homelabMonitoring {
+        alertmanager = lib.mkIf config.services.prometheus.enable {
           enable = true;
           port = ports.alertmanager;
           configuration = {
@@ -198,14 +197,14 @@ in {
         };
       };
 
-      nginx.virtualHosts = lib.mkIf homelabMonitoring {
+      nginx.virtualHosts = lib.mkIf config.services.prometheus.enable {
         "prometheus.home.arpa" = {
           locations."/" = {
             proxyPass = "http://127.0.0.1:${toString ports.prometheus}";
           };
           extraConfig = ''
-            allow ${networkCfg.subnets.lan};
-            allow ${networkCfg.subnets.tailscale};
+            allow 192.168.1.0/24;
+            allow 100.64.0.0/10;
             deny all;
           '';
         };
@@ -214,15 +213,15 @@ in {
             proxyPass = "http://127.0.0.1:${toString ports.alertmanager}";
           };
           extraConfig = ''
-            allow ${networkCfg.subnets.lan};
-            allow ${networkCfg.subnets.tailscale};
+            allow 192.168.1.0/24;
+            allow 100.64.0.0/10;
             deny all;
           '';
         };
       };
     };
 
-    environment.etc."blackbox-exporter/config.yml" = lib.mkIf homelabMonitoring {
+    environment.etc."blackbox-exporter/config.yml" = lib.mkIf promCfg.blackbox.enable {
       text = ''
         modules:
           http_2xx:

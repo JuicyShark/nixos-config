@@ -4,6 +4,7 @@
   ...
 }: let
   unfreePackages = [
+    "2ship2harkinian"
     "bloodhound"
     "burpsuite"
     "castlabs-electron"
@@ -16,6 +17,7 @@
     "aspell-dict-en-science"
     "obsidian"
     "osu-lazer-bin"
+    "shipwright"
     "steam"
     "steam-unwrapped"
     "vivaldi"

@@ -1,7 +1,12 @@
 {lib}: {
   mkHomelabEndpoints = {config}: let
     inherit (config.modules) ports;
-    inherit (config.modules.network) hosts;
+    hosts = {
+      leo = "192.168.1.54";
+      zues = "192.168.1.99";
+      imac-machop = "192.168.1.52";
+      homeAssistant = "192.168.1.49";
+    };
 
     port = name: ports.${name};
     host = name: hosts.${name};
@@ -19,12 +24,8 @@
     public = domain: "https://${domain}";
     publicPath = domain: path: "${public domain}${path}";
 
-    immichDomain = config.modules.homelab.immich.domain or "photos.${internalDomain}";
-    immichPublicDomain = config.modules.homelab.immich.publicDomain or "photos.${publicDomain}";
     paperlessDomain = config.modules.homelab.paperless.domain or "docs.${internalDomain}";
     vaultwardenPublicDomain = "pass.${publicDomain}";
-    immichEnabled = config.services.immich.enable or (config.modules.homelab.immich.enable or false);
-    paperlessEnabled = config.services.paperless.enable or (config.modules.homelab.paperless.enable or false);
 
     services = {
       router = {
@@ -229,42 +230,6 @@
         };
       };
 
-      immich = {
-        title = "Immich";
-        aliases = ["photos"];
-        url = "http://${immichDomain}";
-        checkUrl = "http://${immichDomain}/api/server/ping";
-        upstream = local "immich";
-        gatus.url = localPath "immich" "/api/server/ping";
-        blackbox = immichEnabled;
-        public = {
-          domain = immichPublicDomain;
-          upstream = local "immich";
-          ingress = immichEnabled;
-          checkUrl =
-            if immichPublicDomain != null
-            then publicPath immichPublicDomain "/api/server/ping"
-            else null;
-          gatusUrl =
-            if immichPublicDomain != null
-            then publicPath immichPublicDomain "/api/server/ping"
-            else null;
-          blackbox = immichEnabled;
-          gatus = immichEnabled;
-        };
-      };
-
-      miniflux = {
-        title = "Miniflux";
-        aliases = ["rss"];
-        icon = "di:miniflux";
-        url = home "rss";
-        upstream = local "miniflux";
-        quickmarkName = "rss";
-        gatus.url = local "miniflux";
-        glance = "private";
-      };
-
       paperless = {
         title = "Paperless";
         aliases = ["docs"];
@@ -272,7 +237,7 @@
         checkUrl = "http://${paperlessDomain}";
         upstream = local "paperless";
         gatus.url = local "paperless";
-        blackbox = paperlessEnabled;
+        blackbox = config.services.paperless.enable;
       };
 
       syncthing = {
@@ -341,8 +306,6 @@
       "vaultwarden"
       "filebrowser"
       "headscale"
-      "immich"
-      "miniflux"
       "paperless"
       "syncthing"
       "glance"
@@ -362,7 +325,6 @@
       "homeAssistant"
       "filebrowser"
       "jellyseerr"
-      "miniflux"
       "syncthing"
       "gatus"
     ];

@@ -7,14 +7,13 @@
   ...
 }: let
   enabled = config.modules.homelab.syncthing.enable;
-  cfg = config.modules.system;
   inherit (config.modules) ports;
 in {
   config = lib.mkIf enabled {
     services.syncthing = {
       enable = true;
-      user = cfg.username;
-      dataDir = "/home/${cfg.username}";
+      user = "juicy";
+      dataDir = "/home/juicy";
       guiAddress = "127.0.0.1:${toString ports.syncthing}";
       openDefaultPorts = true;
     };

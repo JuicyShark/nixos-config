@@ -2,7 +2,7 @@
 -- SCROLLING LAYOUT BINDS
 -- ============================================================
 return function(ctx)
-	ctx.bindScrollingLayoutActions = function(bindLayoutMessage)
+	ctx.layout.bindScrollingActions = function(bindLayoutMessage)
 		bindLayoutMessage("period", "move +col", "[Scrolling] Next column")
 		bindLayoutMessage("comma", "move -col", "[Scrolling] Previous column")
 		bindLayoutMessage("bracketright", "colresize +conf", "[Scrolling] Widen column")

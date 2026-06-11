@@ -35,8 +35,8 @@ in {
         enableACME = lib.mkForce false;
         extraConfig = ''
           client_max_body_size 512m;
-          allow ${config.modules.network.subnets.lan};
-          allow ${config.modules.network.subnets.tailscale};
+          allow 192.168.1.0/24;
+          allow 100.64.0.0/10;
           deny all;
         '';
       };

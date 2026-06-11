@@ -4,7 +4,6 @@
   lib,
 }: let
   inherit (lib) optionals;
-  inherit (lib.generators) mkLuaInline;
 
   colors = config.lib.stylix.colors;
   rgb = color: "rgb(${color})";
@@ -393,24 +392,4 @@ in {
       };
     }
   ];
-
-  on = {
-    _args = [
-      "hyprland.start"
-      (mkLuaInline ''
-        function()
-          if not (hl.plugin and hl.plugin.hyprbars) then
-            return
-          end
-          hl.plugin.hyprbars.add_button({
-            bg_color = "rgb(${colors.base08})",
-            fg_color = "rgb(${colors.base00})",
-            size = 10,
-            icon = "x",
-            action = "${cfg.hyprctl} dispatch killactive",
-          })
-        end
-      '')
-    ];
-  };
 }

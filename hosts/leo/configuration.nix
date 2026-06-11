@@ -23,7 +23,6 @@ in {
     sunshine
     glance
     monitoring
-    tailscale
     nfs
     impermanence
     ha-presence
@@ -45,28 +44,58 @@ in {
     intel-gpu-tools
   ];
 
-  programs.ssh.knownHosts = {
-    zues = {
-      hostNames = [
-        "zues"
-        "zues.home.arpa"
-        config.modules.network.hosts.zues
-      ];
-      publicKey = hostKeys.zues;
+  programs = {
+    ssh.knownHosts = {
+      zues = {
+        hostNames = [
+          "zues"
+          "zues.home.arpa"
+          "192.168.1.99"
+        ];
+        publicKey = hostKeys.zues;
+      };
+      fallarbor = {
+        hostNames = [
+          "fallarbor"
+          "100.112.235.76"
+        ];
+        publicKey = hostKeys.fallarbor;
+      };
     };
-    fallarbor = {
-      hostNames = [
-        "fallarbor"
-        config.modules.network.hosts.fallarbor
-      ];
-      publicKey = hostKeys.fallarbor;
+
+    nh.flake = "/mnt/smol/nixos-config";
+
+    gamemode.settings = {
+      general = {
+        renice = 10;
+        softrealtime = "auto";
+        inhibit_screensaver = 1;
+      };
+
+      cpu = {
+        governor = "performance";
+        park_cores = "no";
+        pin_cores = "yes";
+        energy_performance_preference = "performance";
+      };
+
+      gpu = {
+        apply_gpu_optimisations = "accept-responsibility";
+        gpu_device = 0;
+        amd_performance_level = "high";
+      };
     };
   };
 
-  networking.hosts.${config.modules.network.hosts.zues} = [
-    "zues"
-    "zues.home.arpa"
-  ];
+  networking = {
+    hostName = "leo";
+    hosts."192.168.1.99" = [
+      "zues"
+      "zues.home.arpa"
+    ];
+  };
+  environment.variables.FLAKE = "/mnt/smol/nixos-config";
+  home-manager.sharedModules = homeProfiles.desktop;
 
   # lact daemon for AMD GPU fan/power control
   systemd.services.lactd = {
@@ -78,11 +107,8 @@ in {
   };
 
   modules = {
+    profile.hashedPasswordFile = config.age.secrets.juicy-password.path;
     system = {
-      flakePath = "/mnt/smol/nixos-config";
-      hostName = "leo";
-      hashedPasswordFile = config.age.secrets.juicy-password.path;
-      homeModules = homeProfiles.desktop;
       keyboard.zsa = true;
       highMemory.enable = true;
     };
@@ -93,22 +119,17 @@ in {
       guiFallback.enable = true;
       streaming.enable = true;
       sunshine.enable = true;
-      primaryMonitor = {
-        output = "DP-2";
-        # The panel exposes the same EDID description on DP-2 and HDMI-A-2.
-        # Match the primary display by output name so Hyprland defaults to DP-2.
-        desc = null;
-        wideColor = true;
-      };
     };
     emacs.enable = true;
     recomp.enable = true;
     glance.enable = true;
-    tailscale.enable = true;
     haPresence.enable = true;
     ios.enable = true;
-    shairport.enable = true;
-    shell.atuin.syncUrl = "http://${config.modules.network.hosts.zues}:8888";
+    shairport = {
+      enable = true;
+      name = "Max Linux";
+    };
+    shell.atuin.syncUrl = "http://192.168.1.99:8888";
     nfs = {
       exportPath = "/srv/smol";
       firewallInterfaces = [
@@ -125,10 +146,21 @@ in {
   services = {
     syncthing = {
       enable = true;
-      user = config.modules.system.username;
-      dataDir = "/home/${config.modules.system.username}";
+      user = "juicy";
+      dataDir = "/home/juicy";
       guiAddress = "127.0.0.1:${toString config.modules.ports.syncthing}";
       openDefaultPorts = true;
+    };
+
+    tailscale = {
+      enable = true;
+      openFirewall = true;
+      useRoutingFeatures = "client";
+      extraUpFlags = [
+        "--login-server=https://ts.nixlab.au"
+        "--accept-dns=false"
+        "--accept-routes"
+      ];
     };
 
     btrfs.autoScrub = {
@@ -154,36 +186,11 @@ in {
     irqbalance.enable = true;
   };
 
-  programs.gamemode.settings = {
-    general = {
-      renice = 10;
-      softrealtime = "auto";
-      inhibit_screensaver = 1;
-    };
-
-    cpu = {
-      governor = "performance";
-      park_cores = "no";
-      pin_cores = "yes";
-      energy_performance_preference = "performance";
-    };
-
-    gpu = {
-      apply_gpu_optimisations = "accept-responsibility";
-      gpu_device = 0;
-      amd_performance_level = "high";
-    };
-  };
-
   fileSystems = {
     "/mnt/games" = {
-      device = "/dev/disk/by-uuid/100E4A9B7EF0C278";
-      fsType = "ntfs3";
+      device = "/dev/disk/by-uuid/3855cf03-6c1b-4e03-baed-5818ab1f6066";
+      fsType = "ext4";
       options = [
-        "uid=1000"
-        "gid=100"
-        "umask=022"
-        "windows_names"
         "noatime"
         "nofail"
         "x-systemd.automount"
@@ -214,19 +221,18 @@ in {
     };
 
     "/mnt/torrents" = {
-      device = "/dev/disk/by-uuid/b296f7f1-ac9e-411c-98ac-4d6b6b13a6b5";
-      fsType = "btrfs";
+      device = "/srv/smol/torrents";
+      fsType = "none";
       options = [
-        "compress=zstd:3"
-        "noatime"
+        "bind"
         "nofail"
         "x-systemd.automount"
-        "x-systemd.device-timeout=15s"
+        "x-systemd.requires-mounts-for=/srv/smol"
       ];
     };
 
     "/mnt/chonk" = {
-      device = "${config.modules.network.hosts.zues}:/srv/chonk";
+      device = "192.168.1.99:/srv/chonk";
       fsType = "nfs";
       options = [
         "nfsvers=4"

@@ -4,7 +4,7 @@
 return function(ctx)
 	local hl = ctx.hl
 
-	ctx.bindDwindleLayoutActions = function(bindLayoutMessage, bindLayoutAction)
+	ctx.layout.bindDwindleActions = function(bindLayoutMessage, bindLayoutAction)
 		bindLayoutMessage("T", "movetoroot active", "[Dwindle] Move window to root")
 		bindLayoutMessage("minus", "splitratio -0.1", "[Dwindle] Shrink split")
 		bindLayoutMessage("equal", "splitratio +0.1", "[Dwindle] Grow split")

@@ -8,7 +8,6 @@ lib.mkIf (pkgs.stdenv.isLinux && (osConfig.modules.desktop.enable or false)) {
   home.packages = with pkgs; [gsettings-desktop-schemas];
   gtk = {
     enable = true;
-    gtk4.theme = null;
 
     gtk3.extraConfig = {
       gtk-decoration-layout = "menu:";

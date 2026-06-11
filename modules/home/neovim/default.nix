@@ -21,6 +21,7 @@
 
   programs.nixvim = {
     enable = true;
+    nixpkgs.source = pkgs.path;
     defaultEditor =
       lib.mkIf (
         !(osConfig.modules.desktop.enable or false) && !(osConfig.modules.emacs.enable or false)

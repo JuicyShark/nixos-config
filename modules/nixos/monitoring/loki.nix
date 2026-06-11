@@ -4,11 +4,10 @@
   lib,
   ...
 }: let
-  networkCfg = config.modules.network;
   homelabMonitoring = config.modules.monitoring.enable;
   homelabHostMonitoring = config.modules.monitoring.host.enable;
   inherit (config.modules) ports;
-  lokiUrl = "http://${networkCfg.hosts.zues}:${toString ports.loki}/loki/api/v1/push";
+  lokiUrl = "http://192.168.1.99:${toString ports.loki}/loki/api/v1/push";
   hostname = config.networking.hostName;
 in {
   config = {
@@ -89,21 +88,21 @@ in {
         };
       };
 
-      nginx.virtualHosts = lib.mkIf homelabMonitoring {
+      nginx.virtualHosts = lib.mkIf config.services.loki.enable {
         "loki.home.arpa" = {
           locations."/" = {
             proxyPass = "http://127.0.0.1:${toString ports.loki}";
           };
           extraConfig = ''
-            allow ${networkCfg.subnets.lan};
-            allow ${networkCfg.subnets.tailscale};
+            allow 192.168.1.0/24;
+            allow 100.64.0.0/10;
             deny all;
           '';
         };
       };
     };
 
-    environment.etc."alloy/config.alloy" = lib.mkIf homelabHostMonitoring {
+    environment.etc."alloy/config.alloy" = lib.mkIf config.services.alloy.enable {
       text = ''
         loki.relabel "journal" {
           forward_to = []
@@ -137,6 +136,6 @@ in {
       '';
     };
 
-    networking.firewall.interfaces.tailscale0.allowedTCPPorts = lib.mkIf homelabHostMonitoring [ports.alloy];
+    networking.firewall.interfaces.tailscale0.allowedTCPPorts = lib.mkIf config.services.alloy.enable [ports.alloy];
   };
 }

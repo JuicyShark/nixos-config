@@ -9,7 +9,6 @@
       glance = import ../modules/nixos/glance.nix;
       ha-presence = import ../modules/nixos/ha-presence.nix;
       homelab = import ../modules/nixos/homelab;
-      htb = import ../modules/nixos/htb.nix;
       impermanence = import ../modules/nixos/impermanence.nix;
       ios = import ../modules/nixos/ios.nix;
       monitoring = import ../modules/nixos/monitoring;
@@ -34,7 +33,6 @@
 
     homeModules = {
       atuin = import ../modules/home/atuin.nix;
-      barrier = import ../modules/home/barrier.nix;
       bat = import ../modules/home/bat.nix;
       btop = import ../modules/home/btop.nix;
       chromium = import ../modules/home/chromium.nix;
@@ -55,11 +53,13 @@
       noctalia-shell = import ../modules/home/noctalia-shell.nix;
       obs = import ../modules/home/obs.nix;
       qutebrowser = import ../modules/home/qutebrowser.nix;
+      rbw = import ../modules/home/rbw.nix;
       ripgrep = import ../modules/home/ripgrep.nix;
       shairport = import ../modules/home/shairport.nix;
       ssh = import ../modules/home/ssh.nix;
       starship = import ../modules/home/starship.nix;
       tmux = import ../modules/home/tmux.nix;
+      walker = import ../modules/home/walker.nix;
       xdg-desktop-entries = import ../modules/home/xdg-desktop-entries.nix;
       xdg-user-dirs = import ../modules/home/xdg-user-dirs.nix;
       xresources = import ../modules/home/xresources.nix;

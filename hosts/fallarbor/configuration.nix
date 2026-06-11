@@ -13,13 +13,16 @@ in {
   imports = with self.nixosModules; [
     system
     shell
-    tailscale
     monitoring
   ];
   environment.systemPackages = with pkgs; [
     tcpdump
     iperf3
   ];
+
+  environment.variables.FLAKE = "/home/juicy/nixos-config";
+  programs.nh.flake = "/home/juicy/nixos-config";
+  home-manager.sharedModules = homeProfiles.cli;
 
   age.secrets = {
     coturn-key = {
@@ -31,14 +34,8 @@ in {
   };
 
   modules = {
-    system = {
-      flakePath = "/home/juicy/nixos-config";
-      hostName = "fallarbor";
-      hashedPasswordFile = config.age.secrets.juicy-password.path;
-      homeModules = homeProfiles.cli;
-    };
+    profile.hashedPasswordFile = config.age.secrets.juicy-password.path;
     monitoring.host.enable = true; # ship logs to zues Loki + expose node metrics
-    tailscale.enable = true;
   };
   nix = {
     gc = {
@@ -63,18 +60,28 @@ in {
 
   boot.kernel.sysctl."vm.swappiness" = 10;
 
-  networking.firewall = {
-    enable = true;
-    allowedUDPPorts = [3478];
-    allowedTCPPorts = [3478];
-    allowedUDPPortRanges = [
-      {
-        from = 49152;
-        to = 49999;
-      }
+  networking = {
+    hostName = "fallarbor";
+
+    firewall = {
+      enable = true;
+      allowedUDPPorts = [3478];
+      allowedTCPPorts = [3478];
+      allowedUDPPortRanges = [
+        {
+          from = 49152;
+          to = 49999;
+        }
+      ];
+      # Open node_exporter for Tailscale scraping from zues
+      interfaces.tailscale0.allowedTCPPorts = [config.modules.ports.exporters.node];
+    };
+
+    # Optional host entry
+    hosts."${turnHost}" = [
+      "127.0.0.1"
+      "::1"
     ];
-    # Open node_exporter for Tailscale scraping from zues
-    interfaces.tailscale0.allowedTCPPorts = [config.modules.ports.exporters.node];
   };
 
   services = {
@@ -87,6 +94,17 @@ in {
     '';
 
     fail2ban.enable = true;
+
+    tailscale = {
+      enable = true;
+      openFirewall = true;
+      useRoutingFeatures = "client";
+      extraUpFlags = [
+        "--login-server=https://ts.nixlab.au"
+        "--accept-dns=false"
+        "--accept-routes"
+      ];
+    };
 
     # Coturn reads the auth secret from an age-managed file.
     coturn = {
@@ -113,11 +131,5 @@ in {
   # We create /run/coturn/turn-extra.conf at start, injecting the secret safely.
   systemd.tmpfiles.rules = [
     "d /run/coturn 0750 turnserver turnserver -"
-  ];
-
-  # Optional host entry
-  networking.hosts."${turnHost}" = [
-    "127.0.0.1"
-    "::1"
   ];
 }

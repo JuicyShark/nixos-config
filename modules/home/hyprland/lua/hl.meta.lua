@@ -13,6 +13,15 @@
 ---@class HlAction
 local HlAction = {}
 
+---@class HlRule
+local HlRule = {}
+
+---@param enabled boolean
+function HlRule:set_enabled(enabled) end
+
+---@return boolean
+function HlRule:is_enabled() end
+
 ---@class HlWindow
 ---@field address string
 ---@field class string
@@ -23,12 +32,17 @@ local HlAction = {}
 
 ---@class HlWorkspace
 ---@field name string
+---@field tiled_layout string
 
 ---@class HlMonitor
 ---@field name string
 ---@field position { x: integer, y: integer }
 
 hl = {}
+
+hl.plugin = {
+    hyprbars = {},
+}
 
 ---@param keys string
 ---@param action HlAction
@@ -39,12 +53,17 @@ function hl.bind(keys, action, opts) end
 function hl.config(t) end
 
 ---@param t table
+function hl.plugin.hyprbars.add_button(t) end
+
+---@param t table
+---@return HlRule
 function hl.window_rule(t) end
 
 ---@param t table
 function hl.workspace_rule(t) end
 
 ---@param t table
+---@return HlRule
 function hl.layer_rule(t) end
 
 ---@param t table
@@ -81,13 +100,19 @@ function hl.get_active_window() end
 ---@return HlWorkspace|nil
 function hl.get_last_workspace() end
 
+---@return HlWorkspace|nil
+function hl.get_active_workspace() end
+
+---@return HlWorkspace|nil
+function hl.get_active_special_workspace() end
+
 ---@return HlMonitor[]
 function hl.get_monitors() end
 
 ---@param name string
----@param reset string
----@param body fun()
-function hl.define_submap(name, reset, body) end
+---@param reset_or_body string|fun()
+---@param body fun()?
+function hl.define_submap(name, reset_or_body, body) end
 
 ---@param event string
 ---@param handler fun(arg: any)
@@ -161,6 +186,10 @@ function hl.dsp.window.fullscreen_state(opts) end
 ---@return HlAction
 function hl.dsp.window.pin() end
 
+---@param opts table?
+---@return HlAction
+function hl.dsp.window.pseudo(opts) end
+
 ---@return HlAction
 function hl.dsp.window.drag() end
 
@@ -192,21 +221,56 @@ function hl.dsp.group.lock_active(opts) end
 function hl.dsp.group.active(opts) end
 
 ---@class HlCfg
----@field terminalCommands { main: string, dropdown: string, pinned: string }
+---@field apps { terminal: string, yazi: string, elephant: string, walker: string, noctalia: string, qutebrowser: string, vivaldi: string|nil, hyprlock: string, pwvucontrol: string, hyprpicker: string, wayscriber: string }
+---@field scripts { submapCheatsheet: string, submapCheatsheetCall: string }
+---@field hyprctl string
+---@field uwsmAppPrefix string
+---@field screenshot { fullscreen: string, region: string, window: string }
+---@field features { gaming: boolean, bloat: boolean, zsa: boolean, emacs: boolean, haPresence: boolean, tmux: boolean }
+---@field sunshine { enable: boolean, virtualMonitor: string, virtualMode: string, virtualPosition: string, virtualScale: string, steamWorkspace: string, gameWorkspace: string }
+cfg = {}
+
+---@class HyprCommands
+---@field app fun(cmd: string): string
 ---@field browser string
 ---@field privateBrowser string
----@field passManager string
+---@field terminal { main: string, dropdown: string, pinned: string }
+---@field files string
+---@field walker { launcher: string, commands: string, clipboard: string, bitwarden: string, windows: string, service: string }
+---@field autostart { elephant: string, noctalia: string, submapCheatsheet: string, wayscriber: string }
+---@field screenshot { fullscreen: string, region: string, window: string }
 ---@field locker string
 ---@field volumeMixer string
 ---@field hyprpicker string
 ---@field noctalia string
----@field submapCheatsheet string
----@field submapCheatsheetToggle string
----@field screenshot { fullscreen: string, region: string, window: string }
+---@field submapCheatsheetCall string
+
+---@class HyprBindHelpers
+---@field mod string
+---@field bind fun(keys: string, action: HlAction|fun(), desc: string?, opts: table?)
+---@field mbind fun(key: string, action: HlAction|fun(), desc: string?, opts: table?)
+---@field bindSubmap fun(keys: string, target: string, desc: string, opts: table?)
+---@field mbindSubmap fun(key: string, target: string, desc: string, opts: table?)
+---@field bindBack fun(target: string, desc: string?)
+---@field defineSubmap fun(name: string, body: fun(), opts: table?)
+---@field toggleOptions fun()
+---@field writeCheatsheet fun()
+---@field entrySubmaps fun(bind_fn: fun(key: string, target: string, desc: string))
+---@field walkerSubmap fun()
+---@field groupSubmap fun()
+
+---@class HyprCheatsheet
+---@field reset fun(): string|nil
+---@field withSubmap fun(name: string, reset: string|nil, body: fun())
+---@field recordBind fun(keys: string, desc: string?, opts: table?)
+---@field recordSubmap fun(keys: string, target: string, desc: string, opts: table?)
+---@field recordExit fun()
+---@field show fun(name: string)
+---@field hide fun()
+---@field toggleOptions fun()
+---@field write fun()
+
+---@class HyprDesktopPolicy
+---@field mod string
 ---@field primary { output: string, selector: string, wideColor: boolean }
 ---@field monitorWorkspace { enable: boolean, target: string, workspaces: string[] }
----@field flags { gaming: boolean, bloat: boolean, zsa: boolean, emacs: boolean, haPresence: boolean }
----@field sunshine { enable: boolean, virtualMonitor: string, virtualMode: string, virtualPosition: string, virtualScale: string, steamWorkspace: string, gameWorkspace: string }
----@field theme { gaps_in: integer, gaps_out: integer, rounding: integer }
----@field colors table<string, string>
-cfg = {}

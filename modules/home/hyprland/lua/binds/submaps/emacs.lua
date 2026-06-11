@@ -3,10 +3,10 @@
 -- ============================================================
 return function(ctx)
 	local hl = ctx.hl
-	local bind = ctx.bind
-	local submap = ctx.submap
+	local bind = ctx.bindHelpers.bind
+	local defineSubmap = ctx.bindHelpers.defineSubmap
 
-	submap("emacs", function()
+	defineSubmap("emacs", function()
 		bind("E", hl.dsp.exec_cmd("emacsclient -r"), "Emacs raise")
 		bind("F", function()
 			local w = hl.get_windows({ class = "emacs" })[1]

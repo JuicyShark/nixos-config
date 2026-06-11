@@ -16,6 +16,11 @@
     wowup-cf
     vkbasalt
   ];
+  retroGamingPackages = with pkgs; [
+    shipwright #LoZ OoT
+    dusklight #LoZ twilight
+    _2ship2harkinian # LoZ MM
+  ];
 in {
   config = lib.mkIf cfg.enable {
     systemd.settings.Manager = lib.mkIf cfg.gaming.enable {DefaultLimitNOFILE = 1048576;};
@@ -27,30 +32,19 @@ in {
       # AMD GPU tuner: fan curves, power profiles, per-app profiles.
       corectrl.enable = cfg.gaming.enable;
 
-      gamescope = {
-        inherit (cfg.gaming) enable;
-        capSysNice = true;
-        args = [
-          "-W 2560"
-          "-H 1440"
-          "-r 120"
-          "--expose-wayland"
-        ];
-      };
-
       steam = {
         enable = cfg.gaming.enable && !isContainer;
         #extest.enable = true; # Steam Controller
         localNetworkGameTransfers.openFirewall = true;
         dedicatedServer.openFirewall = true;
         remotePlay.openFirewall = true;
-        gamescopeSession.enable = true;
         extraCompatPackages = with pkgs; [proton-ge-bin];
       };
     };
 
     environment.systemPackages =
       (lib.optionals cfg.gaming.enable gamingPackages)
+      ++ (lib.optionals (cfg.gaming.enable && cfg.gaming.retro.enable) retroGamingPackages)
       ++ (lib.optionals cfg.virtual.enable [pkgs.quickemu]);
   };
 }

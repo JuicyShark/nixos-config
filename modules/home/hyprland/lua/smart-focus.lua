@@ -13,7 +13,7 @@
 
 return function(ctx)
 local hl = ctx.hl
-local hasEmacs = ctx.cfg.flags.emacs
+local hasEmacs = ctx.features.emacs
 
 local terminal_classes = {
     kitty = true,

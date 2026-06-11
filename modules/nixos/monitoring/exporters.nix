@@ -11,7 +11,7 @@
   homelabNas = config.modules.monitoring.nas.enable;
   inherit (config.modules) ports;
   exporterPorts = config.modules.ports.exporters;
-  inherit (config.modules.system) username;
+  username = "juicy";
 
   mkNixflixService = service: port:
     lib.attrByPath ["nixflix" service] {

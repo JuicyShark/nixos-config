@@ -5,13 +5,16 @@
   ...
 }: let
   enabled = pkgs.stdenv.isLinux && (osConfig.modules.shairport.enable or false);
-  hostName = osConfig.networking.hostName or "shairport";
+  name = osConfig.modules.shairport.name or (osConfig.networking.hostName or "shairport");
+  interface = osConfig.modules.shairport.interface or null;
   confFile = pkgs.writeText "shairport-sync.conf" ''
     general = {
-      name = "${hostName}";
+      name = ${builtins.toJSON name};
       output_backend = "pipewire";
+      mdns_backend = "avahi";
+      ${lib.optionalString (interface != null) "interface = ${builtins.toJSON interface};"}
+      port = 5000;
       interpolation = "auto";
-      use_precision_clock = "yes";
       udp_port_base = 6001;
       udp_port_range = 10;
     };
@@ -37,7 +40,7 @@ in {
       };
 
       Service = {
-        ExecStart = "${pkgs.shairport-sync-airplay2}/bin/shairport-sync -c ${confFile}";
+        ExecStart = "${pkgs.shairport-sync}/bin/shairport-sync -c ${confFile}";
         Restart = "on-failure";
         RestartSec = 2;
       };

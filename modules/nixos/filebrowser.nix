@@ -6,7 +6,7 @@
   inherit (lib) mkEnableOption;
   inherit (config.modules) ports;
   cfg = config.modules.filebrowser;
-  inherit (config.modules.system) username;
+  username = "juicy";
   rootPath = "/srv/chonk/family";
 in {
   options.modules.filebrowser = {
@@ -33,8 +33,8 @@ in {
       };
       # Restrict to LAN and Tailscale — noauth means anyone who reaches it has access
       extraConfig = ''
-        allow ${config.modules.network.subnets.lan};
-        allow ${config.modules.network.subnets.tailscale};
+        allow 192.168.1.0/24;
+        allow 100.64.0.0/10;
         deny all;
       '';
     };

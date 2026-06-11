@@ -7,10 +7,14 @@
   system,
   ...
 }: let
-  desktop = osConfig.modules.desktop.enable or false;
+  hyprlandEnabled = osConfig.programs.hyprland.enable or false;
   inherit (osConfig.stylix) cursor;
   luaCfg = import ./hyprland/cfg.nix {
     inherit osConfig config pkgs lib inputs system;
+  };
+  hyprSettings = import ./hyprland/settings.nix {
+    cfg = luaCfg;
+    inherit config lib;
   };
 
   renderUwsmEnv = attrs:
@@ -19,7 +23,7 @@
       attrs)
     + "\n";
 in {
-  config = lib.mkIf (pkgs.stdenv.isLinux && desktop) {
+  config = lib.mkIf (pkgs.stdenv.isLinux && hyprlandEnabled) {
     home.packages = [
       pkgs.socat
       pkgs.wayscriber
@@ -80,14 +84,15 @@ in {
       inherit (osConfig.programs.hyprland) package;
       inherit (osConfig.programs.hyprland) portalPackage;
       systemd.enable = false; # UWSM manages the systemd session
+      plugins = [
+        pkgs.hyprlandPlugins.hyprbars
+      ];
       configType = "lua";
-      extraConfig = import ./hyprland/lua.nix {
+      settings = hyprSettings;
+      extraLuaFiles = import ./hyprland/lua.nix {
         inherit lib;
         cfg = luaCfg;
       };
-
-      #     settings = lib.mkForce {};
-      #extraConfig = lib.mkForce "";
     };
   };
 }

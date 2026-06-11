@@ -41,7 +41,7 @@
   ...
 }: let
   cfg = config.modules.impermanence;
-  inherit (config.modules.system) username;
+  username = "juicy";
   persist = cfg.persistBase;
 in {
   imports = [inputs.impermanence.nixosModules.impermanence];

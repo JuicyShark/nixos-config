@@ -5,16 +5,15 @@
   lib,
   ...
 }: let
-  inherit (lib.types) str submodule nullOr bool;
-  inherit (config.modules.system) username;
   inherit (config.boot) isContainer;
-  inherit (lib) mkIf mkOption mkEnableOption;
+  inherit (lib) mkIf mkEnableOption mkOption;
+  username = "juicy";
 
   cfg = config.modules.desktop;
 
   desktopBasePackages = with pkgs; [
     btop
-    bitwarden-desktop
+    #bitwarden-desktop
     pulsemixer
     rsync
     wl-clipboard-rs
@@ -28,6 +27,7 @@
     hyprshot
     cliphist
     wf-recorder
+    gparted
   ];
 in {
   imports = [
@@ -38,34 +38,17 @@ in {
   options.modules.desktop = {
     enable = mkEnableOption "desktop environment (Hyprland/Wayland)";
     bloat.enable = mkEnableOption "extra desktop applications (Signal, Discord, Obsidian, etc.)";
-    gaming.enable = mkEnableOption "gaming features (Steam, GameMode, Wine, Proton, etc.)";
+    gaming = {
+      enable = mkEnableOption "gaming features (Steam, GameMode, Wine, Proton, etc.)";
+      retro.enable = mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to install retro gaming tools and ports with the gaming bundle.";
+      };
+    };
     streaming.enable = mkEnableOption "streaming tools (OBS, streamlink)";
     guiFallback.enable = mkEnableOption "GUI fallback applications (grsync, etc.)";
     virtual.enable = mkEnableOption "virtualization support (quickemu, cdemu)";
-
-    primaryMonitor = mkOption {
-      type = submodule {
-        options = {
-          output = mkOption {
-            type = str;
-            default = "DP-1";
-            description = "Hyprland output name (e.g. DP-2). Used as the fallback when desc is empty.";
-          };
-          desc = mkOption {
-            type = nullOr str;
-            default = null;
-            description = "EDID description prefix to match the monitor by, e.g. \"Samsung Electric Company C49RG9x\". When set, the monitor is bound by description so cable port swaps don't break the config.";
-          };
-          wideColor = mkOption {
-            type = bool;
-            default = false;
-            description = "Set Hyprland's monitor.supports_wide_color. Enable for DCI-P3 / 10-bit panels.";
-          };
-        };
-      };
-      default = {};
-      description = "Primary monitor description used by the desktop module, Hyprland config, Sunshine streaming, and Noctalia shell.";
-    };
   };
 
   config = lib.mkMerge [
@@ -117,6 +100,7 @@ in {
         PROTON_ENABLE_WAYLAND = "1";
         PULSE_LATENCY_MSEC = "60";
         MOZ_ENABLE_WAYLAND = "1";
+        TZ = config.time.timeZone;
         QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
         _JAVA_AWT_WM_NONREPARENTING = "1";
 
@@ -148,14 +132,12 @@ in {
         enable = !isContainer;
         extraPortals = with pkgs; [
           xdg-desktop-portal-gtk
-          xdg-desktop-portal-termfilechooser
         ];
-        config.common = {
+        config.hyprland = {
           default = [
             "hyprland"
             "gtk"
           ];
-          "org.freedesktop.impl.portal.FileChooser" = "termfilechooser";
         };
       };
 

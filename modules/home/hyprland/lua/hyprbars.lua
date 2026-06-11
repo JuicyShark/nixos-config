@@ -23,7 +23,8 @@ return function(ctx)
 	})
 
 	local hyprbarsTiledEnabled = false
-	ctx.toggleHyprbarsTiled = function()
+	ctx.window = ctx.window or {}
+	ctx.window.toggleHyprbarsTiled = function()
 		hyprbarsTiledEnabled = not hyprbarsTiledEnabled
 		hideTiledHyprbars:set_enabled(not hyprbarsTiledEnabled)
 	end

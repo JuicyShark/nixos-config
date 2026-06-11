@@ -4,22 +4,20 @@
   pkgs,
   ...
 }: {
-  imports =
-    (with self.darwinModules; [system])
-    ++ [
-      (self + "/modules/nixos/shell.nix")
-      (self + "/modules/nixos/stylix.nix")
-      (self + "/modules/nixos/emacs.nix")
-    ];
+  imports = with self.darwinModules; [
+    system
+    shell
+    stylix
+    emacs
+  ];
 
   modules = {
-    system = {
-      flakePath = "/Users/juicy/nixos-config";
-      hostName = "mac";
-      homeModules = homeProfiles.darwin;
-    };
     emacs.enable = true;
   };
+
+  networking.hostName = "mac";
+  environment.variables.FLAKE = "/Users/juicy/nixos-config";
+  home-manager.sharedModules = homeProfiles.darwin;
 
   # GNU userland parity with Linux hosts (prefixed as g* — gsed, gtar, gfind, etc.)
   environment.systemPackages = with pkgs; [

@@ -27,9 +27,9 @@ return function(ctx)
 			dropdown = app(apps.terminal .. " --class dropdown --title dropdown"),
 			pinned = app(apps.terminal .. " --class pinned --title pinned"),
 		},
+		files = app(apps.terminal .. " --class floating-editor --title yazi -e " .. apps.yazi),
 		walker = {
 			launcher = app(apps.walker .. " --set launcher"),
-			files = app(apps.walker .. " --set files"),
 			commands = app(apps.walker .. " --set commands"),
 			clipboard = app(apps.walker .. " --set clipboard"),
 			bitwarden = app(apps.walker .. " --set bitwarden"),

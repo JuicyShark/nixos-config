@@ -5,7 +5,6 @@
 }: let
   inherit (lib) mkOption mkEnableOption mkDefault;
   inherit (lib.types) str;
-  networkCfg = config.modules.network;
   inherit (config.modules) ports;
 in {
   imports = [
@@ -13,11 +12,9 @@ in {
     ./deluge.nix
     ./vaultwarden.nix
     ./headscale.nix
-    ./immich.nix
     ./gatus.nix
     ./paperless.nix
     ./syncthing.nix
-    ./miniflux.nix
     ./uptime-kuma.nix
   ];
 
@@ -30,27 +27,8 @@ in {
 
     deluge.enable = mkEnableOption "Deluge torrent client";
     headscale.enable = mkEnableOption "Headscale self-hosted Tailscale coordination server";
-    immich = {
-      enable = mkEnableOption "Immich photo and video backup";
-      domain = mkOption {
-        type = str;
-        default = "photos.home.arpa";
-        description = "Internal Immich virtual host";
-      };
-      publicDomain = mkOption {
-        type = lib.types.nullOr str;
-        default = "photos.nixlab.au";
-        description = "Public Immich hostname exposed through cloudflared; set to null to disable public tunnel ingress.";
-      };
-      mediaLocation = mkOption {
-        type = lib.types.path;
-        default = "/srv/chonk/immich";
-        description = "Immich upload library path";
-      };
-    };
     jellyfin.enable = mkEnableOption "Jellyfin media server";
     media.enable = mkEnableOption "*arr media acquisition stack (sonarr, radarr, lidarr, prowlarr, jellyseerr)";
-    miniflux.enable = mkEnableOption "Miniflux RSS reader";
     paperless = {
       enable = mkEnableOption "Paperless-ngx document archive";
       domain = mkOption {
@@ -110,7 +88,7 @@ in {
       recommendedProxySettings = mkDefault true;
 
       virtualHosts."hass.home.arpa".locations."/" = {
-        proxyPass = "http://${networkCfg.hosts.homeAssistant}:${toString ports.homeAssistant}";
+        proxyPass = "http://192.168.1.49:${toString ports.homeAssistant}";
         proxyWebsockets = true;
       };
     };

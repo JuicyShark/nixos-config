@@ -6,9 +6,8 @@
   pkgs,
   ...
 }: let
-  networkCfg = config.modules.network;
   endpoints = self.lib.${pkgs.stdenv.hostPlatform.system}.services.mkHomelabEndpoints {inherit config;};
-  inherit (config.modules.system) username;
+  username = "juicy";
 
   # Cloudflared secret files. Keep these explicit so an untracked local secret
   # cannot change evaluation compared with a remote builder.
@@ -97,7 +96,7 @@ in {
           "smb ports" = "445";
           "interfaces" = "lo br0 tailscale0";
           "bind interfaces only" = "yes";
-          "hosts allow" = "127. ${networkCfg.subnets.lan} ${networkCfg.subnets.tailscale}";
+          "hosts allow" = "127. 192.168.1.0/24 100.64.0.0/10";
           "hosts deny" = "0.0.0.0/0";
           "map to guest" = "Bad User";
           "guest account" = "nobody";
@@ -166,7 +165,7 @@ in {
       settings = {
         no-resolv = true;
         listen-address = [
-          networkCfg.hosts.zues
+          "192.168.1.99"
           "127.0.0.1"
         ];
         server = ["127.0.0.1#5353"];
@@ -184,8 +183,8 @@ in {
 
         dhcp-ignore-names = true;
         dhcp-option = [
-          "3,${networkCfg.hosts.zues}"
-          "6,${networkCfg.hosts.zues}"
+          "3,192.168.1.99"
+          "6,192.168.1.99"
           "15,home.arpa"
         ];
         dhcp-range = [
@@ -213,25 +212,25 @@ in {
           hosts = [
             {
               name = "dante";
-              ip = networkCfg.hosts.dante;
+              ip = "192.168.1.60";
             }
             {
               name = "leo";
-              ip = networkCfg.hosts.leo;
+              ip = "192.168.1.54";
             }
             {
               name = "zues";
-              ip = networkCfg.hosts.zues;
+              ip = "192.168.1.99";
             }
             {
               name = "hermes";
-              ip = networkCfg.hosts.hermes;
+              ip = "192.168.1.56";
             }
           ];
         in
           # router also resolves without domain suffix (legacy compat)
-          ["/router/${networkCfg.hosts.zues}"]
-          ++ map (svc: "/${svc}.home.arpa/${networkCfg.hosts.zues}") dnsAliases
+          ["/router/192.168.1.99"]
+          ++ map (svc: "/${svc}.home.arpa/192.168.1.99") dnsAliases
           ++ lib.concatMap (h: [
             "/${h.name}/${h.ip}"
             "/${h.name}.home.arpa/${h.ip}"

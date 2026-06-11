@@ -4,6 +4,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   cfg = config.modules.system;
@@ -24,12 +25,21 @@ in {
 
     # Allow SSH only from LAN and Tailscale CGNAT range; block WAN scanners
     networking.firewall.extraInputRules = ''
-      ip saddr ${config.modules.network.subnets.lan} tcp dport 22 accept
-      ip saddr ${config.modules.network.subnets.tailscale} tcp dport 22 accept
+      ip saddr 192.168.1.0/24 tcp dport 22 accept
+      ip saddr 100.64.0.0/10 tcp dport 22 accept
     '';
 
     programs = {
       command-not-found.enable = true;
+      gnupg.agent = {
+        enable = true;
+        enableSSHSupport = false;
+        pinentryPackage = pkgs.pinentry-qt;
+        settings = {
+          default-cache-ttl = 3600;
+          max-cache-ttl = 14400;
+        };
+      };
       ssh.startAgent = false;
     };
 
