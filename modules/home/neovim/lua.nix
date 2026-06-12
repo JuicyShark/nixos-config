@@ -130,23 +130,13 @@ in {
 
     -- compiler.nvim + overseer.nvim drive build/run/test; see keymaps under <leader>r.
 
-    -- Diffview: disable mercurial
-    require("diffview").setup({
-      hg_cmd = {},
-    })
-
-    -- Set vim.ui overrides (deferred to ensure Snacks is loaded)
-    vim.api.nvim_create_autocmd("User", {
-      pattern = "VeryLazy",
-      once = true,
-      callback = function()
-        if Snacks and Snacks.picker then
-          vim.ui.select = Snacks.picker.select
-        end
-        if Snacks and Snacks.input then
-          vim.ui.input = Snacks.input
-        end
-      end,
-    })
+    -- Snacks is configured before this block by nixvim, so make UI overrides
+    -- deterministic for startup and headless health checks.
+    if Snacks and Snacks.picker then
+      Snacks.picker.setup()
+    end
+    if Snacks and Snacks.input then
+      Snacks.input.enable()
+    end
   '';
 }

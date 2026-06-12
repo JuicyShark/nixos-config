@@ -1,12 +1,25 @@
 # All plugin declarations
-{pkgs, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: let
+  codelldbAdapter = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
+in {
   programs.nixvim = {
+    extraPackages = [
+      (pkgs.writeShellScriptBin "codelldb" ''
+        exec ${codelldbAdapter} "$@"
+      '')
+    ];
+
     extraPlugins = [
       pkgs.vimPlugins.diffview-nvim
     ];
 
     plugins = {
       web-devicons.enable = true;
+      "sqlite-lua".enable = true;
 
       which-key = {
         enable = true;
@@ -101,6 +114,18 @@
       rustaceanvim = {
         enable = true;
         settings = {
+          dap.adapter = {
+            type = "server";
+            host = "127.0.0.1";
+            port = "\${port}";
+            executable = {
+              command = codelldbAdapter;
+              args = [
+                "--port"
+                "\${port}"
+              ];
+            };
+          };
           server = {
             default_settings = {
               rust-analyzer = {
@@ -127,9 +152,9 @@
             crates.enabled = true;
           };
           lsp = {
-            enabled = true;
+            enabled = false;
             actions = true;
-            completion = true;
+            completion = false;
             hover = true;
           };
         };
@@ -337,6 +362,7 @@
           picker = {
             enabled = true;
             layout = "telescope";
+            db.sqlite3_path = "${pkgs.sqlite.out}/lib/libsqlite3.so";
             sources = {
               files = {
                 hidden = true;
@@ -830,10 +856,10 @@
           bashls.enable = true;
           ts_ls = {
             enable = true;
-            filetypes = [
+            filetypes = lib.mkForce [
               "javascript"
-              "typescript"
               "javascriptreact"
+              "typescript"
               "typescriptreact"
             ];
           };

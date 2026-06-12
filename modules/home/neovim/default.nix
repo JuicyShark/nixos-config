@@ -61,11 +61,6 @@
       loaded_npm_provider = 0;
     };
     extraPackages = with pkgs; [
-      lua-language-server
-      nil
-      rust-analyzer
-      vscode-langservers-extracted
-      bash-language-server
       shellcheck
       shfmt
       tree-sitter
@@ -76,7 +71,6 @@
       sqlite
 
       # C / C++ — clangd + clang-format + build tools for compiler.nvim
-      clang-tools
       cppcheck
       gcc
       gnumake
@@ -93,6 +87,7 @@
       binutils
       file
       jq
+      mercurial
 
       # DAP adapter for c/cpp/rust
       vscode-extensions.vadimcn.vscode-lldb
