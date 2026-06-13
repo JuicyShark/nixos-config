@@ -1,69 +1,32 @@
 {
   cfg,
   config,
-  lib,
 }: let
-  inherit (lib) optionals;
-
   colors = config.lib.stylix.colors;
   rgb = color: "rgb(${color})";
-
-  theme = {
-    gaps_in = 12;
-    gaps_out = 24;
-    rounding = 25;
-  };
-
-  primary = {
-    selector = "DP-2";
-  };
-
-  curve = name: type: points: {
-    _args = [
-      name
-      {
-        inherit type points;
-      }
-    ];
-  };
-
-  spring = name: mass: stiffness: dampening: {
-    _args = [
-      name
-      {
-        type = "spring";
-        inherit mass stiffness dampening;
-      }
-    ];
-  };
-
-  animation = attrs: attrs;
 in {
-  monitor =
-    [
-      {
-        output = primary.selector;
-        mode = "preferred";
-        position = "0x0";
-        scale = 1;
-      }
-      {
-        output = "HDMI-A-2";
-        mode = "preferred";
-        position = "auto-center-right";
-        scale = 1;
-      }
-    ]
-    ++ optionals (cfg.sunshine.enable or false) [
-      {
-        output = cfg.sunshine.virtualMonitor;
-        disabled = true;
-      }
-    ];
+  monitor = [
+    {
+      output = "DP-2";
+      mode = "preferred";
+      position = "0x0";
+      scale = 1;
+    }
+    {
+      output = "HDMI-A-2";
+      mode = "preferred";
+      position = "auto-center-right";
+      scale = 1;
+    }
+    {
+      output = "HDMI-A-1";
+      disabled = true;
+    }
+  ];
 
   config = {
     cursor = {
-      default_monitor = primary.selector;
+      default_monitor = "DP-2";
       inactive_timeout = 10;
       enable_hyprcursor = true;
       no_hardware_cursors = false;
@@ -71,8 +34,8 @@ in {
     };
 
     general = {
-      inherit (theme) gaps_in;
-      inherit (theme) gaps_out;
+      gaps_in = 12;
+      gaps_out = 24;
       border_size = 4;
       col = {
         active_border = {
@@ -95,7 +58,7 @@ in {
     };
 
     decoration = {
-      inherit (theme) rounding;
+      rounding = 25;
       rounding_power = 1.0;
       dim_inactive = false;
       dim_strength = 0.18;
@@ -254,101 +217,157 @@ in {
   };
 
   curve = [
-    (curve "ease_snap" "bezier" [[0.05 0.9] [0.1 1.0]])
-    (curve "ease_quick" "bezier" [[0.16 1.0] [0.3 1.0]])
-    (spring "spring_snappy" 1 125 18)
-    (spring "spring_window" 1 95 15)
-    (spring "spring_workspace" 1 80 18)
-    (spring "spring_drawer" 1 90 13)
+    {
+      _args = [
+        "ease_snap"
+        {
+          type = "bezier";
+          points = [[0.05 0.9] [0.1 1.0]];
+        }
+      ];
+    }
+    {
+      _args = [
+        "ease_quick"
+        {
+          type = "bezier";
+          points = [[0.16 1.0] [0.3 1.0]];
+        }
+      ];
+    }
+    {
+      _args = [
+        "spring_snappy"
+        {
+          type = "spring";
+          mass = 1;
+          stiffness = 125;
+          dampening = 18;
+        }
+      ];
+    }
+    {
+      _args = [
+        "spring_window"
+        {
+          type = "spring";
+          mass = 1;
+          stiffness = 95;
+          dampening = 15;
+        }
+      ];
+    }
+    {
+      _args = [
+        "spring_workspace"
+        {
+          type = "spring";
+          mass = 1;
+          stiffness = 80;
+          dampening = 18;
+        }
+      ];
+    }
+    {
+      _args = [
+        "spring_drawer"
+        {
+          type = "spring";
+          mass = 1;
+          stiffness = 90;
+          dampening = 13;
+        }
+      ];
+    }
   ];
 
   animation = [
-    (animation {
+    {
       leaf = "windows";
       enabled = true;
       speed = 5;
       spring = "spring_window";
       style = "slide";
-    })
-    (animation {
+    }
+    {
       leaf = "windowsIn";
       enabled = true;
       speed = 5;
       spring = "spring_window";
       style = "popin 88%";
-    })
-    (animation {
+    }
+    {
       leaf = "windowsMove";
       enabled = true;
       speed = 4;
       spring = "spring_snappy";
-    })
-    (animation {
+    }
+    {
       leaf = "windowsOut";
       enabled = true;
       speed = 4;
       bezier = "ease_quick";
       style = "popin 82%";
-    })
-    (animation {
+    }
+    {
       leaf = "layersIn";
       enabled = true;
       speed = 5;
       spring = "spring_drawer";
       style = "slide";
-    })
-    (animation {
+    }
+    {
       leaf = "layersOut";
       enabled = true;
       speed = 4;
       bezier = "ease_quick";
       style = "slide";
-    })
-    (animation {
+    }
+    {
       leaf = "border";
       enabled = true;
       speed = 8;
       bezier = "ease_snap";
-    })
-    (animation {
+    }
+    {
       leaf = "borderangle";
       enabled = true;
       speed = 25;
       bezier = "ease_snap";
       style = "once";
-    })
-    (animation {
+    }
+    {
       leaf = "fade";
       enabled = true;
       speed = 4;
       bezier = "ease_quick";
-    })
-    (animation {
+    }
+    {
       leaf = "fadePopups";
       enabled = true;
       speed = 3;
       bezier = "ease_quick";
-    })
-    (animation {
+    }
+    {
       leaf = "fadeLayers";
       enabled = true;
       speed = 3;
       bezier = "ease_quick";
-    })
-    (animation {
+    }
+    {
       leaf = "workspaces";
       enabled = true;
       speed = 6;
       spring = "spring_workspace";
       style = "slidefade 18%";
-    })
-    (animation {
+    }
+    {
       leaf = "specialWorkspace";
       enabled = true;
       speed = 5;
       spring = "spring_drawer";
       style = "slidefadevert 22%";
-    })
+    }
   ];
 
   gesture = [

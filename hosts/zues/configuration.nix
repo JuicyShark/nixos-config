@@ -45,10 +45,10 @@ in {
     homelab = {
       smtpEmail = "maxwellb9879@gmail.com";
       deluge.enable = true;
+      filebrowser.enable = true;
       headscale.enable = true;
       jellyfin.enable = true;
       media.enable = true;
-      paperless.enable = false;
       syncthing.enable = false;
       gatus.enable = true;
       vaultwarden.enable = true;
@@ -57,9 +57,6 @@ in {
       enable = true;
       host.enable = true;
       nas.enable = true;
-    };
-    filebrowser = {
-      enable = true;
     };
     nfs = {
       exportPath = "/srv/chonk";

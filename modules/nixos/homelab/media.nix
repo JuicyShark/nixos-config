@@ -7,6 +7,7 @@
 
   homelabJellyfin = config.modules.homelab.jellyfin.enable;
   homelabMedia = config.modules.homelab.media.enable;
+  jellyfinCfg = config.modules.homelab.jellyfin;
 
   inherit (config.modules) ports;
   username = "juicy";
@@ -95,13 +96,6 @@ in {
         };
       };
       flaresolverr.enable = true;
-      globals = {
-        uids.seerr = 2000;
-        gids = {
-          media = 2000;
-          seerr = 2000;
-        };
-      };
 
       downloadarr.deluge = mkIf config.services.deluge.enable {
         enable = true;
@@ -155,9 +149,38 @@ in {
         };
         settings = arrSettings ports.prowlarr;
       };
+
+      seerr = {
+        enable = true;
+        apiKey._secret = apiSecret "seerr-api";
+        port = ports.jellyseerr;
+        group = "media";
+        dataDir = "/var/lib/seerr";
+        jellyfin = {
+          inherit (jellyfinCfg) adminUsername;
+          adminPassword._secret = apiSecret "jellyfin-admin-password";
+          hostname = "jellyfin.home.arpa";
+          port = 80;
+          externalHostname = "http://jellyfin.home.arpa";
+        };
+      };
     };
 
     age.secrets = mkIf homelabMedia {
+      jellyfin-admin-password = {
+        file = ../../../secrets/jellyfin-admin-password.age;
+        group = "media";
+        mode = "0440";
+        path = "/run/media-secrets/jellyfin-admin-password";
+        symlink = false;
+      };
+      seerr-api = {
+        file = ../../../secrets/seerr-api.age;
+        group = "media";
+        mode = "0440";
+        path = "/run/media-secrets/seerr-api";
+        symlink = false;
+      };
       sonarr-api = {
         group = "media";
         mode = "0440";
@@ -199,29 +222,18 @@ in {
       ++ lib.optional config.services.deluge.enable config.services.deluge.user;
 
     services = {
-      seerr = {
-        enable = homelabMedia;
-        port = ports.jellyseerr;
-        openFirewall = false;
-      };
-
       nginx = {
         enable = mkIf (homelabMedia || homelabJellyfin || config.services.deluge.enable) true;
         virtualHosts =
           lib.optionalAttrs homelabJellyfin {
             # Jellyfin needs WebSocket upgrade for live TV / casting
             "jellyfin.home.arpa".locations."/" = {
-              proxyPass = "http://192.168.1.52:${toString ports.jellyfin}";
+              proxyPass = "http://${jellyfinCfg.host}:${toString ports.jellyfin}";
               extraConfig = ''
                 proxy_http_version 1.1;
                 proxy_set_header Upgrade $http_upgrade;
                 proxy_set_header Connection "upgrade";
               '';
-            };
-          }
-          // lib.optionalAttrs homelabMedia {
-            "seerr.home.arpa".locations."/" = {
-              proxyPass = "http://127.0.0.1:${toString ports.jellyseerr}";
             };
           }
           // lib.optionalAttrs config.services.deluge.enable {

@@ -10,7 +10,7 @@
       palette = lib.mkForce "nocturne";
 
       format = ''
-        [╭─](fg:surface1 bold)$os$username$hostname$directory$git_branch$nix_shell$fill$cmd_duration$jobs$status$time
+        [╭─](fg:surface1 bold)$directory$git_branch$git_status$nix_shell$jobs$cmd_duration$status
         [╰─](fg:surface1 bold)$character
       '';
 
@@ -47,9 +47,7 @@
       };
 
       os = {
-        format = "[ $symbol ]($style)";
-        style = "bg:blue fg:crust bold";
-        disabled = false;
+        disabled = true;
         symbols = {
           NixOS = "";
           Macos = "";
@@ -59,25 +57,21 @@
 
       username = {
         show_always = true;
-        format = "[ $user ]($style)";
-        style_user = "bg:surface0 fg:lavender bold";
-        style_root = "bg:red fg:crust bold";
+        disabled = true;
       };
 
       hostname = {
         ssh_only = false;
-        format = "[@$hostname ]($style)";
-        style = "bg:surface0 fg:sky bold";
-        disabled = false;
+        disabled = true;
       };
 
       directory = {
-        format = "[](fg:surface0 bg:mauve)[ $path ]($style)[](fg:mauve bg:surface0)";
-        style = "bg:mauve fg:crust bold";
+        format = "[ $path]($style) ";
+        style = "fg:mauve bold";
         truncation_length = 4;
         truncation_symbol = "…/";
         read_only = " 󰌾";
-        read_only_style = "bg:mauve fg:red bold";
+        read_only_style = "fg:red bold";
         home_symbol = "~";
         substitutions = {
           Documents = "󰈙 ";
@@ -91,26 +85,26 @@
       };
 
       git_branch = {
-        format = "[ $symbol$branch(:$remote_branch) ]($style)";
-        style = "bg:surface0 fg:green bold";
+        format = "[on $symbol$branch(:$remote_branch)]($style) ";
+        style = "fg:green bold";
         symbol = " ";
       };
 
       git_status = {
-        disabled = true;
-        format = "[$all_status$ahead_behind ]($style)";
-        style = "bg:surface0 fg:peach bold";
-        conflicted = "󰞇 ";
-        ahead = "⇡$count ";
-        behind = "⇣$count ";
-        diverged = "⇕⇡$ahead_count⇣$behind_count ";
+        disabled = false;
+        format = "[$all_status$ahead_behind]($style) ";
+        style = "fg:peach bold";
+        conflicted = "conflict:$count ";
+        ahead = "ahead:$count ";
+        behind = "behind:$count ";
+        diverged = "diverged:$ahead_count/$behind_count ";
         up_to_date = "";
-        untracked = "?$count ";
-        stashed = "󰆓 ";
-        modified = "!$count ";
-        staged = "+$count ";
-        renamed = "»$count ";
-        deleted = "✘$count ";
+        untracked = "new:$count ";
+        stashed = "stash:$count ";
+        modified = "mod:$count ";
+        staged = "stg:$count ";
+        renamed = "ren:$count ";
+        deleted = "del:$count ";
       };
 
       character = {
@@ -124,8 +118,8 @@
       nix_shell = {
         disabled = false;
         heuristic = false;
-        format = "[ $symbol$state ]($style)";
-        style = "bg:surface0 fg:blue bold";
+        format = "[via $symbol$state]($style) ";
+        style = "fg:blue bold";
         symbol = " ";
         impure_msg = "";
         pure_msg = "";
@@ -133,21 +127,21 @@
       };
 
       jobs = {
-        format = "[ $symbol$number ]($style)";
-        style = "bg:surface0 fg:yellow bold";
+        format = "[jobs:$number]($style) ";
+        style = "fg:yellow bold";
         symbol = "󰒋 ";
         number_threshold = 1;
       };
 
       status = {
         disabled = false;
-        format = "[ $symbol$status ]($style)";
-        style = "bg:red fg:crust bold";
+        format = "[exit $status]($style) ";
+        style = "fg:red bold";
         symbol = "󰅙 ";
       };
 
       time = {
-        disabled = false;
+        disabled = true;
         format = "[ $time ]($style)";
         style = "fg:subtext0 bold";
         time_format = "%H:%M";
@@ -176,7 +170,7 @@
       cmd_duration = {
         min_time = 500;
         style = "fg:peach bold";
-        format = "[ 󰔟 $duration ]($style)";
+        format = "[took $duration]($style) ";
       };
     };
   };

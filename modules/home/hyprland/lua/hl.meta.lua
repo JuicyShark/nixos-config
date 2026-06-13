@@ -224,12 +224,13 @@ function hl.dsp.group.lock_active(opts) end
 function hl.dsp.group.active(opts) end
 
 ---@class HlCfg
----@field apps { terminal: string, yazi: string, elephant: string, walker: string, noctalia: string, qutebrowser: string, vivaldi: string|nil, hyprlock: string, pwvucontrol: string, hyprpicker: string, wayscriber: string }
+---@field apps { terminal: string, yazi: string, elephant: string, walker: string, noctalia: string, qutebrowser: string, vivaldi: string|nil, hyprlock: string, pwvucontrol: string, hyprpicker: string, wayscriber: string, jellyfinMpvShim: string }
 ---@field scripts { submapCheatsheet: string, submapCheatsheetCall: string }
 ---@field hyprctl string
 ---@field uwsmAppPrefix string
 ---@field screenshot { fullscreen: string, region: string, window: string }
 ---@field features { gaming: boolean, bloat: boolean, zsa: boolean, emacs: boolean, haPresence: boolean, tmux: boolean }
+---@field smartFocus { keys: { left: string, right: string, up: string, down: string }, multiplexers: { tmux: { mod: string }, zellij: { mod: string } } }
 ---@field sunshine { enable: boolean, virtualMonitor: string, virtualMode: string, virtualPosition: string, virtualScale: string, steamWorkspace: string, gameWorkspace: string }
 cfg = {}
 
@@ -240,11 +241,12 @@ cfg = {}
 ---@field terminal { main: string, dropdown: string, pinned: string }
 ---@field files string
 ---@field walker { launcher: string, commands: string, clipboard: string, bitwarden: string, windows: string, service: string }
----@field autostart { elephant: string, noctalia: string, submapCheatsheet: string, wayscriber: string }
+---@field autostart { elephant: string, noctalia: string, submapCheatsheet: string, wayscriber: string, jellyfinMpvShim: string }
 ---@field screenshot { fullscreen: string, region: string, window: string }
 ---@field locker string
 ---@field volumeMixer string
 ---@field hyprpicker string
+---@field noctaliaLauncher string
 ---@field noctalia string
 ---@field submapCheatsheetCall string
 

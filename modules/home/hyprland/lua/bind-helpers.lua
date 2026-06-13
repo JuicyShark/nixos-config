@@ -75,11 +75,7 @@ return function(ctx)
 			end)
 		end
 
-		if reset then
-			hl.define_submap(name, reset, define_body)
-		else
-			hl.define_submap(name, define_body)
-		end
+		hl.define_submap(name, define_body)
 	end
 
 	ctx.bindHelpers = {

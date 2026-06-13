@@ -7,9 +7,7 @@
       filebrowser = import ../modules/nixos/filebrowser.nix;
       fonts = import ../modules/nixos/fonts.nix;
       glance = import ../modules/nixos/glance.nix;
-      ha-presence = import ../modules/nixos/ha-presence.nix;
       homelab = import ../modules/nixos/homelab;
-      impermanence = import ../modules/nixos/impermanence.nix;
       ios = import ../modules/nixos/ios.nix;
       monitoring = import ../modules/nixos/monitoring;
       nfs = import ../modules/nixos/nfs.nix;

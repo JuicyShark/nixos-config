@@ -41,11 +41,13 @@ return function(ctx)
 			noctalia = app(apps.noctalia),
 			submapCheatsheet = app(cfg.scripts.submapCheatsheet),
 			wayscriber = app(apps.wayscriber .. " -d --no-tray"),
+			jellyfinMpvShim = app(apps.jellyfinMpvShim),
 		},
 		screenshot = cfg.screenshot,
 		locker = app(apps.hyprlock),
 		volumeMixer = app(apps.pwvucontrol),
 		hyprpicker = app(apps.hyprpicker),
+		noctaliaLauncher = apps.noctalia .. " msg panel-toggle launcher",
 		noctalia = apps.noctalia,
 		submapCheatsheetCall = cfg.scripts.submapCheatsheetCall,
 	}

@@ -12,6 +12,17 @@
   hasZsa = osConfig.modules.system.keyboard.zsa or false;
   hasHaPresence = osConfig.modules.haPresence.enable or false;
   hasTmux = config.programs.tmux.enable or false;
+  smartFocus =
+    config.modules.terminalMultiplexers.smartFocus or {
+      keys = {
+        left = "left";
+        right = "right";
+        up = "up";
+        down = "down";
+      };
+      tmux.mod = "CTRL";
+      zellij.mod = "ALT";
+    };
 
   hyprctl = "${osConfig.programs.hyprland.package}/bin/hyprctl";
   quickshell = lib.getExe pkgs.quickshell;
@@ -55,6 +66,7 @@ in {
     pwvucontrol = lib.getExe pkgs.pwvucontrol;
     hyprpicker = lib.getExe pkgs.hyprpicker;
     wayscriber = lib.getExe pkgs.wayscriber;
+    jellyfinMpvShim = lib.getExe pkgs.jellyfin-mpv-shim;
   };
 
   inherit hyprctl;
@@ -86,5 +98,17 @@ in {
     emacs = osConfig.modules.emacs.enable or false;
     haPresence = hasHaPresence;
     tmux = hasTmux;
+  };
+
+  smartFocus = {
+    inherit (smartFocus) keys;
+    multiplexers = {
+      tmux = {
+        mod = smartFocus.tmux.mod;
+      };
+      zellij = {
+        mod = smartFocus.zellij.mod;
+      };
+    };
   };
 }

@@ -31,6 +31,7 @@
   ];
 in {
   imports = [
+    inputs.noctalia-greeter.nixosModules.default
     ./gaming.nix
     ./apps.nix
   ];
@@ -111,6 +112,7 @@ in {
       programs = {
         hyprland = {
           enable = !isContainer;
+          portalPackage = inputs.xdph.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
           withUWSM = !isContainer;
         };
         uwsm.enable = mkIf (!isContainer) true;
@@ -144,10 +146,7 @@ in {
       services = {
         greetd = mkIf (!isContainer) {
           enable = true;
-          settings.default_session = {
-            command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --sessions /run/current-system/sw/share/wayland-sessions";
-            user = "greeter";
-          };
+          settings.default_session.user = "greeter";
         };
 
         flatpak.enable = true;
@@ -179,6 +178,8 @@ in {
         };
       };
 
+      programs.noctalia-greeter.enable = !isContainer;
+
       # Kill runaway processes under memory pressure instead of swap-thrashing
       systemd.oomd.enable = true;
 
@@ -204,26 +205,6 @@ in {
           value = "8192";
         }
       ];
-
-      # KDE Connect protocol ports for Valent (iOS/Android integration).
-      # LocalSend (53317) is opened alongside when the bloat bundle (where
-      # the package lives) is enabled, so a minimal desktop doesn't expose it.
-      networking.firewall = {
-        allowedTCPPortRanges = [
-          {
-            from = 1714;
-            to = 1764;
-          }
-        ];
-        allowedUDPPortRanges = [
-          {
-            from = 1714;
-            to = 1764;
-          }
-        ];
-        allowedTCPPorts = lib.optional cfg.bloat.enable config.modules.ports.localsend;
-        allowedUDPPorts = lib.optional cfg.bloat.enable config.modules.ports.localsend;
-      };
 
       environment.systemPackages = desktopBasePackages;
     })

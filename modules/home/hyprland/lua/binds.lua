@@ -53,8 +53,8 @@ return function(ctx)
 	end
 
 	local function bind_walker_commands()
-		bind("Space", hl.dsp.exec_cmd(commands.walker.launcher), "Launcher")
-		bind("O", hl.dsp.exec_cmd(commands.walker.launcher), "Launcher")
+		bind("Space", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
+		bind("O", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
 		bind("F", hl.dsp.exec_cmd(commands.files), "Files")
 		bind("D", hl.dsp.exec_cmd(commands.walker.commands), "Commands")
 		bind("C", hl.dsp.exec_cmd(commands.walker.clipboard), "Clipboard")
@@ -77,8 +77,8 @@ return function(ctx)
 	-- Submap entry points
 	bind_entry_submaps(mbindSubmap)
 	-- Core actions
-	mbind("Space", hl.dsp.exec_cmd(commands.walker.launcher), "Launcher")
-	mbind("O", hl.dsp.exec_cmd(commands.walker.launcher), "Launcher")
+	mbind("Space", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
+	mbind("O", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
 	mbind("Y", hl.dsp.exec_cmd(commands.files), "Files")
 	mbind("D", hl.dsp.exec_cmd(commands.walker.commands), "Commands")
 	mbind("C", hl.dsp.exec_cmd(commands.walker.clipboard), "Clipboard")

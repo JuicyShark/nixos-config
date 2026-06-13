@@ -22,6 +22,7 @@ in
         music = "${homeDirectory}/media/music";
         pictures = "${homeDirectory}/media/pictures";
         videos = "${homeDirectory}/media/videos";
+        projects = "${homeDirectory}/projects";
       };
 
       configFile."user-dirs.locale".text = "en_AU";

@@ -99,7 +99,6 @@
     device = "/dev/disk/by-uuid/abe7aa06-2f9e-431c-a9f1-5029ff0c3c65";
     fsType = "btrfs";
     options = [
-      # Uncomment after btrfs disk preparation (see modules/nixos/impermanence.nix):
       # "subvol=@"
       "compress=zstd:3"
       "noatime"

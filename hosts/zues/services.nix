@@ -37,14 +37,12 @@ in {
           "/var/lib/radarr"
           "/var/lib/lidarr"
           "/var/lib/prowlarr"
-          "/var/lib/paperless"
           "/var/lib/headscale"
           "/var/backup/gatus"
           "/var/backup/grafana"
           "/var/backup/headscale"
           "/var/backup/postgresql"
           "/var/backup/vaultwarden"
-          "/srv/chonk/paperless"
         ];
         pruneOpts = [
           "--keep-daily 7"

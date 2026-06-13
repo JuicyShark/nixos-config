@@ -4,7 +4,6 @@
     hosts = {
       leo = "192.168.1.54";
       zues = "192.168.1.99";
-      imac-machop = "192.168.1.52";
       homeAssistant = "192.168.1.49";
     };
 
@@ -18,13 +17,14 @@
     local = portName: "http://127.0.0.1:${toString (port portName)}";
     localPath = portName: path: "${local portName}${path}";
     remote = hostName: portName: "http://${host hostName}:${toString (port portName)}";
-    remotePath = hostName: portName: path: "${remote hostName portName}${path}";
+    remoteHost = address: portName: "http://${address}:${toString (port portName)}";
+    remoteHostPath = address: portName: path: "${remoteHost address portName}${path}";
     home = name: "http://${name}.${internalDomain}";
     homePath = name: path: "${home name}${path}";
     public = domain: "https://${domain}";
     publicPath = domain: path: "${public domain}${path}";
 
-    paperlessDomain = config.modules.homelab.paperless.domain or "docs.${internalDomain}";
+    jellyfinHost = config.modules.homelab.jellyfin.host or "192.168.1.52";
     vaultwardenPublicDomain = "pass.${publicDomain}";
 
     services = {
@@ -93,18 +93,19 @@
 
       jellyfin = {
         title = "Jellyfin";
+        enabled = config.modules.homelab.jellyfin.enable or false;
         aliases = ["jellyfin"];
         icon = "di:jellyfin";
         url = home "jellyfin";
         checkUrl = homePath "jellyfin" "/web/index.html";
-        upstream = remote "imac-machop" "jellyfin";
+        upstream = remoteHost jellyfinHost "jellyfin";
         quickmarkName = "jellyfin";
-        gatus.url = remotePath "imac-machop" "jellyfin" "/health";
+        gatus.url = remoteHostPath jellyfinHost "jellyfin" "/health";
         blackbox = true;
         glance = "private";
         public = {
           domain = "jellyfin.${publicDomain}";
-          upstream = remote "imac-machop" "jellyfin";
+          upstream = remoteHost jellyfinHost "jellyfin";
           checkUrl = publicPath "jellyfin.${publicDomain}" "/web/index.html";
           gatusUrl = publicPath "jellyfin.${publicDomain}" "/health";
           blackbox = true;
@@ -115,6 +116,7 @@
 
       jellyseerr = {
         title = "Jellyseerr";
+        enabled = config.nixflix.seerr.enable or config.services.seerr.enable or false;
         aliases = ["seerr"];
         icon = "di:jellyseerr";
         url = home "seerr";
@@ -126,6 +128,7 @@
 
       sonarr = {
         title = "Sonarr";
+        enabled = config.nixflix.sonarr.enable or false;
         aliases = ["sonarr"];
         icon = "di:sonarr";
         url = home "sonarr";
@@ -138,6 +141,7 @@
 
       radarr = {
         title = "Radarr";
+        enabled = config.nixflix.radarr.enable or false;
         aliases = ["radarr"];
         icon = "di:radarr";
         url = home "radarr";
@@ -150,6 +154,7 @@
 
       lidarr = {
         title = "Lidarr";
+        enabled = config.nixflix.lidarr.enable or false;
         aliases = ["lidarr"];
         icon = "di:lidarr";
         url = home "lidarr";
@@ -162,6 +167,7 @@
 
       prowlarr = {
         title = "Prowlarr";
+        enabled = config.nixflix.prowlarr.enable or false;
         aliases = ["prowlarr"];
         icon = "di:prowlarr";
         url = home "prowlarr";
@@ -174,6 +180,7 @@
 
       deluge = {
         title = "Deluge";
+        enabled = config.services.deluge.enable or false;
         aliases = ["deluge"];
         icon = "di:deluge";
         url = home "deluge";
@@ -187,6 +194,7 @@
 
       vaultwarden = {
         title = "Vaultwarden";
+        enabled = config.services.vaultwarden.enable or false;
         aliases = ["vaultwarden"];
         icon = "di:vaultwarden";
         url = home "vaultwarden";
@@ -207,6 +215,7 @@
 
       filebrowser = {
         title = "Files";
+        enabled = config.modules.homelab.filebrowser.enable or false;
         aliases = ["files"];
         icon = "di:filebrowser";
         url = home "files";
@@ -219,6 +228,7 @@
 
       headscale = {
         title = "Headscale";
+        enabled = config.modules.homelab.headscale.enable or false;
         upstream = local "headscale";
         gatus.url = localPath "headscale" "/health";
         public = {
@@ -230,18 +240,9 @@
         };
       };
 
-      paperless = {
-        title = "Paperless";
-        aliases = ["docs"];
-        url = "http://${paperlessDomain}";
-        checkUrl = "http://${paperlessDomain}";
-        upstream = local "paperless";
-        gatus.url = local "paperless";
-        blackbox = config.services.paperless.enable;
-      };
-
       syncthing = {
         title = "Syncthing";
+        enabled = config.services.syncthing.enable or false;
         aliases = ["syncthing"];
         icon = "di:syncthing";
         url = home "syncthing";
@@ -271,6 +272,7 @@
 
       gatus = {
         title = "Gatus";
+        enabled = config.modules.homelab.gatus.enable or false;
         aliases = ["status"];
         icon = "di:gatus";
         url = home "status";
@@ -306,7 +308,6 @@
       "vaultwarden"
       "filebrowser"
       "headscale"
-      "paperless"
       "syncthing"
       "glance"
       "homeAssistant"
@@ -335,7 +336,9 @@
     ];
 
     serviceList = map (name: services.${name}) serviceOrder;
-    publicServices = lib.filter (svc: (svc.public.domain or null) != null && (svc.public.ingress or true)) serviceList;
+    enabled = svc: svc.enabled or true;
+    enabledServiceList = lib.filter enabled serviceList;
+    publicServices = lib.filter (svc: enabled svc && (svc.public.domain or null) != null && (svc.public.ingress or true)) serviceList;
     mkGatusEndpoint = svc: {
       name = svc.title;
       inherit (svc.gatus) url;
@@ -377,13 +380,13 @@
 
     quickmarks = lib.listToAttrs (
       map (svc: lib.nameValuePair svc.quickmarkName (svc.quickmarkUrl or svc.url))
-      (lib.filter (svc: svc ? quickmarkName) serviceList)
+      (lib.filter (svc: enabled svc && svc ? quickmarkName) serviceList)
     );
 
     gatusEndpoints =
-      map mkGatusEndpoint (lib.filter (svc: svc ? gatus) serviceList)
+      map mkGatusEndpoint (lib.filter (svc: enabled svc && svc ? gatus) serviceList)
       ++ map mkPublicGatusEndpoint (
-        lib.filter (svc: (svc.public.gatus or false) && (svc.public.domain or null) != null) serviceList
+        lib.filter (svc: enabled svc && (svc.public.gatus or false) && (svc.public.domain or null) != null) serviceList
       );
 
     blackboxHttpTargets =
@@ -394,13 +397,13 @@
             (svc.public.checkUrl or (public svc.public.domain))
           ]
       )
-      serviceList;
+      enabledServiceList;
 
     blackboxHttpAuthTargets =
       lib.concatMap (
         svc: lib.optionals (svc.blackboxAuth or false) [(svc.checkUrl or svc.url)]
       )
-      serviceList;
+      enabledServiceList;
 
     blackboxTcpTargets = [
       "${hostFqdn}:22"
@@ -409,10 +412,10 @@
     ];
 
     glancePrivateSites = map mkGlanceSite (
-      lib.filter (svc: (svc.glance or null) == "private") (map (name: services.${name}) glancePrivateOrder)
+      lib.filter (svc: enabled svc && (svc.glance or null) == "private") (map (name: services.${name}) glancePrivateOrder)
     );
     glancePublicSites = map mkPublicGlanceSite (
-      lib.filter (svc: (svc.public.glance or false) && (svc.public.domain or null) != null) (
+      lib.filter (svc: enabled svc && (svc.public.glance or false) && (svc.public.domain or null) != null) (
         map (name: services.${name}) glancePublicOrder
       )
     );

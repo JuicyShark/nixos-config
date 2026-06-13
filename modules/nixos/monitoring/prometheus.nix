@@ -164,7 +164,7 @@ in {
               job_name = "jellyfin_sessions";
               metrics_path = "/probe";
               params.module = ["jellyfin"];
-              static_configs = [{targets = ["http://jellyfin.home.arpa/Sessions"];}];
+              static_configs = [{targets = ["${endpoints.services.jellyfin.url}/Sessions"];}];
               relabel_configs = [
                 {
                   source_labels = ["__address__"];

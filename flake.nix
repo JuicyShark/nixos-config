@@ -32,6 +32,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    noctalia-greeter = {
+      url = "github:noctalia-dev/noctalia-greeter";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     elephant = {
       url = "github:abenz1267/elephant";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -63,8 +68,17 @@
     };
 
     hyprland = {
-      url = "github:hyprwm/Hyprland";
+      url = "github:3l0w/Hyprland/feat/input-capture-impl";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    xdph = {
+      url = "github:3l0w/xdg-desktop-portal-hyprland/feat/input-capture-impl";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.hyprland-protocols.follows = "hyprland/hyprland-protocols";
+      inputs.hyprlang.follows = "hyprland/hyprlang";
+      inputs.hyprutils.follows = "hyprland/hyprutils";
+      inputs.hyprwayland-scanner.follows = "hyprland/hyprwayland-scanner";
     };
 
     nixvim = {
@@ -75,14 +89,6 @@
     nix-claude-code = {
       url = "github:ryoppippi/nix-claude-code";
       inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    impermanence = {
-      url = "github:nix-community/impermanence";
-      inputs = {
-        home-manager.follows = "home-manager";
-        nixpkgs.follows = "nixpkgs";
-      };
     };
   };
 

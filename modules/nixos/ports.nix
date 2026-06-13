@@ -28,7 +28,6 @@ in {
     homeAssistant = mkPortOption 8123 "Home Assistant";
     mqtt = mkPortOption 1883 "MQTT broker (Mosquitto)";
     headscale = mkPortOption 8085 "Headscale coordination server";
-    paperless = mkPortOption 28981 "Paperless-ngx document archive";
     uptimeKuma = mkPortOption 3001 "Uptime Kuma status monitor";
     gatus = mkPortOption 8888 "Gatus status monitor";
     syncthing = mkPortOption 8384 "Syncthing web GUI";

@@ -77,4 +77,7 @@ in {
   home.file = lib.mkIf (osConfig.modules.desktop.enable or false) {
     ".config/mpv/shaders/NVScaler.glsl".source = "${shaders_dir}/NVScaler.glsl";
   };
+  home.packages = lib.optionals (pkgs.stdenv.isLinux && (osConfig.modules.desktop.enable or false)) [
+    pkgs.jellyfin-mpv-shim
+  ];
 }

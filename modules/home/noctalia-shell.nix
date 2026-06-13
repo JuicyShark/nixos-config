@@ -4,38 +4,12 @@
   inputs,
   system,
   ...
-}: let
-  desktopEnabled = osConfig.modules.desktop.enable or false;
-  noctaliaPackage = inputs.noctalia.packages.${system}.default;
-  officialPluginSource = "https://github.com/noctalia-dev/noctalia-plugins";
-in {
+}: {
   imports = [inputs.noctalia.homeModules.default];
 
-  config = lib.optionalAttrs desktopEnabled {
-    programs.noctalia-shell = {
+  config = lib.optionalAttrs osConfig.programs.hyprland.enable {
+    programs.noctalia = {
       enable = true;
-      package = noctaliaPackage;
-
-      plugins = {
-        version = 2;
-        sources = [
-          {
-            enabled = true;
-            name = "Noctalia Plugins";
-            url = officialPluginSource;
-          }
-        ];
-        states = {
-          privacy-indicator = {
-            enabled = true;
-            sourceUrl = officialPluginSource;
-          };
-          special-workspaces = {
-            enabled = true;
-            sourceUrl = officialPluginSource;
-          };
-        };
-      };
 
       settings = {
         settingsVersion = 59;
@@ -566,21 +540,6 @@ in {
           monitorWidgets = [];
         };
       };
-    };
-
-    xdg.configFile."noctalia/plugins.json".force = true;
-
-    xdg.desktopEntries."dev.noctalia.noctalia-qs" = {
-      name = "Noctalia Shell";
-      comment = "Wayland desktop shell";
-      exec = lib.getExe noctaliaPackage;
-      icon = "${noctaliaPackage}/share/noctalia-shell/Assets/noctalia.svg";
-      terminal = false;
-      type = "Application";
-      categories = [
-        "System"
-        "Utility"
-      ];
     };
 
     stylix.targets.noctalia-shell.enable = true;

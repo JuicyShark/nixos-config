@@ -3,7 +3,7 @@
   lib,
   ...
 }: let
-  inherit (lib) mkOption mkEnableOption mkDefault;
+  inherit (lib) mkEnableOption mkDefault mkOption;
   inherit (lib.types) str;
   inherit (config.modules) ports;
 in {
@@ -13,7 +13,7 @@ in {
     ./vaultwarden.nix
     ./headscale.nix
     ./gatus.nix
-    ./paperless.nix
+    ./filebrowser.nix
     ./syncthing.nix
     ./uptime-kuma.nix
   ];
@@ -27,46 +27,20 @@ in {
 
     deluge.enable = mkEnableOption "Deluge torrent client";
     headscale.enable = mkEnableOption "Headscale self-hosted Tailscale coordination server";
-    jellyfin.enable = mkEnableOption "Jellyfin media server";
-    media.enable = mkEnableOption "*arr media acquisition stack (sonarr, radarr, lidarr, prowlarr, jellyseerr)";
-    paperless = {
-      enable = mkEnableOption "Paperless-ngx document archive";
-      domain = mkOption {
+    jellyfin = {
+      enable = mkEnableOption "Jellyfin media server";
+      host = mkOption {
         type = str;
-        default = "docs.home.arpa";
-        description = "Internal Paperless-ngx virtual host";
+        default = "192.168.1.52";
+        description = "Host or address for the Jellyfin backend.";
       };
-      dataDir = mkOption {
+      adminUsername = mkOption {
         type = str;
-        default = "/var/lib/paperless";
-        description = "Paperless application state directory";
-      };
-      mediaDir = mkOption {
-        type = str;
-        default = "/srv/chonk/paperless/media";
-        description = "Paperless document media directory";
-      };
-      consumptionDir = mkOption {
-        type = str;
-        default = "/srv/chonk/paperless/consume";
-        description = "Paperless document import directory";
-      };
-      exportDir = mkOption {
-        type = str;
-        default = "/srv/chonk/paperless/export";
-        description = "Paperless document exporter directory";
-      };
-      ocrLanguage = mkOption {
-        type = str;
-        default = "eng";
-        description = "Tesseract OCR language list for Paperless";
-      };
-      configureTika = mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable Tika and Gotenberg for Office/e-mail document parsing";
+        default = "juicy";
+        description = "Jellyfin admin username used by Jellyseerr setup.";
       };
     };
+    media.enable = mkEnableOption "*arr media acquisition stack (sonarr, radarr, lidarr, prowlarr, jellyseerr)";
     syncthing.enable = mkEnableOption "Syncthing file sync node";
     vaultwarden.enable = mkEnableOption "Vaultwarden self-hosted password manager";
     gatus.enable = mkEnableOption "Gatus declarative uptime monitor";
@@ -74,19 +48,13 @@ in {
   };
 
   config = {
-    assertions = [
-      {
-        assertion = !(config.modules.homelab.gatus.enable && config.modules.homelab.uptimeKuma.enable);
-        message = "Use either Gatus or Uptime Kuma for status monitoring. This repo's preferred declarative path is Gatus.";
-      }
-    ];
-
     services.nginx = {
       enable = mkDefault true;
       recommendedGzipSettings = mkDefault true;
       recommendedOptimisation = mkDefault true;
       recommendedProxySettings = mkDefault true;
 
+      # Raspberry Pi 5 - HAOS
       virtualHosts."hass.home.arpa".locations."/" = {
         proxyPass = "http://192.168.1.49:${toString ports.homeAssistant}";
         proxyWebsockets = true;

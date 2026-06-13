@@ -22,6 +22,8 @@ in {
 
   "vaultwarden.env.age".publicKeys = systems;
   "jellyfin-api.age".publicKeys = systems;
+  "jellyfin-admin-password.age".publicKeys = systems;
+  "seerr-api.age".publicKeys = systems;
   "prowlarr-api.age".publicKeys = systems;
   "sonarr-api.age".publicKeys = systems;
   "radarr-api.age".publicKeys = systems;
@@ -30,6 +32,4 @@ in {
 
   "coturn-key.age".publicKeys = systems;
   "wifi-pass.age".publicKeys = systems ++ users;
-
-  "ha-mqtt-pass.age".publicKeys = [host_leo] ++ users;
 }

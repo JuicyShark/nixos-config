@@ -1,19 +1,26 @@
 -- Directional focus router. Decides per-keypress whether a SUPER+arrow
--- should move focus inside emacs (window-in-direction), inside tmux
--- (CTRL+arrow sent to the active terminal), or to the next Hyprland
--- window. Exported as ctx.smartFocus.
+-- should move focus inside emacs (window-in-direction), inside zellij
+-- (configured shortcut sent to the active terminal), inside tmux
+-- (configured shortcut sent to the active terminal), or to the next
+-- Hyprland window. Exported as ctx.smartFocus.
 --
 -- Behaviour:
 --   1. If active window is emacs-class, or a terminal with an emacs
 --      descendant, try emacsclient --eval window-in-direction (~50ms cap).
---   2. Else if active is a terminal with tmux in its process tree,
---      dispatch sendshortcut "CTRL, <arrow>, activewindow" so tmux's
---      pane navigation handles the move.
---   3. Else fall back to plain `movefocus`.
+--   2. Else if active is a terminal with zellij in its process tree,
+--      dispatch the configured shortcut so zellij's pane navigation handles
+--      the move.
+--   3. Else if active is a terminal with tmux in its process tree,
+--      dispatch the configured shortcut so tmux's pane navigation handles
+--      the move.
+--   4. Else fall back to plain `movefocus`.
 
 return function(ctx)
 local hl = ctx.hl
 local hasEmacs = ctx.features.emacs
+local smartFocusConfig = ctx.cfg.smartFocus or {}
+local smartFocusKeys = smartFocusConfig.keys or {}
+local smartFocusMultiplexers = smartFocusConfig.multiplexers or {}
 
 local terminal_classes = {
     kitty = true,
@@ -32,11 +39,16 @@ local emacs_classes = {
 }
 
 local DIRS = {
-    left  = { emacs = "left",  key = "left"  },
-    right = { emacs = "right", key = "right" },
-    up    = { emacs = "above", key = "up"    },
-    down  = { emacs = "below", key = "down"  },
+    left  = { emacs = "left",  key = smartFocusKeys.left  or "left",  hypr = "left"  },
+    right = { emacs = "right", key = smartFocusKeys.right or "right", hypr = "right" },
+    up    = { emacs = "above", key = smartFocusKeys.up    or "up",    hypr = "up"    },
+    down  = { emacs = "below", key = smartFocusKeys.down  or "down",  hypr = "down"  },
 }
+
+local function multiplexer_mod(name, default)
+    local config = smartFocusMultiplexers[name] or {}
+    return config.mod or default
+end
 
 local function read_first_line(path)
     local f = io.open(path, "r")
@@ -69,15 +81,15 @@ local SCAN_TTL = 2
 -- BFS over the descendant tree; bail as soon as both flags are set,
 -- and cap iterations so a runaway process tree can't stall the keypress.
 local function scan_descendants(root_pid)
-    if not root_pid or root_pid <= 0 then return false, false end
+    if not root_pid or root_pid <= 0 then return false, false, false end
     local key = tostring(root_pid)
     local now = os.time()
     local cached = scan_cache[key]
     if cached and (now - cached.t) < SCAN_TTL then
-        return cached.tmux, cached.emacs
+        return cached.tmux, cached.zellij, cached.emacs
     end
 
-    local has_tmux, has_emacs = false, false
+    local has_tmux, has_zellij, has_emacs = false, false, false
     local queue = { key }
     local seen = {}
     local steps = 0
@@ -87,15 +99,16 @@ local function scan_descendants(root_pid)
         if not seen[pid] then
             seen[pid] = true
             local comm = proc_comm(pid) or ""
-            if not has_tmux  and comm:match("^tmux")  then has_tmux  = true end
-            if not has_emacs and comm:match("^emacs") then has_emacs = true end
-            if has_tmux and has_emacs then break end
+            if not has_tmux   and comm:match("^tmux")   then has_tmux   = true end
+            if not has_zellij and comm:match("^zellij") then has_zellij = true end
+            if not has_emacs  and comm:match("^emacs")  then has_emacs  = true end
+            if has_tmux and has_zellij and has_emacs then break end
             for _, c in ipairs(proc_children(pid)) do queue[#queue+1] = c end
         end
     end
 
-    scan_cache[key] = { t = now, tmux = has_tmux, emacs = has_emacs }
-    return has_tmux, has_emacs
+    scan_cache[key] = { t = now, tmux = has_tmux, zellij = has_zellij, emacs = has_emacs }
+    return has_tmux, has_zellij, has_emacs
 end
 
 -- Cheap precheck: does the emacs daemon socket exist? Avoids paying the
@@ -120,15 +133,16 @@ local function try_emacs(d)
     return first ~= nil and first:match("^t") ~= nil
 end
 
-local function send_tmux_shortcut(d)
+local function send_terminal_shortcut(mods, d)
     -- send_shortcut inherits the current bind press state; from SUPER+arrow
-    -- key-down it can leave Ctrl+arrow pressed in the newly focused pane.
-    hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = d.key, state = "down", window = "activewindow" }))
-    hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = d.key, state = "up", window = "activewindow" }))
+    -- key-down it can leave the injected shortcut pressed in the newly
+    -- focused pane.
+    hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = d.key, state = "down", window = "activewindow" }))
+    hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = d.key, state = "up", window = "activewindow" }))
 end
 
 local function move_hypr(d)
-    hl.dispatch(hl.dsp.focus({ direction = d.key }))
+    hl.dispatch(hl.dsp.focus({ direction = d.hypr }))
 end
 
 ctx.smartFocus = function(direction)
@@ -150,17 +164,22 @@ ctx.smartFocus = function(direction)
         move_hypr(d); return
     end
 
-    local has_tmux, has_emacs_proc = false, false
+    local has_tmux, has_zellij, has_emacs_proc = false, false, false
     if is_terminal and pid > 0 then
-        has_tmux, has_emacs_proc = scan_descendants(pid)
+        has_tmux, has_zellij, has_emacs_proc = scan_descendants(pid)
     end
 
     if hasEmacs and has_emacs_proc then
         if try_emacs(d) then return end
     end
 
+    if is_terminal and has_zellij then
+        send_terminal_shortcut(multiplexer_mod("zellij", "ALT"), d)
+        return
+    end
+
     if is_terminal and has_tmux then
-        send_tmux_shortcut(d)
+        send_terminal_shortcut(multiplexer_mod("tmux", "CTRL"), d)
         return
     end
 

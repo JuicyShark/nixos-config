@@ -28,6 +28,21 @@
   nixpkgsOverlays = [
     inputs.emacs-overlay.overlays.default
     inputs.nix-claude-code.overlays.default
+    (_final: prev: {
+      hyprlandPlugins =
+        prev.hyprlandPlugins
+        // {
+          hyprbars = prev.hyprlandPlugins.hyprbars.overrideAttrs (old: {
+            postPatch =
+              (old.postPatch or "")
+              + ''
+                sed -i '/#include <hyprland\/src\/Compositor.hpp>/a #include <hyprland/src/state/MonitorState.hpp>' main.cpp
+                substituteInPlace main.cpp \
+                  --replace-fail 'g_pCompositor->m_monitors' 'State::monitorState()->monitors()'
+              '';
+          });
+        };
+    })
   ];
 
   nixpkgsConfig = {

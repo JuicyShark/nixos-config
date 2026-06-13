@@ -16,6 +16,7 @@ return function(ctx)
 			{ cmd = commands.autostart.noctalia },
 			{ cmd = commands.autostart.submapCheatsheet },
 			{ cmd = commands.autostart.wayscriber },
+			{ cmd = commands.autostart.jellyfinMpvShim },
 			{ cmd = commands.browser, workspace = "2 silent" },
 			{ cmd = commands.app("qutebrowser"), workspace = "1 silent", when = features.bloat },
 			{ cmd = commands.terminal.main, workspace = "1 silent" },

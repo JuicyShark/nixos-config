@@ -9,6 +9,21 @@
     fallarbor = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHPsx9Mg7qBNYwHsyECMf1h6xFRxcrxBLuS0GSPxmk8A";
     zues = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOQOb2XaMyLNZNRKvrfcwxVgeIF3rqsSNyY3Kldv735z";
   };
+
+  inputLeapPort = 24800;
+  inputLeapConfig = pkgs.writeText "input-leap.conf" ''
+    section: screens
+      leo:
+      mac:
+    end
+
+    section: links
+      leo:
+        right = mac
+      mac:
+        left = leo
+    end
+  '';
 in {
   imports = with self.nixosModules; [
     system
@@ -24,8 +39,6 @@ in {
     glance
     monitoring
     nfs
-    impermanence
-    ha-presence
     ios
   ];
 
@@ -40,6 +53,7 @@ in {
     nvtopPackages.amd
     vulkan-tools
     mesa-demos
+    input-leap
     # Intel CPU diagnostics
     intel-gpu-tools
   ];
@@ -123,7 +137,6 @@ in {
     emacs.enable = true;
     recomp.enable = true;
     glance.enable = true;
-    haPresence.enable = true;
     ios.enable = true;
     shairport = {
       enable = true;
@@ -136,11 +149,6 @@ in {
         "enp7s0"
         "tailscale0"
       ];
-    };
-    impermanence = {
-      enable = false; # not yet active — disk prep required first (see modules/nixos/impermanence.nix)
-      rootUuid = "abe7aa06-2f9e-431c-a9f1-5029ff0c3c65";
-      btrfsWipe = false;
     };
   };
   services = {
@@ -184,6 +192,29 @@ in {
     '';
     fstrim.enable = true;
     irqbalance.enable = true;
+  };
+
+  networking.firewall.allowedTCPPorts = [inputLeapPort];
+
+  systemd.user.services.input-leap-server = {
+    description = "Input Leap server";
+    after = [
+      "network-online.target"
+      "graphical-session.target"
+      "xdg-desktop-portal.service"
+      "xdg-desktop-portal-hyprland.service"
+    ];
+    wants = [
+      "network-online.target"
+      "xdg-desktop-portal.service"
+      "xdg-desktop-portal-hyprland.service"
+    ];
+    wantedBy = ["graphical-session.target"];
+    serviceConfig = {
+      ExecStart = "${pkgs.input-leap}/bin/input-leaps -f -c ${inputLeapConfig} -n leo -a :${toString inputLeapPort}";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
   };
 
   fileSystems = {

@@ -14,7 +14,7 @@
   };
   hyprSettings = import ./hyprland/settings.nix {
     cfg = luaCfg;
-    inherit config lib;
+    inherit config;
   };
 
   renderUwsmEnv = attrs:

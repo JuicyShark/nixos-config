@@ -4,7 +4,6 @@
   lib,
   ...
 }: let
-  enabled = pkgs.stdenv.isLinux && (osConfig.modules.shairport.enable or false);
   name = osConfig.modules.shairport.name or (osConfig.networking.hostName or "shairport");
   interface = osConfig.modules.shairport.interface or null;
   confFile = pkgs.writeText "shairport-sync.conf" ''
@@ -23,7 +22,7 @@
     };
   '';
 in {
-  config = lib.mkIf enabled {
+  config = lib.mkIf (pkgs.stdenv.isLinux && (osConfig.modules.shairport.enable or false)) {
     # User-level shairport-sync instance using shairport's native PipeWire
     # backend, so it follows the user's default sink without requiring root.
     systemd.user.services.shairport-sync = {

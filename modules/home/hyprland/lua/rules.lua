@@ -9,10 +9,24 @@ return function(ctx)
 	local externalWorkspaceSet = {}
 
 	local workspaceRules = {
-		{ workspace = "1", layout = "master", layout_opts = { orientation = "left" } },
-		{ workspace = "2", default = true, layout = "master", layout_opts = { orientation = "center" } },
-		{ workspace = "3", layout = "scrolling" },
-		{ workspace = "4", layout = "dwindle", gaps_in = 0, gaps_out = 0, no_rounding = true, decorate = true },
+		{ workspace = "1", layout = "master", layout_opts = { orientation = "left" }, persistent = true },
+		{
+			workspace = "2",
+			default = true,
+			layout = "master",
+			layout_opts = { orientation = "center" },
+			persistent = true,
+		},
+		{ workspace = "3", layout = "dwindle", persistent = true },
+		{
+			workspace = "4",
+			layout = "dwindle",
+			gaps_in = 0,
+			gaps_out = 0,
+			no_rounding = true,
+			decorate = true,
+			persistent = true,
+		},
 		{
 			workspace = "5",
 			layout = "dwindle",
@@ -21,6 +35,7 @@ return function(ctx)
 			no_rounding = true,
 			no_shadow = true,
 			decorate = false,
+			persistent = true,
 		},
 	}
 
@@ -57,7 +72,7 @@ return function(ctx)
 		{ match = { class = "com.obsproject.Studio" }, tags = { "privacy" } },
 		{ match = { title = "(Picture-in-Picture|Picture in picture)" }, tags = { "media", "pip", "no-focus-steal" } },
 		{
-			match = { title = "(Open|Save|Save As|Open File|Choose File|Preferences|Settings|Open Files" },
+			match = { title = "(Open|Save|Save As|Open File|Choose File|Preferences|Settings|Open Files)" },
 			tags = { "dialog", "file-picker" },
 		},
 		{
@@ -137,6 +152,13 @@ return function(ctx)
 	end
 
 	hl.layer_rule({ name = "submap-cheatsheet-blur", match = { namespace = "submap-cheatsheet" }, blur = true })
+	hl.layer_rule({
+		name = "noctalia-blur",
+		match = { namespace = "^noctalia-(bar-.+|notification|dock|panel|attached-panel|osd)$" },
+		ignore_alpha = 0.5,
+		blur = true,
+		blur_popups = true,
+	})
 
 	-- ============================================================
 	-- WINDOW RULES

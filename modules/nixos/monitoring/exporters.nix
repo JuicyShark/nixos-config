@@ -9,6 +9,7 @@
   homelabMonitoring = config.modules.monitoring.enable;
   homelabHostMonitoring = config.modules.monitoring.host.enable;
   homelabNas = config.modules.monitoring.nas.enable;
+  homelabJellyfin = config.modules.homelab.jellyfin.enable or false;
   inherit (config.modules) ports;
   exporterPorts = config.modules.ports.exporters;
   username = "juicy";
@@ -118,7 +119,7 @@ in {
 
       # Jellyfin sessions exporter via json_exporter
       json = {
-        enable = config.services.jellyfin.enable && homelabMonitoring;
+        enable = homelabJellyfin && homelabMonitoring;
         user = "jellyfin-exporter";
         group = "jellyfin-exporter";
         port = exporterPorts.jellyfin;

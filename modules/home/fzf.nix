@@ -1,15 +1,16 @@
 {lib, ...}: let
-  ignoredFileGlobs = [
-    ".git/"
-    ".cache"
-    ".direnv"
-    "node_modules"
-    "result"
-    ".tox"
-    ".venv"
-  ];
   fileSearchCommand =
-    "rg --files --hidden " + (lib.concatMapStringsSep " " (glob: "--glob=" + lib.escapeShellArg "!${glob}") ignoredFileGlobs);
+    "rg --files --hidden "
+    + (lib.concatMapStringsSep " "
+      (glob: "--glob=" + lib.escapeShellArg "!${glob}") [
+        ".git/"
+        ".cache"
+        ".direnv"
+        "node_modules"
+        "result"
+        ".tox"
+        ".venv"
+      ]);
 in {
   programs.fzf = {
     enable = true;

@@ -30,12 +30,6 @@ in
       enable = true;
       package = pkgs.qutebrowser;
 
-      # -------------------------------------------------------------------------
-      # settings{}  — only scalar / list options that the HM module handles
-      # correctly (i.e. NOT Dict/Padding/nested types).
-      # Dict-typed options (url.searchengines, tabs.padding) are set in
-      # extraConfig as plain Python.
-      # -------------------------------------------------------------------------
       settings = {
         # Startup
         auto_save.session = true;
@@ -44,28 +38,13 @@ in
         window.hide_decoration = false;
 
         # Dark mode
-        colors.webpage = {
-          preferred_color_scheme = "dark";
-          darkmode = {
-            enabled = true;
-            algorithm = "lightness-cielab";
-            policy = {
-              images = "smart";
-              page = "smart";
-            };
-            threshold = {
-              background = 128;
-              foreground = 128;
-            };
-            contrast = 0.0;
-          };
-        };
+        colors.webpage.preferred_color_scheme = "dark";
 
         # Privacy & security
         content = {
           cookies.accept = "no-3rdparty";
           geolocation = false;
-          notifications.enabled = false;
+          notifications.enabled = true;
           webgl = true;
           javascript = {
             enabled = true;
