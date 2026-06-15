@@ -2,12 +2,14 @@
   osConfig,
   lib,
   inputs,
-  system,
+  pkgs,
   ...
 }: {
   imports = [inputs.noctalia.homeModules.default];
 
   config = lib.optionalAttrs osConfig.programs.hyprland.enable {
+    home.packages = [pkgs.ddcutil];
+
     programs.noctalia = {
       enable = true;
 

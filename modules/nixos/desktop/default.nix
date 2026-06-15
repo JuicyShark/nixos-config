@@ -89,6 +89,9 @@ in {
         platformTheme = lib.mkForce "qt5ct";
       };
       hardware.graphics.enable32Bit = true;
+      hardware.i2c.enable = !isContainer;
+
+      users.users.${username}.extraGroups = lib.optionals (!isContainer) ["i2c"];
 
       # Bluetooth
       hardware.bluetooth.enable = true;
