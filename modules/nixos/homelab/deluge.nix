@@ -67,7 +67,7 @@ in {
     services.deluge = {
       enable = homelabDeluge;
       declarative = true;
-      openFirewall = false; # allow_remote=false; nginx proxies the web UI
+      openFirewall = true; # opens only listen_ports; web UI stays nginx-only
       group = "media";
       authFile = config.age.secrets.deluge-auth.path;
       config = {
@@ -87,6 +87,10 @@ in {
         allow_remote = false;
         daemon_port = ports.delugeDaemon;
         random_port = false;
+        listen_ports = [
+          ports.delugeIncoming
+          ports.delugeIncoming
+        ];
         enabled_plugins = ["Label"];
       };
 

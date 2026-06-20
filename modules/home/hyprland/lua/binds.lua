@@ -14,7 +14,7 @@ return function(ctx)
 	local mark_or_swap = ctx.window.markOrSwap
 	local smart_focus = ctx.smartFocus
 	local cycle_workspace_layout = ctx.layout.cycleWorkspaceLayout
-	local layout_specific_bind = ctx.layout.specific
+	local layout_bind = ctx.layout.bind
 	local toggle_submap_options = binds.toggleOptions
 	local toggle_hyprbars_tiled = ctx.window.toggleHyprbarsTiled
 
@@ -36,6 +36,13 @@ return function(ctx)
 		{ key = "down", hypr = "d" },
 	}
 
+	local function split_group_for_direction(direction)
+		if direction == "l" or direction == "r" then
+			return "h"
+		end
+		return "v"
+	end
+
 	local function bind_entry_submaps(bind_fn)
 		bind_fn("W", "window", "Windows")
 		bind_fn("A", "apps", "Apps")
@@ -55,7 +62,9 @@ return function(ctx)
 	local function bind_walker_commands()
 		bind("Space", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
 		bind("O", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
-		bind("F", hl.dsp.exec_cmd(commands.files), "Files")
+		bind("F", hl.dsp.exec_cmd(commands.files.emacs), "Files (Emacs)")
+		bind("SHIFT + F", hl.dsp.exec_cmd(commands.files.thunar), "Files (Thunar)")
+		bind("Y", hl.dsp.exec_cmd(commands.files.yazi), "Files (Yazi)")
 		bind("D", hl.dsp.exec_cmd(commands.walker.commands), "Commands")
 		bind("C", hl.dsp.exec_cmd(commands.walker.clipboard), "Clipboard")
 		bind("B", hl.dsp.exec_cmd(commands.walker.bitwarden), "Bitwarden")
@@ -79,7 +88,7 @@ return function(ctx)
 	-- Core actions
 	mbind("Space", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
 	mbind("O", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
-	mbind("Y", hl.dsp.exec_cmd(commands.files), "Files")
+	mbind("Y", hl.dsp.exec_cmd(commands.files.emacs), "Files")
 	mbind("D", hl.dsp.exec_cmd(commands.walker.commands), "Commands")
 	mbind("C", hl.dsp.exec_cmd(commands.walker.clipboard), "Clipboard")
 	mbind("B", hl.dsp.exec_cmd(commands.walker.bitwarden), "Bitwarden")
@@ -100,7 +109,14 @@ return function(ctx)
 	mbind("SHIFT + slash", function()
 		toggle_submap_options()
 	end, "Submap options")
-	mbind("CONTROL + Space", hl.dsp.layout("swapsplit"), "Swap split")
+	mbind(
+		"CONTROL + Space",
+		layout_bind({
+			hy3 = ctx.layout.hy3.changeGroup("opposite"),
+			default = hl.dsp.layout("swapsplit"),
+		}),
+		"Swap split"
+	)
 	mbind("SHIFT + Q", hl.dsp.window.close(), "Close")
 	mbind("X", function()
 		mark_or_swap()
@@ -108,7 +124,7 @@ return function(ctx)
 	mbind("tab", function()
 		cycle_workspace_layout()
 	end, "Cycle workspace layout")
-	mbind("N", hl.dsp.exec_cmd(commands.noctalia .. " ipc call notifications dismissAll"), "Clear notifs")
+	mbind("N", hl.dsp.exec_cmd(commands.notifications.clearActive), "Clear notifs")
 	mbindSubmap("ALT + BackSpace", "passthrough", "Passthrough")
 
 	for _, d in ipairs(directions) do
@@ -116,11 +132,21 @@ return function(ctx)
 		mbind(key, function()
 			smart_focus(key)
 		end, "Focus " .. key, { cheatsheet = false })
-		mbind("SHIFT + " .. key, hl.dsp.window.move({ direction = dir }), "Move " .. key)
+		mbind(
+			"SHIFT + " .. key,
+			layout_bind({
+				hy3 = ctx.layout.hy3.moveWindow(dir),
+				default = hl.dsp.window.move({ direction = dir }),
+			}),
+			"Move " .. key
+		)
 		mbind(
 			"CONTROL + " .. key,
-			layout_specific_bind("dwindle", hl.dsp.layout("preselect " .. dir)),
-			"Preselect " .. key,
+			layout_bind({
+				hy3 = ctx.layout.hy3.makeGroup(split_group_for_direction(dir)),
+				dwindle = hl.dsp.layout("preselect " .. dir),
+			}),
+			"Split " .. key,
 			{ cheatsheet = false }
 		)
 	end
@@ -143,20 +169,20 @@ return function(ctx)
 	-- Master ratio
 	mbind(
 		"minus",
-		layout_specific_bind("master", hl.dsp.layout("mfact -0.05")),
+		ctx.layout.specific("master", hl.dsp.layout("mfact -0.05")),
 		"Master ratio -",
 		{ repeating = true }
 	)
 	mbind(
 		"SHIFT + minus",
-		layout_specific_bind("master", hl.dsp.layout("mfact -0.125")),
+		ctx.layout.specific("master", hl.dsp.layout("mfact -0.125")),
 		"Master ratio --",
 		{ repeating = true }
 	)
-	mbind("plus", layout_specific_bind("master", hl.dsp.layout("mfact +0.05")), "Master ratio +", { repeating = true })
+	mbind("plus", ctx.layout.specific("master", hl.dsp.layout("mfact +0.05")), "Master ratio +", { repeating = true })
 	mbind(
 		"SHIFT + plus",
-		layout_specific_bind("master", hl.dsp.layout("mfact +0.125")),
+		ctx.layout.specific("master", hl.dsp.layout("mfact +0.125")),
 		"Master ratio ++",
 		{ repeating = true }
 	)
@@ -164,13 +190,13 @@ return function(ctx)
 	-- Volume / seek
 	bind(
 		"XF86AudioRaiseVolume",
-		hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_SINK@ 5%+"),
+		hl.dsp.exec_cmd(commands.volume.up),
 		"Volume up",
 		{ repeating = true }
 	)
 	bind(
 		"XF86AudioLowerVolume",
-		hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_SINK@ 5%-"),
+		hl.dsp.exec_cmd(commands.volume.down),
 		"Volume down",
 		{ repeating = true }
 	)
@@ -178,10 +204,10 @@ return function(ctx)
 	bind("XF86AudioRewind", hl.dsp.exec_cmd("playerctl -p playerctld position 10-"), "Seek -10s", { repeating = true })
 
 	-- Media keys
-	bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl -p playerctld previous"), "Previous track", { locked = true })
-	bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl -p playerctld next"), "Next track", { locked = true })
-	bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl -p playerctld play"), "Play", { locked = true })
-	bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl -p playerctld pause"), "Pause", { locked = true })
+	bind("XF86AudioPrev", hl.dsp.exec_cmd(commands.media.previous), "Previous track", { locked = true })
+	bind("XF86AudioNext", hl.dsp.exec_cmd(commands.media.next), "Next track", { locked = true })
+	bind("XF86AudioPlay", hl.dsp.exec_cmd(commands.media.toggle), "Play", { locked = true })
+	bind("XF86AudioPause", hl.dsp.exec_cmd(commands.media.toggle), "Pause", { locked = true })
 	bindSubmap("XF86AudioMedia", "media", "Media", { locked = true })
 	bind("XF86Messenger", hl.dsp.workspace.toggle_special(), "Special workspace", { locked = true })
 end

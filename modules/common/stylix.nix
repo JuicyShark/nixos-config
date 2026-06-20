@@ -76,8 +76,8 @@ in {
           };
 
           sansSerif = {
-            package = pkgs.nerd-fonts.iosevka;
-            name = "Iosevka Nerd Font";
+            package = pkgs.atkinson-hyperlegible;
+            name = "Atkinson Hyperlegible";
           };
 
           monospace = {

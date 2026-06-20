@@ -39,14 +39,17 @@ in {
       border_size = 4;
       col = {
         active_border = {
-          colors = [(rgb colors.base0D) (rgb colors.base0E)];
+          colors = [
+            (rgb colors.base0D)
+            (rgb colors.base0E)
+          ];
           angle = 45;
         };
         inactive_border = rgb colors.base02;
       };
       resize_on_border = true;
       extend_border_grab_area = 3;
-      layout = "master";
+      layout = "hy3";
       allow_tearing = true;
       snap = {
         enabled = true;
@@ -82,7 +85,10 @@ in {
       drag_into_group = 2;
       col = {
         border_active = {
-          colors = [(rgb colors.base0C) (rgb colors.base0E)];
+          colors = [
+            (rgb colors.base0C)
+            (rgb colors.base0E)
+          ];
           angle = 45;
         };
         border_inactive = rgb colors.base01;
@@ -99,7 +105,10 @@ in {
         text_color_inactive = "0xFF${colors.base04}";
         col = {
           active = {
-            colors = [(rgb colors.base0C) (rgb colors.base02)];
+            colors = [
+              (rgb colors.base0C)
+              (rgb colors.base02)
+            ];
             angle = 45;
           };
           inactive = rgb colors.base01;
@@ -154,6 +163,49 @@ in {
       direction = "right";
     };
 
+    plugin.hy3 = {
+      node_collapse_policy = 2;
+      group_inset = 0;
+      tab_first_window = false;
+      autotile = {
+        enable = true;
+        ephemeral_groups = false;
+        trigger_width = 600;
+        trigger_height = 481;
+      };
+      tabs = {
+        height = 28;
+        padding = 6;
+        from_top = false;
+        radius = 14;
+        border_width = 2;
+        render_text = true;
+        text_center = false;
+        text_font = "IosevkaTerm Nerd Font";
+        text_height = 12;
+        text_padding = 9;
+        blur = false;
+        opacity = 1.0;
+        colors = {
+          active = "rgba(${colors.base0C}cc)";
+          active_border = "rgba(${colors.base0D}ff)";
+          active_text = "rgba(${colors.base07}ff)";
+          focused = "rgba(${colors.base02}cc)";
+          focused_border = "rgba(${colors.base0C}ff)";
+          focused_text = "rgba(${colors.base05}ff)";
+          inactive = "rgba(${colors.base01}cc)";
+          inactive_border = "rgba(${colors.base03}dd)";
+          inactive_text = "rgba(${colors.base04}ff)";
+          urgent = "rgba(${colors.base08}cc)";
+          urgent_border = "rgba(${colors.base08}ff)";
+          urgent_text = "rgba(${colors.base07}ff)";
+          locked = "rgba(${colors.base0A}cc)";
+          locked_border = "rgba(${colors.base0A}ff)";
+          locked_text = "rgba(${colors.base00}ff)";
+        };
+      };
+    };
+
     binds = {
       allow_workspace_cycles = false;
       workspace_back_and_forth = false;
@@ -205,8 +257,8 @@ in {
       bar_color = "rgba(${colors.base01}ee)";
       col.text = rgb colors.base05;
       bar_text_font = "IosevkaTerm Nerd Font";
-      bar_text_size = 12;
-      bar_text_align = "left";
+      bar_text_size = 14;
+      bar_text_align = "center";
       bar_buttons_alignment = "right";
       bar_padding = 9;
       bar_button_padding = 6;
@@ -222,7 +274,16 @@ in {
         "ease_snap"
         {
           type = "bezier";
-          points = [[0.05 0.9] [0.1 1.0]];
+          points = [
+            [
+              0.05
+              0.9
+            ]
+            [
+              0.1
+              1.0
+            ]
+          ];
         }
       ];
     }
@@ -231,7 +292,16 @@ in {
         "ease_quick"
         {
           type = "bezier";
-          points = [[0.16 1.0] [0.3 1.0]];
+          points = [
+            [
+              0.16
+              1.0
+            ]
+            [
+              0.3
+              1.0
+            ]
+          ];
         }
       ];
     }
@@ -398,15 +468,22 @@ in {
 
   window_rule = [
     {
-      match = {tag = "marked";};
+      match = {
+        tag = "marked";
+      };
       border_size = 12;
       rounding = 0;
       border_color = "${rgb colors.base09} ${rgb colors.base09}";
     }
     {
-      match = {pin = true;};
+      match = {
+        pin = true;
+      };
       border_color = {
-        colors = [(rgb colors.base09) (rgb colors.base0A)];
+        colors = [
+          (rgb colors.base09)
+          (rgb colors.base0A)
+        ];
         angle = 45;
       };
     }

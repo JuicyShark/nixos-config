@@ -18,7 +18,7 @@ return function(ctx)
 		opts = opts or {}
 		local out = {}
 		for key, value in pairs(opts) do
-			if key ~= "cheatsheet" and key ~= "closeCheatsheet" then
+			if key ~= "cheatsheet" and key ~= "closeCheatsheet" and key ~= "when" then
 				out[key] = value
 			end
 		end
@@ -44,8 +44,12 @@ return function(ctx)
 	end
 
 	local function bind_submap(keys, target, desc, opts)
+		opts = opts or {}
 		cheatsheet.recordSubmap(keys, target, desc, opts)
 		hl.bind(keys, function()
+			if opts.when and not opts.when() then
+				return
+			end
 			hl.dispatch(hl.dsp.submap(target))
 		end, bind_opts(desc, opts))
 	end

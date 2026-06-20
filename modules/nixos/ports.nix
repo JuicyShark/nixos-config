@@ -25,6 +25,7 @@ in {
     readarr = mkPortOption 8787 "Readarr book management";
     delugeWeb = mkPortOption 9050 "Deluge web interface";
     delugeDaemon = mkPortOption 58846 "Deluge daemon";
+    delugeIncoming = mkPortOption 51413 "Deluge incoming torrent peer traffic";
     homeAssistant = mkPortOption 8123 "Home Assistant";
     mqtt = mkPortOption 1883 "MQTT broker (Mosquitto)";
     headscale = mkPortOption 8085 "Headscale coordination server";

@@ -4,7 +4,7 @@
 return function(ctx)
 	require("binds.groups")(ctx)
 	require("binds.layouts.master")(ctx)
-	require("binds.layouts.dwindle")(ctx)
+	require("binds.layouts.hy3")(ctx)
 	require("binds.layouts.scrolling")(ctx)
 	require("binds.submaps.core")(ctx)
 

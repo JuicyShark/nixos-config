@@ -16,6 +16,7 @@ in {
   "cloudflared-cert.age".publicKeys = [host_zues] ++ users;
   "cloudflared-credentials.age".publicKeys = [host_zues] ++ users;
   "grafana-secret-key.age".publicKeys = [host_zues] ++ users;
+  "ha-mqtt-pass.age".publicKeys = [host_leo] ++ users;
 
   "deluge-auth.age".publicKeys = systems;
   "deluge-pass.age".publicKeys = systems;

@@ -2,15 +2,14 @@
 # osConfig.modules.haPresence and provides:
 #   - ha-presence-update <state>  on $PATH  (publishes retained MQTT message)
 #   - ha-presence-discover        publishes HA discovery config (retained, once)
-#   - hypridle listeners for idle/sleep with on-resume → active
+#   - Noctalia hooks for shell started/lock/unlock/session-exit transitions
+#   - Noctalia idle behaviors for idle/sleep with on-resume → active
 #   - systemd user drop-in for wayland-wm@hyprland.service ExecStopPost → offline
 #
 # Topics:
 #   homeassistant/sensor/<deviceId>/config   ← discovery (retained)
-#   homeassistant/sensor/<deviceId>/state    ← active|idle|sleep|offline (retained)
+#   homeassistant/sensor/<deviceId>/state    ← active|away|idle|sleep|offline (retained)
 #
-# The hyprland.start → discover + active transition lives in
-# modules/home/hyprland/lua.nix (gated on hasHaPresence).
 {
   osConfig,
   pkgs,
@@ -88,29 +87,38 @@
   };
 
   updateBin = "${ha-presence-update}/bin/ha-presence-update";
+  discoverBin = "${ha-presence-discover}/bin/ha-presence-discover";
 in {
   config = lib.mkIf enabled {
     home.packages = [ha-presence-update ha-presence-discover mqttPub];
 
-    services.hypridle = {
-      enable = true;
-      settings = {
-        general = {
-          ignore_dbus_inhibit = false;
-          ignore_systemd_inhibit = false;
-        };
-        listener = [
-          {
-            timeout = cfg.idleTimeout;
-            on-timeout = "${updateBin} idle";
-            on-resume = "${updateBin} active";
-          }
-          {
-            timeout = cfg.sleepTimeout;
-            on-timeout = "${updateBin} sleep";
-            on-resume = "${updateBin} active";
-          }
-        ];
+    programs.noctalia.settings.hooks = {
+      started = [
+        discoverBin
+        "${updateBin} active"
+      ];
+      session_locked = ["${updateBin} away"];
+      session_unlocked = ["${updateBin} active"];
+      logging_out = ["${updateBin} offline"];
+      rebooting = ["${updateBin} offline"];
+      shutting_down = ["${updateBin} offline"];
+    };
+
+    programs.noctalia.settings.idle.behavior = {
+      "ha-presence-idle" = {
+        enabled = true;
+        timeout = cfg.idleTimeout;
+        action = "command";
+        command = "${updateBin} idle";
+        resume_command = "${updateBin} active";
+      };
+
+      "ha-presence-sleep" = {
+        enabled = true;
+        timeout = cfg.sleepTimeout;
+        action = "command";
+        command = "${updateBin} sleep";
+        resume_command = "${updateBin} active";
       };
     };
 

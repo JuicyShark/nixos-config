@@ -41,8 +41,6 @@ in {
       hyprpaper.enable = lib.mkForce false;
     };
 
-    programs.hyprlock.enable = true;
-
     stylix.targets.hyprland = {
       enable = false;
       hyprpaper.enable = false;
@@ -85,6 +83,7 @@ in {
       inherit (osConfig.programs.hyprland) portalPackage;
       systemd.enable = false; # UWSM manages the systemd session
       plugins = [
+        pkgs.hyprlandPlugins.hy3
         pkgs.hyprlandPlugins.hyprbars
       ];
       configType = "lua";

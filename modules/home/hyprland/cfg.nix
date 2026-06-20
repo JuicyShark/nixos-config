@@ -10,7 +10,6 @@
   hasBloat = desktop.bloat.enable or false;
   hasGaming = desktop.gaming.enable or false;
   hasZsa = osConfig.modules.system.keyboard.zsa or false;
-  hasHaPresence = osConfig.modules.haPresence.enable or false;
   hasTmux = config.programs.tmux.enable or false;
   smartFocus =
     config.modules.terminalMultiplexers.smartFocus or {
@@ -28,6 +27,7 @@
   quickshell = lib.getExe pkgs.quickshell;
   uwsmAppPrefix = "${lib.getExe pkgs.uwsm} app --";
   uwsmApp = command: "${uwsmAppPrefix} ${command}";
+  noctalia = lib.getExe inputs.noctalia.packages.${system}.default;
   screenshotPath = ''dir="''${XDG_SCREENSHOTS_DIR:-$HOME/media/pictures/screenshots}"; mkdir -p "$dir"; tmp="$(mktemp /tmp/screenshot-XXXXXX.png)"'';
   screenshotFinish = ''if [ -s "$tmp" ]; then ${uwsmApp "${lib.getExe pkgs.satty} --filename \"$tmp\" --output-filename \"$dir/screenshot-$(date +%Y%m%d-%H%M%S).png\" --copy-command \"${pkgs.wl-clipboard-rs}/bin/wl-copy\""}; fi; rm -f "$tmp"'';
   submapCheatsheetStart = ''
@@ -53,16 +53,19 @@ in {
 
   apps = {
     terminal = lib.getExe pkgs.kitty;
+    zellij = lib.getExe pkgs.zellij;
+    timeout = "${pkgs.coreutils}/bin/timeout";
     yazi = lib.getExe pkgs.yazi;
+    emacsclient = lib.getExe' osConfig.modules.emacs.package "emacsclient";
+    thunar = lib.getExe pkgs.thunar;
     elephant = lib.getExe' inputs.elephant.packages.${system}.default "elephant";
     walker = lib.getExe inputs.walker.packages.${system}.default;
-    noctalia = lib.getExe inputs.noctalia.packages.${system}.default;
+    inherit noctalia;
     qutebrowser = lib.getExe pkgs.qutebrowser;
     vivaldi =
       if hasBloat
       then lib.getExe pkgs.vivaldi
       else null;
-    hyprlock = lib.getExe pkgs.hyprlock;
     pwvucontrol = lib.getExe pkgs.pwvucontrol;
     hyprpicker = lib.getExe pkgs.hyprpicker;
     wayscriber = lib.getExe pkgs.wayscriber;
@@ -76,8 +79,8 @@ in {
   };
 
   screenshot = {
-    fullscreen = ''sh -c '${screenshotPath}; ${lib.getExe pkgs.grim} "$tmp"; ${screenshotFinish}' '';
-    region = ''sh -c '${screenshotPath}; ${lib.getExe pkgs.grim} -g "$(${lib.getExe pkgs.slurp})" "$tmp"; ${screenshotFinish}' '';
+    fullscreen = "${noctalia} msg screenshot-fullscreen";
+    region = "${noctalia} msg screenshot-region";
     window = ''sh -c '${screenshotPath}; win="$(${hyprctl} activewindow -j)"; x="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".at[0]")"; y="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".at[1]")"; w="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".size[0]")"; h="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".size[1]")"; ${lib.getExe pkgs.grim} -g "$x,$y ''${w}x$h" "$tmp"; ${screenshotFinish}' '';
   };
 
@@ -96,7 +99,6 @@ in {
     bloat = hasBloat;
     zsa = hasZsa;
     emacs = osConfig.modules.emacs.enable or false;
-    haPresence = hasHaPresence;
     tmux = hasTmux;
   };
 

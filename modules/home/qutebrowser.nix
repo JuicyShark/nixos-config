@@ -7,6 +7,8 @@
   ...
 }: let
   c = config.lib.stylix.colors;
+  sansFont = config.stylix.fonts.sansSerif.name;
+  monoFont = config.stylix.fonts.monospace.name;
   endpoints = self.lib.${pkgs.stdenv.hostPlatform.system}.services.mkHomelabEndpoints {config = osConfig;};
 
   mpvUserscript = pkgs.writeScript "qute-mpv" ''
@@ -75,24 +77,24 @@ in
 
         # Fonts (Stylix values)
         fonts = {
-          default_family = "Iosevka Nerd Font";
+          default_family = sansFont;
           default_size = "11pt";
           completion = {
-            entry = "11pt IosevkaTerm Nerd Font Mono";
-            category = "bold 11pt Iosevka Nerd Font";
+            entry = "11pt ${monoFont}";
+            category = "bold 11pt ${sansFont}";
           };
-          statusbar = "11pt IosevkaTerm Nerd Font Mono";
+          statusbar = "11pt ${monoFont}";
           tabs = {
-            selected = "11pt Iosevka Nerd Font";
-            unselected = "11pt Iosevka Nerd Font";
+            selected = "11pt ${sansFont}";
+            unselected = "11pt ${sansFont}";
           };
-          hints = "bold 10pt IosevkaTerm Nerd Font Mono";
+          hints = "bold 10pt ${monoFont}";
           messages = {
-            info = "11pt IosevkaTerm Nerd Font Mono";
-            error = "11pt IosevkaTerm Nerd Font Mono";
-            warning = "11pt IosevkaTerm Nerd Font Mono";
+            info = "11pt ${monoFont}";
+            error = "11pt ${monoFont}";
+            warning = "11pt ${monoFont}";
           };
-          keyhint = "bold 10pt IosevkaTerm Nerd Font Mono";
+          keyhint = "bold 10pt ${monoFont}";
         };
 
         # Tabs (scalar options only; tabs.padding goes in extraConfig)

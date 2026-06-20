@@ -11,8 +11,12 @@
 
   inherit (config.modules) ports;
   username = "juicy";
+  remoteJellyfin = homelabMedia && homelabJellyfin && !config.nixflix.jellyfin.enable;
 
   apiSecret = name: config.age.secrets.${name}.path;
+  radarrUhdProfile = "64fb5f9858489bdac2af690e27c8f42f"; # UHD Bluray + WEB
+  sonarrProfile = "9d142234e45d6143785ac55f5a9e8dc9"; # WEB-1080p (Alternative)
+  sonarrAnimeProfile = "20e0fc959f1f1704bed501f23bdae76f"; # [Anime] Remux-1080p
   arrHostConfig = port: {
     bindAddress = "127.0.0.1";
     inherit port;
@@ -50,49 +54,168 @@ in {
       recyclarr = {
         enable = true;
         group = "media";
-        config.sonarr.sonarr = {
-          quality_definition = {
-            type = "series";
-            preferred_ratio = 0.0;
+        cleanupUnmanagedProfiles = {
+          enable = true;
+          managedProfiles = [
+            "UHD Bluray + WEB"
+            "WEB-1080p (Alternative)"
+            "[Anime] Remux-1080p"
+          ];
+        };
+        config = {
+          sonarr.sonarr_anime = {
+            quality_definition = {
+              type = "anime";
+              preferred_ratio = 0.0;
+            };
+            quality_profiles = [
+              {
+                trash_id = sonarrAnimeProfile;
+                reset_unmatched_scores.enabled = true;
+                min_format_score = 2000;
+                min_upgrade_format_score = 1;
+                upgrade = {
+                  allowed = true;
+                  until_quality = "Bluray 1080p";
+                  until_score = 10000;
+                };
+                qualities = [
+                  {
+                    name = "Bluray 1080p";
+                    qualities = ["Bluray-1080p"];
+                  }
+                  {
+                    name = "WEB 1080p";
+                    qualities = [
+                      "HDTV-1080p"
+                      "WEBRip-1080p"
+                      "WEBDL-1080p"
+                    ];
+                  }
+                  {name = "Bluray-720p";}
+                  {
+                    name = "WEB 720p";
+                    qualities = [
+                      "HDTV-720p"
+                      "WEBRip-720p"
+                      "WEBDL-720p"
+                    ];
+                  }
+                  {name = "Bluray-480p";}
+                  {
+                    name = "WEB 480p";
+                    qualities = [
+                      "WEBRip-480p"
+                      "WEBDL-480p"
+                    ];
+                  }
+                  {name = "DVD";}
+                  {name = "SDTV";}
+                ];
+              }
+            ];
+            custom_formats = [
+              {
+                trash_ids = [
+                  "418f50b10f1907201b6cfdf881f467b7" # Anime Dual Audio
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = sonarrAnimeProfile;
+                    score = 2000;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "b2550eb333d27b75833e25b8c2557b38" # 10bit
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = sonarrAnimeProfile;
+                    score = 101;
+                  }
+                ];
+              }
+            ];
           };
-          quality_profiles = [
-            {
-              trash_id = "9d142234e45d6143785ac55f5a9e8dc9"; # WEB-1080p (Alternative)
-              reset_unmatched_scores.enabled = true;
-              min_format_score = 0;
-              min_upgrade_format_score = 300;
-              upgrade = {
-                allowed = true;
-                until_quality = "WEB 1080p";
-                until_score = 500;
-              };
-            }
-          ];
-          custom_formats = [
-            {
-              trash_ids = [
-                "47435ece6b99a0b477caf360e79ba0bb" # x265 (HD)
-                "9b64dff695c2115facf1b6ea59c9bd07" # x265 (no HDR/DV)
-              ];
-              assign_scores_to = [
-                {
-                  trash_id = "9d142234e45d6143785ac55f5a9e8dc9";
-                  score = 300;
-                }
-              ];
-            }
-            {
-              trash_ids = [
-                "15a05bc7c1a36e2b57fd628f8977e2fc" # AV1
-              ];
-              assign_scores_to = [
-                {
-                  trash_id = "9d142234e45d6143785ac55f5a9e8dc9";
-                  score = 500;
-                }
-              ];
-            }
-          ];
+          radarr.radarr = {
+            quality_definition = {
+              type = "movie";
+              preferred_ratio = 0.0;
+            };
+            quality_profiles = [
+              {
+                trash_id = radarrUhdProfile;
+                reset_unmatched_scores.enabled = true;
+                min_format_score = 0;
+                min_upgrade_format_score = 1;
+                upgrade = {
+                  allowed = true;
+                  until_quality = "Bluray-2160p";
+                  until_score = 10000;
+                };
+              }
+            ];
+            custom_formats = [
+              {
+                trash_ids = [
+                  "eecf3a857724171f968a66cb5719e152" # IMAX
+                  "9f6cbff8cfe4ebbc1bde14c7b7bec0de" # IMAX Enhanced
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = radarrUhdProfile;
+                    score = 5000;
+                  }
+                ];
+              }
+            ];
+          };
+          sonarr.sonarr = {
+            quality_definition = {
+              type = "series";
+              preferred_ratio = 0.0;
+            };
+            quality_profiles = [
+              {
+                trash_id = sonarrProfile;
+                reset_unmatched_scores.enabled = true;
+                min_format_score = 0;
+                min_upgrade_format_score = 300;
+                upgrade = {
+                  allowed = true;
+                  until_quality = "WEB 1080p";
+                  until_score = 500;
+                };
+              }
+            ];
+            custom_formats = [
+              {
+                trash_ids = [
+                  "47435ece6b99a0b477caf360e79ba0bb" # x265 (HD)
+                  "9b64dff695c2115facf1b6ea59c9bd07" # x265 (no HDR/DV)
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = sonarrProfile;
+                    score = 300;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "15a05bc7c1a36e2b57fd628f8977e2fc" # AV1
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = sonarrProfile;
+                    score = 500;
+                  }
+                ];
+              }
+            ];
+          };
         };
       };
       flaresolverr.enable = true;
@@ -115,6 +238,18 @@ in {
           hostConfig = arrHostConfig ports.sonarr;
         };
         settings = arrSettings ports.sonarr;
+      };
+
+      sonarr-anime = {
+        enable = true;
+        group = "media";
+        dataDir = "/var/lib/sonarr-anime/";
+        mediaDirs = ["/mnt/chonk/media/anime"];
+        config = {
+          apiKey._secret = apiSecret "sonarr-api";
+          hostConfig = arrHostConfig 8990;
+        };
+        settings = arrSettings 8990;
       };
 
       radarr = {
@@ -220,6 +355,15 @@ in {
         username
       ]
       ++ lib.optional config.services.deluge.enable config.services.deluge.user;
+
+    systemd.services = mkIf remoteJellyfin {
+      seerr-setup.enable = mkForce false;
+      seerr-user-settings.enable = mkForce false;
+      seerr-jellyfin.enable = mkForce false;
+      seerr-libraries.enable = mkForce false;
+      seerr-radarr.enable = mkForce false;
+      seerr-sonarr.enable = mkForce false;
+    };
 
     services = {
       nginx = {

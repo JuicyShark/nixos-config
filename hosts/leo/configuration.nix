@@ -138,6 +138,14 @@ in {
     recomp.enable = true;
     glance.enable = true;
     ios.enable = true;
+    haPresence = {
+      enable = true;
+      deviceId = "leo_presence";
+      brokerHost = "192.168.1.49";
+      username = "homeassistant";
+      idleTimeout = 300;
+      sleepTimeout = 900;
+    };
     shairport = {
       enable = true;
       name = "Max Linux";

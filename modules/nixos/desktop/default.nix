@@ -119,7 +119,9 @@ in {
           withUWSM = !isContainer;
         };
         uwsm.enable = mkIf (!isContainer) true;
+        thunar.enable = true;
         wayvnc.enable = true;
+        ssh.startAgent = true;
 
         nix-ld = {
           enable = true;

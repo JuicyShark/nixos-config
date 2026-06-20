@@ -17,10 +17,10 @@ return function(ctx)
 			layout_opts = { orientation = "center" },
 			persistent = true,
 		},
-		{ workspace = "3", layout = "dwindle", persistent = true },
+		{ workspace = "3", layout = "hy3", persistent = true },
 		{
 			workspace = "4",
-			layout = "dwindle",
+			layout = "hy3",
 			gaps_in = 0,
 			gaps_out = 0,
 			no_rounding = true,
@@ -29,7 +29,7 @@ return function(ctx)
 		},
 		{
 			workspace = "5",
-			layout = "dwindle",
+			layout = "hy3",
 			gaps_in = 0,
 			gaps_out = 0,
 			no_rounding = true,
@@ -39,8 +39,8 @@ return function(ctx)
 		},
 	}
 
-	local gameClass = "^(steam_app_[0-9]+|gamescope|FTL\\.amd64|Slay the Spire 2|Balatro)$"
-	local gameTitle = "^(World of Warcraft|Slay the Spire 2|Balatro)$"
+	local gameClass = "^(steam_app_[0-9]+|gamescope|FTL\\.amd64|Slay( the)? Spire|SlayTheSpire|Slay the Spire 2|Balatro)$"
+	local gameTitle = "^(World of Warcraft|Slay the Spire|Slay the Spire 2|Balatro)$"
 	local attentionTitle =
 		"(Authenticate|Authentication Required|Authorization Required|Confirm|Confirmation|Are you sure.*|Password Required|Unlock.*|Enter Password.*)"
 	local mediaInspectorTitle = "(Media viewer|Image Viewer|Screenshot|Drag and Drop)"

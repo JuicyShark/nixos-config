@@ -32,6 +32,7 @@ in {
         "/etc/ssh/ssh_host_ed25519_key"
       ];
       secrets = {
+        ha-mqtt-pass.file = ../../secrets/ha-mqtt-pass.age;
         wifi-pass.file = ../../secrets/wifi-pass.age;
         juicy-password.file = ../../secrets/juicy-password.age;
       };

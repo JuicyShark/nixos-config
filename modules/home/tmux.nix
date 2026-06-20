@@ -32,10 +32,6 @@
   keyName = direction: keyNames.${cfg.keys.${direction}};
   tmuxChord = direction: "${tmuxModNames.${cfg.tmux.mod}}-${keyName direction}";
   zellijChord = direction: "${zellijModNames.${cfg.zellij.mod}} ${keyName direction}";
-  zellijFocusAction = direction:
-    if direction == "left" || direction == "right"
-    then "MoveFocusOrTab"
-    else "MoveFocus";
 
   mkTmuxBind = direction: ''
     bind-key -n ${tmuxChord direction} select-pane -${directionActions.${direction}}
@@ -43,7 +39,13 @@
   mkZellijBind = direction: {
     bind = {
       _args = [(zellijChord direction)];
-      ${zellijFocusAction direction} = [keyNames.${direction}];
+      MoveFocus = [keyNames.${direction}];
+    };
+  };
+  mkZellijTabBind = tab: {
+    bind = {
+      _args = ["${zellijModNames.${cfg.zellij.mod}} ${toString tab}"];
+      GoToTab = [tab];
     };
   };
 
@@ -100,7 +102,7 @@ in {
       attachExistingSession = true;
       settings.keybinds.shared_except = {
         _args = ["locked"];
-        _children = map mkZellijBind ["left" "down" "up" "right"];
+        _children = (map mkZellijBind ["left" "down" "up" "right"]) ++ (map mkZellijTabBind [1 2 3 4 5]);
       };
       layouts = {
         dev = {

@@ -3,6 +3,7 @@
 -- ============================================================
 return function(ctx)
 	local hl = ctx.hl
+	local cfg = ctx.cfg
 
 	local function dispatch_action(action)
 		if type(action) == "function" then
@@ -25,6 +26,15 @@ return function(ctx)
 		return nil
 	end
 
+	local function current_layout()
+		local workspace = current_workspace()
+		return workspace and workspace.tiled_layout or nil
+	end
+
+	local function is_layout(layout, expected)
+		return layout == expected or (expected == "scrolling" and layout == "scroller")
+	end
+
 	local function set_workspace_layout(workspace_name, layout)
 		if not workspace_name or not layout then
 			return
@@ -34,6 +44,10 @@ return function(ctx)
 
 	ctx.layout = {
 		currentWorkspace = current_workspace,
+		current = current_layout,
+		is = function(expected)
+			return is_layout(current_layout(), expected)
+		end,
 		setWorkspaceLayout = set_workspace_layout,
 	}
 
@@ -43,7 +57,7 @@ return function(ctx)
 			return
 		end
 
-		local layouts = { "scrolling", "dwindle", "master", "monocle" }
+		local layouts = { "scrolling", "hy3", "master", "monocle" }
 		local next_layout = layouts[1] or "master"
 		for i = 1, #layouts do
 			if layouts[i] == workspace.tiled_layout then
@@ -56,30 +70,55 @@ return function(ctx)
 	end
 	ctx.layout.bind = function(bind_table)
 		return function()
-			local workspace = current_workspace()
-			if not workspace then
-				return
-			end
-
-			local layout = workspace.tiled_layout
+			local layout = current_layout()
 			local action = bind_table[layout]
 			if not action and layout == "scroller" then
 				action = bind_table.scrolling
+			end
+			if not action then
+				action = bind_table.default
 			end
 			dispatch_action(action)
 		end
 	end
 	ctx.layout.specific = function(layout, action)
 		return function()
-			local workspace = current_workspace()
-			if not workspace then
-				return
-			end
-
-			local active_layout = workspace.tiled_layout
-			if active_layout == layout or (layout == "scrolling" and active_layout == "scroller") then
+			if is_layout(current_layout(), layout) then
 				dispatch_action(action)
 			end
 		end
 	end
+
+	ctx.layout.hy3 = {
+		dispatch = function(dispatcher, args)
+			args = args or ""
+			return hl.dsp.exec_cmd(cfg.hyprctl .. " dispatch hy3:" .. dispatcher .. " " .. args)
+		end,
+		moveFocus = function(direction, opts)
+			opts = opts or {}
+			return hl.plugin.hy3.move_focus(direction, { visible = opts.visible == true })
+		end,
+		moveWindow = function(direction, opts)
+			opts = opts or {}
+			return hl.plugin.hy3.move_window(direction, { once = opts.once == true, visible = opts.visible == true })
+		end,
+		makeGroup = function(group)
+			return hl.plugin.hy3.make_group(group)
+		end,
+		changeGroup = function(group)
+			return hl.plugin.hy3.change_group(group)
+		end,
+		makeTabGroup = function()
+			return ctx.layout.hy3.dispatch("makegroup", "tab toggle")
+		end,
+		focusTab = function(direction)
+			return ctx.layout.hy3.dispatch("focustab", direction)
+		end,
+		focusTabIndex = function(index)
+			return ctx.layout.hy3.dispatch("focustab", "index " .. tostring(index))
+		end,
+		lockTab = function()
+			return ctx.layout.hy3.dispatch("locktab")
+		end,
+	}
 end

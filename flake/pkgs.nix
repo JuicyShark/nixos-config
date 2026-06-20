@@ -41,6 +41,17 @@
                   --replace-fail 'g_pCompositor->m_monitors' 'State::monitorState()->monitors()'
               '';
           });
+          hy3 = inputs.hy3.packages.${prev.stdenv.hostPlatform.system}.hy3.overrideAttrs (old: {
+            postPatch =
+              (old.postPatch or "")
+              + ''
+                substituteInPlace src/Hy3Layout.cpp \
+                  --replace-fail '#include <hyprland/src/state/WorkspaceState.hpp>' "" \
+                  --replace-fail 'State::workspaceState()->query().id(target.id).run()' 'g_pCompositor->getWorkspaceByID(target.id)' \
+                  --replace-fail 'State::workspaceState()->create(target.id, origin_ws->monitorID(), target.name)' 'g_pCompositor->createNewWorkspace(target.id, origin_ws->monitorID(), target.name)'
+                sed -i '/auto next_monitor = State::monitorState()/,+4c\	auto next_monitor = g_pCompositor->getMonitorInDirection(this->monitor().lock(), shiftToMathDirection(direction));' src/Hy3Layout.cpp
+              '';
+          });
         };
     })
   ];

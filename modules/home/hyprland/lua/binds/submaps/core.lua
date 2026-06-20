@@ -31,12 +31,19 @@ return function(ctx)
 		end
 	end
 
-	local function layout_message(layout, key, msg, desc)
-		bind(key, ctx.layout.specific(layout, hl.dsp.layout(msg)), desc)
+	local function layout_message(layout, key, msg, desc, opts)
+		bind(key, ctx.layout.specific(layout, hl.dsp.layout(msg)), desc, opts)
 	end
 
-	local function layout_action(layout, key, action, desc)
-		bind(key, ctx.layout.specific(layout, action), desc)
+	local function layout_action(layout, key, action, desc, opts)
+		bind(key, ctx.layout.specific(layout, action), desc, opts)
+	end
+
+	local function move_window(direction)
+		return ctx.layout.bind({
+			hy3 = ctx.layout.hy3.moveWindow(direction),
+			default = hl.dsp.window.move({ direction = direction }),
+		})
 	end
 
 	defineSubmap("passthrough", function() end)
@@ -48,7 +55,12 @@ return function(ctx)
 	defineSubmap("apps", function()
 		bind("Return", hl.dsp.exec_cmd(commands.terminal.main), "Open terminal")
 		bind("W", hl.dsp.exec_cmd(commands.browser), "Open browser")
-		bind("SHIFT + W", hl.dsp.exec_cmd(commands.privateBrowser), "[hidden] Open private browser")
+		bind("CONTROL + W", hl.dsp.exec_cmd(commands.privateBrowser), "Open private browser")
+		bind("SHIFT + W", hl.dsp.exec_cmd(commands.privateBrowser), "Open private browser", { cheatsheet = false })
+		bind("F", hl.dsp.exec_cmd(commands.files.emacs), "Files (Emacs)")
+		bind("CONTROL + F", hl.dsp.exec_cmd(commands.files.thunar), "Files (Thunar)")
+		bind("SHIFT + F", hl.dsp.exec_cmd(commands.files.thunar), "Files (Thunar)", { cheatsheet = false })
+		bind("Y", hl.dsp.exec_cmd(commands.files.yazi), "Files (Yazi)")
 		bind("R", hl.dsp.exec_cmd(commands.walker.commands), "Run command")
 		bind("S", hl.dsp.exec_cmd(commands.screenshot.region), "Take screenshot")
 		if features.bloat then
@@ -57,9 +69,12 @@ return function(ctx)
 			end, "Discord")
 		end
 		if features.gaming then
-			bind("SHIFT + G", function()
+			bind("CONTROL + G", function()
 				ctx.apps.openSpecial(specialApps.steam)
 			end, "Steam")
+			bind("SHIFT + G", function()
+				ctx.apps.openSpecial(specialApps.steam)
+			end, "Steam", { cheatsheet = false })
 			bind("G", hl.dsp.exec_cmd(commands.app("steam-games")), "Steam Games Search")
 		end
 		if features.bloat then
@@ -89,7 +104,14 @@ return function(ctx)
 			ctx.window.togglePictureInPicture()
 		end, "Picture in picture")
 		bind("SHIFT + Q", hl.dsp.window.close(), "Close window")
-		bind("S", hl.dsp.layout("swapsplit"), "Swap split")
+		bind(
+			"S",
+			layout.bind({
+				hy3 = layout.hy3.changeGroup("opposite"),
+				default = hl.dsp.layout("swapsplit"),
+			}),
+			"Swap split"
+		)
 		bind("X", function()
 			ctx.window.markOrSwap()
 		end, "Mark / swap")
@@ -98,32 +120,56 @@ return function(ctx)
 
 	defineSubmap("windowMove", function()
 		bindBack("window", "Back to windows")
-		bind("left", hl.dsp.window.move({ direction = "l" }), "Move left", { repeating = true })
-		bind("right", hl.dsp.window.move({ direction = "r" }), "Move right", { repeating = true })
-		bind("up", hl.dsp.window.move({ direction = "u" }), "Move up", { repeating = true })
-		bind("down", hl.dsp.window.move({ direction = "d" }), "Move down", { repeating = true })
+		bind("left", move_window("l"), "Move left", { repeating = true })
+		bind("right", move_window("r"), "Move right", { repeating = true })
+		bind("up", move_window("u"), "Move up", { repeating = true })
+		bind("down", move_window("d"), "Move down", { repeating = true })
 	end, { persistent = true })
 
 	defineSubmap("windowResize", function()
 		bindBack("window", "Back to windows")
 		bind(
-			"SHIFT + left",
+			"left",
 			hl.dsp.window.resize({ x = 75, y = 0, relative = true }),
 			"Resize left",
 			{ repeating = true }
 		)
 		bind(
-			"SHIFT + right",
+			"right",
 			hl.dsp.window.resize({ x = -75, y = 0, relative = true }),
 			"Resize right",
 			{ repeating = true }
 		)
-		bind("SHIFT + up", hl.dsp.window.resize({ x = 0, y = -75, relative = true }), "Resize up", { repeating = true })
+		bind("up", hl.dsp.window.resize({ x = 0, y = -75, relative = true }), "Resize up", { repeating = true })
+		bind(
+			"down",
+			hl.dsp.window.resize({ x = 0, y = 75, relative = true }),
+			"Resize down",
+			{ repeating = true }
+		)
+		bind(
+			"SHIFT + left",
+			hl.dsp.window.resize({ x = 75, y = 0, relative = true }),
+			"Resize left",
+			{ repeating = true, cheatsheet = false }
+		)
+		bind(
+			"SHIFT + right",
+			hl.dsp.window.resize({ x = -75, y = 0, relative = true }),
+			"Resize right",
+			{ repeating = true, cheatsheet = false }
+		)
+		bind(
+			"SHIFT + up",
+			hl.dsp.window.resize({ x = 0, y = -75, relative = true }),
+			"Resize up",
+			{ repeating = true, cheatsheet = false }
+		)
 		bind(
 			"SHIFT + down",
 			hl.dsp.window.resize({ x = 0, y = 75, relative = true }),
 			"Resize down",
-			{ repeating = true }
+			{ repeating = true, cheatsheet = false }
 		)
 		bind(
 			"CONTROL + left",
@@ -156,8 +202,8 @@ return function(ctx)
 			set_layout("master")
 		end, "Master Layout")
 		bind("D", function()
-			set_layout("dwindle")
-		end, "Dwindle Layout")
+			set_layout("hy3")
+		end, "Hy3 Layout")
 		bind("C", function()
 			set_layout("scrolling")
 		end, "Scrolling Layout")
@@ -170,19 +216,18 @@ return function(ctx)
 		layout.bindMasterActions(function(key, msg, desc)
 			layout_message("master", key, msg, desc)
 		end)
-		layout.bindDwindleActions(function(key, msg, desc)
-			layout_message("dwindle", key, msg, desc)
-		end, function(key, action, desc)
-			layout_action("dwindle", key, action, desc)
+		layout.bindHy3Actions(function(key, action, desc)
+			layout_action("hy3", key, action, desc)
 		end)
-		layout.bindScrollingActions(function(key, msg, desc)
-			layout_message("scrolling", key, msg, desc)
+		layout.bindScrollingActions(function(key, msg, desc, opts)
+			layout_message("scrolling", key, msg, desc, opts)
 		end)
 
 		bind(
 			"J",
 			layout.bind({
 				scrolling = hl.dsp.layout("swapcol l"),
+				hy3 = layout.hy3.changeGroup("h"),
 				dwindle = hl.dsp.layout("swapsplit"),
 				monocle = hl.dsp.layout("cycleprev"),
 				master = hl.dsp.layout("cycleprev"),
@@ -193,6 +238,7 @@ return function(ctx)
 			"K",
 			layout.bind({
 				scrolling = hl.dsp.layout("swapcol r"),
+				hy3 = layout.hy3.changeGroup("v"),
 				dwindle = hl.dsp.layout("togglesplit"),
 				monocle = hl.dsp.layout("cyclenext"),
 				master = hl.dsp.layout("cyclenext"),
@@ -214,32 +260,34 @@ return function(ctx)
 	binds.groupSubmap()
 
 	defineSubmap("system", function()
-		bind("N", hl.dsp.exec_cmd(commands.noctalia .. " ipc call notifications dismissAll"), "Clear notifs")
+		bind("N", hl.dsp.exec_cmd(commands.notifications.clearActive), "Clear notifs")
 		bind("S", hl.dsp.exec_cmd(commands.screenshot.region), "Screenshot (region)")
-		bind("SHIFT + S", hl.dsp.exec_cmd(commands.screenshot.fullscreen), "Screenshot (full)")
+		bind("CONTROL + S", hl.dsp.exec_cmd(commands.screenshot.fullscreen), "Screenshot (full)")
+		bind("SHIFT + S", hl.dsp.exec_cmd(commands.screenshot.fullscreen), "Screenshot (full)", { cheatsheet = false })
 		bind("A", hl.dsp.exec_cmd("pkill -SIGUSR1 wayscriber"), "Annotate")
 		bind("C", hl.dsp.exec_cmd(commands.hyprpicker .. " -a"), "Color picker")
-		bind("L", hl.dsp.exec_cmd(commands.locker), "Lock")
-		bind("SHIFT + O", hl.dsp.exec_cmd('loginctl terminate-user "$(whoami)"'), "Logout")
+		bind("L", hl.dsp.exec_cmd(commands.session.lock), "Lock")
+		bind("CONTROL + O", hl.dsp.exec_cmd(commands.session.logout), "Logout")
+		bind("SHIFT + O", hl.dsp.exec_cmd(commands.session.logout), "Logout", { cheatsheet = false })
 		bindSubmap("R", "confirmSystem", "Reboot")
 		bindSubmap("X", "confirmSystem", "Shutdown")
 	end)
 
 	defineSubmap("confirmSystem", function()
 		bindBack("system", "Back to system")
-		bind("R", hl.dsp.exec_cmd("systemctl reboot"), "Reboot, NOW!!")
-		bind("X", hl.dsp.exec_cmd("systemctl poweroff"), "Shutdown, NOW!!")
+		bind("R", hl.dsp.exec_cmd(commands.session.reboot), "Reboot, NOW!!")
+		bind("X", hl.dsp.exec_cmd(commands.session.shutdown), "Shutdown, NOW!!")
 	end)
 
 	defineSubmap("media", function()
-		bind("Space", hl.dsp.exec_cmd("playerctl -p playerctld play-pause"), "Play pause")
-		bind("P", hl.dsp.exec_cmd("playerctl -p playerctld previous"), "Previous track")
-		bind("N", hl.dsp.exec_cmd("playerctl -p playerctld next"), "Next track")
+		bind("Space", hl.dsp.exec_cmd(commands.media.toggle), "Play pause")
+		bind("P", hl.dsp.exec_cmd(commands.media.previous), "Previous track")
+		bind("N", hl.dsp.exec_cmd(commands.media.next), "Next track")
 		bind("left", hl.dsp.exec_cmd("playerctl -p playerctld position 10-"), "Seek -10s")
 		bind("right", hl.dsp.exec_cmd("playerctl -p playerctld position 10+"), "Seek +10s")
-		bind("minus", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_SINK@ 5%-"), "Volume down")
-		bind("plus", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_SINK@ 5%+"), "Volume up")
-		bind("M", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_SINK@ toggle"), "Toggle mute")
+		bind("minus", hl.dsp.exec_cmd(commands.volume.down), "Volume down")
+		bind("plus", hl.dsp.exec_cmd(commands.volume.up), "Volume up")
+		bind("M", hl.dsp.exec_cmd(commands.volume.mute), "Toggle mute")
 		bind("V", hl.dsp.exec_cmd(commands.volumeMixer), "Volume Mixer")
 	end)
 end

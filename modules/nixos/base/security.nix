@@ -40,7 +40,7 @@ in {
           max-cache-ttl = 14400;
         };
       };
-      ssh.startAgent = false;
+      ssh.startAgent = lib.mkDefault false;
     };
 
     security.sudo.extraConfig = ''

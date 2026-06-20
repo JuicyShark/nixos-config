@@ -23,16 +23,24 @@
         ]
     );
 in {
-  options.modules.emacs.enable = lib.mkEnableOption "Emacs with Doom Emacs configuration";
+  options.modules.emacs = {
+    enable = lib.mkEnableOption "Emacs with Doom Emacs configuration";
+    package = lib.mkOption {
+      type = lib.types.package;
+      default = emacs;
+      description = "Emacs package used for the system install and user daemon.";
+    };
+  };
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs;
       lib.optionals pkgs.stdenv.isLinux [
         binutils # native-comp needs 'as'
+        wl-clipboard-rs # org-download clipboard support on Wayland
       ]
       ++ lib.optional (pkgs.stdenv.isLinux && config.programs.gnupg.agent.enable) pinentry-emacs
       ++ [
-        emacs
+        cfg.package
 
         ## Doom dependencies
         git
@@ -42,17 +50,22 @@ in {
         wordnet
         ledger
 
+        python3
+
         #vterm
         python3Packages.cmake
         gopls
         gore
         gotests
         gomodifytags
+        delve
 
         #python
         python3Packages.black
+        python3Packages.debugpy
         python3Packages.pyflakes
         python3Packages.isort
+        python3Packages.nose2
         pipenv
         python3Packages.pytest
 
@@ -60,14 +73,25 @@ in {
         html-tidy
         stylelint
         js-beautify
+        gdtoolkit_4
 
         ## Optional dependencies
+        cargo
         fd
+        ffmpegthumbnailer
         imagemagick
+        libxml2 # xmllint for XML formatting
+        lldb
+        maim # org-download screenshot backend
+        mediainfo
+        multimarkdown
+        poppler-utils
+        rustc
         zstd
         shellcheck
         shfmt
         rust-analyzer
+        unzip
 
         ## Module dependencies
         # :email mu4e

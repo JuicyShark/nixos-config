@@ -34,5 +34,45 @@
       openSrb2Port = lib.mkEnableOption "SRB2 multiplayer firewall port (UDP 5029)";
       openDevPort = lib.mkEnableOption "development server firewall port (TCP 3000)";
     };
+
+    haPresence = {
+      enable = lib.mkEnableOption "Home Assistant presence publishing over MQTT";
+
+      deviceId = lib.mkOption {
+        type = lib.types.str;
+        default = "presence";
+        description = "Home Assistant MQTT discovery device and sensor id.";
+      };
+
+      brokerHost = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "MQTT broker hostname or address.";
+      };
+
+      brokerPort = lib.mkOption {
+        type = lib.types.port;
+        default = 1883;
+        description = "MQTT broker port.";
+      };
+
+      username = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "MQTT username used by the presence publisher.";
+      };
+
+      idleTimeout = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 300;
+        description = "Seconds of idle time before publishing the idle state.";
+      };
+
+      sleepTimeout = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 900;
+        description = "Seconds of idle time before publishing the sleep state.";
+      };
+    };
   };
 }

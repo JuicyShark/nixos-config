@@ -33,6 +33,7 @@
       exec nixos-rebuild ${action} \
         --flake "$flake#zues" \
         --target-host ${zuesTargetHost} \
+        --use-remote-sudo \
         --ask-sudo-password \
         "$@"
     '';

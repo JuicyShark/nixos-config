@@ -42,6 +42,7 @@ hl = {}
 
 hl.plugin = {
     hyprbars = {},
+    hy3 = {},
 }
 
 ---@param keys string
@@ -54,6 +55,25 @@ function hl.config(t) end
 
 ---@param t table
 function hl.plugin.hyprbars.add_button(t) end
+
+---@param arg string
+---@param opts table?
+---@return HlAction
+function hl.plugin.hy3.move_focus(arg, opts) end
+
+---@param arg string
+---@param opts table?
+---@return HlAction
+function hl.plugin.hy3.move_window(arg, opts) end
+
+---@param arg string
+---@param opts table?
+---@return HlAction
+function hl.plugin.hy3.make_group(arg, opts) end
+
+---@param arg string
+---@return HlAction
+function hl.plugin.hy3.change_group(arg) end
 
 ---@param t table
 ---@return HlRule
@@ -224,12 +244,12 @@ function hl.dsp.group.lock_active(opts) end
 function hl.dsp.group.active(opts) end
 
 ---@class HlCfg
----@field apps { terminal: string, yazi: string, elephant: string, walker: string, noctalia: string, qutebrowser: string, vivaldi: string|nil, hyprlock: string, pwvucontrol: string, hyprpicker: string, wayscriber: string, jellyfinMpvShim: string }
+---@field apps { terminal: string, yazi: string, emacsclient: string, thunar: string, elephant: string, walker: string, noctalia: string, qutebrowser: string, vivaldi: string|nil, pwvucontrol: string, hyprpicker: string, wayscriber: string, jellyfinMpvShim: string }
 ---@field scripts { submapCheatsheet: string, submapCheatsheetCall: string }
 ---@field hyprctl string
 ---@field uwsmAppPrefix string
 ---@field screenshot { fullscreen: string, region: string, window: string }
----@field features { gaming: boolean, bloat: boolean, zsa: boolean, emacs: boolean, haPresence: boolean, tmux: boolean }
+---@field features { gaming: boolean, bloat: boolean, zsa: boolean, emacs: boolean, tmux: boolean }
 ---@field smartFocus { keys: { left: string, right: string, up: string, down: string }, multiplexers: { tmux: { mod: string }, zellij: { mod: string } } }
 ---@field sunshine { enable: boolean, virtualMonitor: string, virtualMode: string, virtualPosition: string, virtualScale: string, steamWorkspace: string, gameWorkspace: string }
 cfg = {}
@@ -239,13 +259,17 @@ cfg = {}
 ---@field browser string
 ---@field privateBrowser string
 ---@field terminal { main: string, dropdown: string, pinned: string }
----@field files string
+---@field files { emacs: string, thunar: string, yazi: string }
+---@field emacs { raise: string, focusOrRaise: string, newFrame: string, cwd: string, capture: string, today: string, agenda: string, projects: string, weeklyReview: string, roamFind: string, roamCapture: string, roamSearch: string }
 ---@field walker { launcher: string, commands: string, clipboard: string, bitwarden: string, windows: string, service: string }
 ---@field autostart { elephant: string, noctalia: string, submapCheatsheet: string, wayscriber: string, jellyfinMpvShim: string }
 ---@field screenshot { fullscreen: string, region: string, window: string }
----@field locker string
 ---@field volumeMixer string
 ---@field hyprpicker string
+---@field notifications { clearActive: string }
+---@field media { toggle: string, previous: string, next: string, stop: string }
+---@field session { lock: string, logout: string, reboot: string, shutdown: string }
+---@field volume { up: string, down: string, mute: string }
 ---@field noctaliaLauncher string
 ---@field noctalia string
 ---@field submapCheatsheetCall string
@@ -260,7 +284,7 @@ cfg = {}
 ---@field defineSubmap fun(name: string, body: fun(), opts: table?)
 ---@field toggleOptions fun()
 ---@field writeCheatsheet fun()
----@field entrySubmaps fun(bind_fn: fun(key: string, target: string, desc: string))
+---@field entrySubmaps fun(bind_fn: fun(key: string, target: string, desc: string, opts: table?))
 ---@field walkerSubmap fun()
 ---@field groupSubmap fun()
 

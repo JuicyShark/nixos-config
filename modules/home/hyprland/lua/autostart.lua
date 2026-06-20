@@ -8,8 +8,6 @@ return function(ctx)
 
 	hl.on("hyprland.start", function()
 		local autostart = {
-			{ cmd = "ha-presence-discover", when = features.haPresence },
-			{ cmd = "ha-presence-update active", when = features.haPresence },
 			{ cmd = "systemctl --user start hyprpolkitagent.service" },
 			{ cmd = commands.autostart.elephant },
 			{ cmd = commands.walker.service },

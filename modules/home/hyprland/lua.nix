@@ -145,8 +145,8 @@
       path = "binds/layouts/master.lua";
     }
     {
-      name = "binds.layouts.dwindle";
-      path = "binds/layouts/dwindle.lua";
+      name = "binds.layouts.hy3";
+      path = "binds/layouts/hy3.lua";
     }
     {
       name = "binds.layouts.scrolling";
