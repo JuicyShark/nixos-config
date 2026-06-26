@@ -244,12 +244,12 @@ function hl.dsp.group.lock_active(opts) end
 function hl.dsp.group.active(opts) end
 
 ---@class HlCfg
----@field apps { terminal: string, yazi: string, emacsclient: string, thunar: string, elephant: string, walker: string, noctalia: string, qutebrowser: string, vivaldi: string|nil, pwvucontrol: string, hyprpicker: string, wayscriber: string, jellyfinMpvShim: string }
+---@field apps { terminal: string, nvim: string, tmux: string, zellij: string, timeout: string, yazi: string, emacsclient: string, thunar: string, elephant: string, walker: string, noctalia: string, qutebrowser: string, vivaldi: string|nil, pwvucontrol: string, hyprpicker: string, wayscriber: string, jellyfinMpvShim: string }
 ---@field scripts { submapCheatsheet: string, submapCheatsheetCall: string }
 ---@field hyprctl string
 ---@field uwsmAppPrefix string
 ---@field screenshot { fullscreen: string, region: string, window: string }
----@field features { gaming: boolean, bloat: boolean, zsa: boolean, emacs: boolean, tmux: boolean }
+---@field features { gaming: boolean, bloat: boolean, zsa: boolean, emacs: boolean, neovim: boolean, tmux: boolean }
 ---@field smartFocus { keys: { left: string, right: string, up: string, down: string }, multiplexers: { tmux: { mod: string }, zellij: { mod: string } } }
 ---@field sunshine { enable: boolean, virtualMonitor: string, virtualMode: string, virtualPosition: string, virtualScale: string, steamWorkspace: string, gameWorkspace: string }
 cfg = {}

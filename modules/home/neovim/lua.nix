@@ -3,6 +3,41 @@
   codelldbAdapter = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
 in {
   programs.nixvim.extraConfigLua = ''
+    do
+      local rt = vim.env.XDG_RUNTIME_DIR
+      if rt and rt ~= "" then
+        local sockets = {}
+        if vim.env.KITTY_PID and vim.env.KITTY_PID ~= "" then
+          table.insert(sockets, rt .. "/nvim-smart-focus-kitty-" .. vim.env.KITTY_PID .. ".sock")
+        end
+        table.insert(sockets, rt .. "/nvim-smart-focus-" .. tostring(vim.fn.getpid()) .. ".sock")
+
+        local uv = vim.uv or vim.loop
+        local started = {}
+        for _, candidate in ipairs(sockets) do
+          if uv and uv.fs_unlink then
+            pcall(uv.fs_unlink, candidate)
+          end
+          local ok = pcall(vim.fn.serverstart, candidate)
+          if ok then
+            table.insert(started, candidate)
+          end
+        end
+        if #started > 0 then
+          vim.g.smart_focus_server = started[1]
+          vim.api.nvim_create_autocmd("VimLeavePre", {
+            callback = function()
+              for _, socket in ipairs(started) do
+                if uv and uv.fs_unlink then
+                  pcall(uv.fs_unlink, socket)
+                end
+              end
+            end,
+          })
+        end
+      end
+    end
+
     -- Register missing treesitter predicates (grammar/runtime version mismatch)
     local ts_query = require("vim.treesitter.query")
     local predicates = ts_query.list_predicates and ts_query.list_predicates() or {}

@@ -53,6 +53,8 @@ in {
 
   apps = {
     terminal = lib.getExe pkgs.kitty;
+    nvim = lib.getExe pkgs.neovim;
+    tmux = lib.getExe pkgs.tmux;
     zellij = lib.getExe pkgs.zellij;
     timeout = "${pkgs.coreutils}/bin/timeout";
     yazi = lib.getExe pkgs.yazi;
@@ -99,6 +101,7 @@ in {
     bloat = hasBloat;
     zsa = hasZsa;
     emacs = osConfig.modules.emacs.enable or false;
+    neovim = config.programs.nixvim.enable or false;
     tmux = hasTmux;
   };
 
