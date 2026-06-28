@@ -8,7 +8,10 @@
 }: let
   inherit (osConfig.modules) desktop;
   hasBloat = desktop.bloat.enable or false;
+  hasVivaldi = hasBloat && (desktop.bloat.vivaldi.enable or false);
   hasGaming = desktop.gaming.enable or false;
+  hasAnnotation = desktop.annotation.enable or false;
+  hasJellyfinMpvShim = desktop.media.jellyfinMpvShim.enable or false;
   hasZsa = osConfig.modules.system.keyboard.zsa or false;
   hasTmux = config.programs.tmux.enable or false;
   smartFocus =
@@ -46,8 +49,17 @@
       ${quickshell} ipc --newest call submapCheatsheet "$@"
     fi
   '';
-  submapCheatsheetCommand = pkgs.writeShellScript "submap-cheatsheet-start" submapCheatsheetStart;
-  submapCheatsheetCallCommand = pkgs.writeShellScript "submap-cheatsheet-call" submapCheatsheetCallScript;
+  hyprlandStatePublishScript = ''
+    state="''${1:?usage: hyprland-state-publish <state>}"
+    if command -v ha-presence-update >/dev/null 2>&1; then
+      ha-presence-update "$state"
+    fi
+  '';
+  generatedScripts = {
+    submapCheatsheet = pkgs.writeShellScript "submap-cheatsheet-start" submapCheatsheetStart;
+    submapCheatsheetCall = pkgs.writeShellScript "submap-cheatsheet-call" submapCheatsheetCallScript;
+    hyprlandStatePublish = pkgs.writeShellScript "hyprland-state-publish" hyprlandStatePublishScript;
+  };
 in {
   inherit uwsmAppPrefix;
 
@@ -56,6 +68,9 @@ in {
     nvim = lib.getExe pkgs.neovim;
     tmux = lib.getExe pkgs.tmux;
     zellij = lib.getExe pkgs.zellij;
+    playerctl = lib.getExe pkgs.playerctl;
+    pkill = "${pkgs.procps}/bin/pkill";
+    systemctl = "${pkgs.systemd}/bin/systemctl";
     timeout = "${pkgs.coreutils}/bin/timeout";
     yazi = lib.getExe pkgs.yazi;
     emacsclient = lib.getExe' osConfig.modules.emacs.package "emacsclient";
@@ -65,19 +80,26 @@ in {
     inherit noctalia;
     qutebrowser = lib.getExe pkgs.qutebrowser;
     vivaldi =
-      if hasBloat
+      if hasVivaldi
       then lib.getExe pkgs.vivaldi
       else null;
     pwvucontrol = lib.getExe pkgs.pwvucontrol;
     hyprpicker = lib.getExe pkgs.hyprpicker;
-    wayscriber = lib.getExe pkgs.wayscriber;
-    jellyfinMpvShim = lib.getExe pkgs.jellyfin-mpv-shim;
+    wayscriber =
+      if hasAnnotation
+      then lib.getExe pkgs.wayscriber
+      else null;
+    jellyfinMpvShim =
+      if hasJellyfinMpvShim
+      then lib.getExe pkgs.jellyfin-mpv-shim
+      else null;
   };
 
   inherit hyprctl;
   scripts = {
-    submapCheatsheet = toString submapCheatsheetCommand;
-    submapCheatsheetCall = toString submapCheatsheetCallCommand;
+    submapCheatsheet = toString generatedScripts.submapCheatsheet;
+    submapCheatsheetCall = toString generatedScripts.submapCheatsheetCall;
+    hyprlandStatePublish = toString generatedScripts.hyprlandStatePublish;
   };
 
   screenshot = {
@@ -87,18 +109,22 @@ in {
   };
 
   sunshine = {
-    enable = desktop.sunshine.enable or false;
-    virtualMonitor = desktop.sunshine.streamingMonitor.output or "HDMI-A-1";
-    virtualMode = desktop.sunshine.streamingMonitor.mode or "1920x1080@120";
-    virtualPosition = desktop.sunshine.streamingMonitor.position or "0x1440";
-    virtualScale = desktop.sunshine.streamingMonitor.scale or "1";
-    steamWorkspace = desktop.sunshine.streamingMonitor.steamWorkspace or "21";
-    gameWorkspace = desktop.sunshine.streamingMonitor.gameWorkspace or "22";
+    enable = osConfig.services.sunshine.enable or false;
+    stream = {
+      monitor = "virtual-screen";
+      position = "5120x0";
+      width = 2560;
+      height = 1440;
+      refresh = 120;
+      scale = 1.67;
+    };
   };
 
   features = {
     gaming = hasGaming;
     bloat = hasBloat;
+    annotation = hasAnnotation;
+    jellyfinMpvShim = hasJellyfinMpvShim;
     zsa = hasZsa;
     emacs = osConfig.modules.emacs.enable or false;
     neovim = config.programs.nixvim.enable or false;

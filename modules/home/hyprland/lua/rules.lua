@@ -5,11 +5,12 @@ return function(ctx)
 	local hl = ctx.hl
 	local primary = ctx.desktop.primary
 	local monitorWorkspace = ctx.desktop.monitorWorkspace or {}
+	local windowPolicy = ctx.windowPolicy
 
 	local externalWorkspaceSet = {}
 
 	local workspaceRules = {
-		{ workspace = "1", layout = "master", layout_opts = { orientation = "left" }, persistent = true },
+		{ workspace = "1", layout = "master", layout_opts = { orientation = "center" }, persistent = true },
 		{
 			workspace = "2",
 			default = true,
@@ -39,8 +40,6 @@ return function(ctx)
 		},
 	}
 
-	local gameClass = "^(steam_app_[0-9]+|gamescope|FTL\\.amd64|Slay( the)? Spire|SlayTheSpire|Slay the Spire 2|Balatro)$"
-	local gameTitle = "^(World of Warcraft|Slay the Spire|Slay the Spire 2|Balatro)$"
 	local attentionTitle =
 		"(Authenticate|Authentication Required|Authorization Required|Confirm|Confirmation|Are you sure.*|Password Required|Unlock.*|Enter Password.*)"
 	local mediaInspectorTitle = "(Media viewer|Image Viewer|Screenshot|Drag and Drop)"
@@ -100,9 +99,9 @@ return function(ctx)
 		{ match = { class = "steam", title = "Steam" }, tags = { "steam-shell" } },
 		{ match = { class = "steam", title = ".*Controller Layout$" }, tags = { "dialog" } },
 		{ match = { xdg_tag = "proton-game" }, tags = { "game" } },
-		{ match = { class = gameClass }, tags = { "game" } },
-		{ match = { title = gameTitle }, tags = { "game", "no-client-fullscreen", "force-tile" } },
-		{ match = { initial_title = gameTitle }, tags = { "game", "no-client-fullscreen", "force-tile" } },
+		{ match = { class = windowPolicy.gameClass }, tags = { "game" } },
+		{ match = { title = windowPolicy.gameTitle }, tags = { "game", "no-client-fullscreen", "force-tile" } },
+		{ match = { initial_title = windowPolicy.gameTitle }, tags = { "game", "no-client-fullscreen", "force-tile" } },
 		{ match = { class = "^gamescope$" }, tags = { "gamescope" } },
 		{ match = { class = "dropdown" }, tags = { "dropdown" } },
 		{ match = { class = "floating-editor" }, tags = { "floating-editor" } },

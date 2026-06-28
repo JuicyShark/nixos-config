@@ -67,11 +67,12 @@ return function(ctx)
 			service = app(apps.walker .. " --gapplication-service"),
 		},
 		autostart = {
+			hyprpolkitagent = apps.systemctl .. " --user start hyprpolkitagent.service",
 			elephant = app(apps.elephant),
 			noctalia = app(apps.noctalia),
 			submapCheatsheet = app(cfg.scripts.submapCheatsheet),
-			wayscriber = app(apps.wayscriber .. " -d --no-tray"),
-			jellyfinMpvShim = app(apps.jellyfinMpvShim),
+			wayscriber = apps.wayscriber and app(apps.wayscriber .. " -d --no-tray") or nil,
+			jellyfinMpvShim = apps.jellyfinMpvShim and app(apps.jellyfinMpvShim) or nil,
 		},
 		screenshot = cfg.screenshot,
 		volumeMixer = app(apps.pwvucontrol),
@@ -84,6 +85,18 @@ return function(ctx)
 			previous = noctalia_msg("media previous"),
 			next = noctalia_msg("media next"),
 			stop = noctalia_msg("media stop"),
+			seekForward = apps.playerctl .. " -p playerctld position 10+",
+			seekBackward = apps.playerctl .. " -p playerctld position 10-",
+		},
+		annotation = {
+			toggle = apps.pkill .. " -SIGUSR1 wayscriber",
+		},
+		tmux = {
+			newSession = apps.tmux .. " new-session",
+			listSessions = apps.tmux .. " list-sessions",
+			attachSession = apps.tmux .. " attach-session",
+			detach = apps.tmux .. " detach-client",
+			reload = apps.tmux .. " source-file ~/.tmux.conf",
 		},
 		session = {
 			lock = noctalia_msg("session lock"),
@@ -100,4 +113,4 @@ return function(ctx)
 		noctalia = apps.noctalia,
 		submapCheatsheetCall = cfg.scripts.submapCheatsheetCall,
 	}
-	end
+end

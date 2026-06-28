@@ -4,30 +4,18 @@
 return function(ctx)
 	local hl = ctx.hl
 	local commands = ctx.commands
-	local features = ctx.features
 	local binds = ctx.bindHelpers
 	local mod = binds.mod
 	local bind = binds.bind
 	local mbind = binds.mbind
 	local bindSubmap = binds.bindSubmap
 	local mbindSubmap = binds.mbindSubmap
+	local bind_entry_submaps = binds.entrySubmaps
 	local mark_or_swap = ctx.window.markOrSwap
 	local smart_focus = ctx.smartFocus
-	local cycle_workspace_layout = ctx.layout.cycleWorkspaceLayout
 	local layout_bind = ctx.layout.bind
 	local toggle_submap_options = binds.toggleOptions
 	local toggle_hyprbars_tiled = ctx.window.toggleHyprbarsTiled
-
-	local function toggle_fake_fullscreen(internal, client)
-		hl.dispatch(hl.dsp.window.tag({ tag = "fake-fullscreen-borderless" }))
-		hl.dispatch(hl.dsp.window.fullscreen_state({ internal = internal, client = client, action = "toggle" }))
-	end
-
-	local function toggle_picture_in_picture()
-		hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
-		hl.dispatch(hl.dsp.window.pin())
-		toggle_fake_fullscreen(2, 0)
-	end
 
 	local directions = {
 		{ key = "left", hypr = "l" },
@@ -43,41 +31,33 @@ return function(ctx)
 		return "v"
 	end
 
-	local function bind_entry_submaps(bind_fn)
-		bind_fn("W", "window", "Windows")
-		bind_fn("A", "apps", "Apps")
-		bind_fn("L", "layout", "Layout")
-		bind_fn("G", "group", "Groups")
-		bind_fn("SHIFT + O", "walker", "Walker")
-		bind_fn("bracketleft", "system", "System")
-		bind_fn("V", "media", "Media")
-		if features.emacs then
-			bind_fn("E", "emacs", "Emacs")
-		end
-		if features.tmux then
-			bind_fn("T", "tmux", "Tmux")
-		end
-	end
+	local kitty_classes = {
+		kitty = true,
+		dropdown = true,
+		pinned = true,
+		["floating-editor"] = true,
+	}
 
-	local function bind_walker_commands()
-		bind("Space", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
-		bind("O", hl.dsp.exec_cmd(commands.noctaliaLauncher), "Launcher")
-		bind("F", hl.dsp.exec_cmd(commands.files.emacs), "Files (Emacs)")
-		bind("SHIFT + F", hl.dsp.exec_cmd(commands.files.thunar), "Files (Thunar)")
-		bind("Y", hl.dsp.exec_cmd(commands.files.yazi), "Files (Yazi)")
-		bind("D", hl.dsp.exec_cmd(commands.walker.commands), "Commands")
-		bind("C", hl.dsp.exec_cmd(commands.walker.clipboard), "Clipboard")
-		bind("B", hl.dsp.exec_cmd(commands.walker.bitwarden), "Bitwarden")
-		bind("W", hl.dsp.exec_cmd(commands.walker.windows), "Windows")
-		if features.gaming then
-			bind("G", hl.dsp.exec_cmd(commands.app("steam-games")), "Steam games")
-		end
-	end
+	local function open_terminal()
+		local active = hl.get_active_window and hl.get_active_window()
+		local pid = active and tonumber(active.pid) or nil
+		local rt = os.getenv("XDG_RUNTIME_DIR")
+		local terminal = ctx.cfg.apps and ctx.cfg.apps.terminal or nil
 
-	ctx.bindHelpers.entrySubmaps = bind_entry_submaps
-	ctx.bindHelpers.walkerSubmap = bind_walker_commands
-	ctx.window.toggleFakeFullscreen = toggle_fake_fullscreen
-	ctx.window.togglePictureInPicture = toggle_picture_in_picture
+		if terminal and rt and pid and active and kitty_classes[active.class or ""] then
+			hl.exec_cmd(
+				terminal
+					.. " @ --to unix:"
+					.. rt
+					.. "/kitty-"
+					.. tostring(pid)
+					.. " launch --type=os-window --cwd=current"
+			)
+			return
+		end
+
+		hl.exec_cmd(commands.terminal.main)
+	end
 
 	-- Mouse drag/resize
 	bind(mod .. " + mouse:272", hl.dsp.window.drag(), "Move window", { mouse = true })
@@ -94,12 +74,12 @@ return function(ctx)
 	mbind("B", hl.dsp.exec_cmd(commands.walker.bitwarden), "Bitwarden")
 	mbind("Z", hl.dsp.exec_cmd(commands.walker.windows), "Windows")
 	mbind("M", function()
-		toggle_fake_fullscreen(0, 2)
+		ctx.window.toggleFakeFullscreen(0, 2)
 	end, "Maximize")
 	mbind("CONTROL + M", hl.dsp.window.fullscreen({ mode = "fullscreen" }), "Toggle fullscreen")
 	mbind("F", hl.dsp.window.float({ action = "toggle" }), "Toggle floating")
 	mbind("P", function()
-		toggle_picture_in_picture()
+		ctx.window.togglePictureInPicture()
 	end, "Picture in picture")
 	mbind("CONTROL + Return", hl.dsp.workspace.toggle_special("dropdown"), "Dropdown terminal")
 	mbind("CONTROL + P", hl.dsp.window.pin(), "Toggle pin")
@@ -121,11 +101,9 @@ return function(ctx)
 	mbind("X", function()
 		mark_or_swap()
 	end, "Mark / swap window")
-	mbind("tab", function()
-		cycle_workspace_layout()
-	end, "Cycle workspace layout")
+
 	mbind("N", hl.dsp.exec_cmd(commands.notifications.clearActive), "Clear notifs")
-	mbindSubmap("ALT + BackSpace", "passthrough", "Passthrough")
+	mbindSubmap("ALT + BackSpace", "state", "State")
 
 	for _, d in ipairs(directions) do
 		local key, dir = d.key, d.hypr
@@ -152,8 +130,9 @@ return function(ctx)
 	end
 
 	-- Terminal
-	mbind("Return", hl.dsp.exec_cmd(commands.terminal.main), "Terminal")
-	mbind("SHIFT + Return", hl.dsp.exec_cmd(commands.terminal.pinned), "Kitty pinned")
+	mbind("Return", function()
+		open_terminal()
+	end, "Terminal")
 
 	-- Workspace switch + move-to (1..10, with key 0 mapped to workspace ID 10)
 	for i = 1, 9 do
@@ -167,12 +146,7 @@ return function(ctx)
 	mbind("SHIFT +" .. "0", hl.dsp.window.move({ workspace = "10", follow = false }), "Move to ws 10")
 
 	-- Master ratio
-	mbind(
-		"minus",
-		ctx.layout.specific("master", hl.dsp.layout("mfact -0.05")),
-		"Master ratio -",
-		{ repeating = true }
-	)
+	mbind("minus", ctx.layout.specific("master", hl.dsp.layout("mfact -0.05")), "Master ratio -", { repeating = true })
 	mbind(
 		"SHIFT + minus",
 		ctx.layout.specific("master", hl.dsp.layout("mfact -0.125")),
@@ -188,20 +162,10 @@ return function(ctx)
 	)
 
 	-- Volume / seek
-	bind(
-		"XF86AudioRaiseVolume",
-		hl.dsp.exec_cmd(commands.volume.up),
-		"Volume up",
-		{ repeating = true }
-	)
-	bind(
-		"XF86AudioLowerVolume",
-		hl.dsp.exec_cmd(commands.volume.down),
-		"Volume down",
-		{ repeating = true }
-	)
-	bind("XF86AudioForward", hl.dsp.exec_cmd("playerctl -p playerctld position 10+"), "Seek +10s", { repeating = true })
-	bind("XF86AudioRewind", hl.dsp.exec_cmd("playerctl -p playerctld position 10-"), "Seek -10s", { repeating = true })
+	bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(commands.volume.up), "Volume up", { repeating = true })
+	bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(commands.volume.down), "Volume down", { repeating = true })
+	bind("XF86AudioForward", hl.dsp.exec_cmd(commands.media.seekForward), "Seek +10s", { repeating = true })
+	bind("XF86AudioRewind", hl.dsp.exec_cmd(commands.media.seekBackward), "Seek -10s", { repeating = true })
 
 	-- Media keys
 	bind("XF86AudioPrev", hl.dsp.exec_cmd(commands.media.previous), "Previous track", { locked = true })

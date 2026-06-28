@@ -51,23 +51,6 @@ return function(ctx)
 		setWorkspaceLayout = set_workspace_layout,
 	}
 
-	ctx.layout.cycleWorkspaceLayout = function()
-		local workspace = current_workspace()
-		if not workspace then
-			return
-		end
-
-		local layouts = { "scrolling", "hy3", "master", "monocle" }
-		local next_layout = layouts[1] or "master"
-		for i = 1, #layouts do
-			if layouts[i] == workspace.tiled_layout then
-				next_layout = layouts[(i % #layouts) + 1]
-				break
-			end
-		end
-
-		set_workspace_layout(workspace.name, next_layout)
-	end
 	ctx.layout.bind = function(bind_table)
 		return function()
 			local layout = current_layout()

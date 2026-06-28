@@ -32,6 +32,17 @@ return function(ctx)
 	end
 
 	ctx.window = ctx.window or {}
+	ctx.window.toggleFakeFullscreen = function(internal, client)
+		hl.dispatch(hl.dsp.window.tag({ tag = "fake-fullscreen-borderless" }))
+		hl.dispatch(hl.dsp.window.fullscreen_state({ internal = internal, client = client, action = "toggle" }))
+	end
+
+	ctx.window.togglePictureInPicture = function()
+		hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
+		hl.dispatch(hl.dsp.window.pin())
+		ctx.window.toggleFakeFullscreen(2, 0)
+	end
+
 	ctx.window.markOrSwap = function()
 		local active = hl.get_active_window and hl.get_active_window()
 		if not active then

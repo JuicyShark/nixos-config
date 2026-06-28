@@ -24,10 +24,9 @@
     + "\n";
 in {
   config = lib.mkIf (pkgs.stdenv.isLinux && hyprlandEnabled) {
-    home.packages = [
-      pkgs.socat
-      pkgs.wayscriber
-    ];
+    home.packages =
+      [pkgs.socat]
+      ++ lib.optionals (osConfig.modules.desktop.annotation.enable or false) [pkgs.wayscriber];
 
     services = {
       hyprpolkitagent.enable = true;

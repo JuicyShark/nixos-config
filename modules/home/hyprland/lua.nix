@@ -60,110 +60,45 @@
 
   # Each file returns function(ctx), then the generated config executes it.
   # Order is still meaningful: desktop and commands define local policy tables,
-  # cheatsheet tracks sidecar state, bind-helpers decorates direct hl.bind calls,
+  # state tracks runtime modes, cheatsheet tracks sidecar state,
+  # bind-helpers decorates direct hl.bind calls,
   # cheatsheet.events follows compositor submap truth, runtime modules register
   # event handlers, binds registers top-level shortcuts, and binds/submaps
   # consumes the helper-domain modules.
+  luaModule = name: path: {inherit name path;};
+  luaModuleFromName = name: luaModule name ((builtins.replaceStrings ["."] ["/"] name) + ".lua");
+
   initModules = [
-    {
-      name = "desktop";
-      path = "desktop.lua";
-    }
-    {
-      name = "commands";
-      path = "commands.lua";
-    }
-    {
-      name = "cheatsheet";
-      path = "cheatsheet.lua";
-    }
-    {
-      name = "bind-helpers";
-      path = "bind-helpers.lua";
-    }
-    {
-      name = "workspace-layout";
-      path = "workspace-layout.lua";
-    }
-    {
-      name = "cheatsheet.events";
-      path = "cheatsheet/events.lua";
-    }
-    {
-      name = "window-state";
-      path = "window-state.lua";
-    }
-    {
-      name = "special-apps";
-      path = "special-apps.lua";
-    }
-    {
-      name = "external-monitor-workspaces";
-      path = "external-monitor-workspaces.lua";
-    }
-    {
-      name = "smart-focus";
-      path = "smart-focus.lua";
-    }
-    {
-      name = "rules";
-      path = "rules.lua";
-    }
-    {
-      name = "hyprbars";
-      path = "hyprbars.lua";
-    }
-    {
-      name = "special-workspaces";
-      path = "special-workspaces.lua";
-    }
-    {
-      name = "sunshine";
-      path = "sunshine.lua";
-    }
-    {
-      name = "autostart";
-      path = "autostart.lua";
-    }
-    {
-      name = "binds";
-      path = "binds.lua";
-    }
-    {
-      name = "binds.submaps";
-      path = "binds/submaps.lua";
-    }
+    (luaModuleFromName "desktop")
+    (luaModuleFromName "commands")
+    (luaModuleFromName "state")
+    (luaModuleFromName "cheatsheet")
+    (luaModuleFromName "bind-helpers")
+    (luaModuleFromName "workspace-layout")
+    (luaModuleFromName "cheatsheet.events")
+    (luaModuleFromName "window-state")
+    (luaModuleFromName "special-apps")
+    (luaModuleFromName "external-monitor-workspaces")
+    (luaModuleFromName "smart-focus")
+    (luaModuleFromName "window-policy")
+    (luaModuleFromName "rules")
+    (luaModuleFromName "state-watchers")
+    (luaModuleFromName "hyprbars")
+    (luaModuleFromName "special-workspaces")
+    (luaModuleFromName "sunshine")
+    (luaModuleFromName "autostart")
+    (luaModuleFromName "binds")
+    (luaModuleFromName "binds.submaps")
   ];
 
   optionalModules = [
-    {
-      name = "binds.groups";
-      path = "binds/groups.lua";
-    }
-    {
-      name = "binds.layouts.master";
-      path = "binds/layouts/master.lua";
-    }
-    {
-      name = "binds.layouts.hy3";
-      path = "binds/layouts/hy3.lua";
-    }
-    {
-      name = "binds.layouts.scrolling";
-      path = "binds/layouts/scrolling.lua";
-    }
-    {
-      name = "binds.submaps.core";
-      path = "binds/submaps/core.lua";
-    }
-    {
-      name = "binds.submaps.emacs";
-      path = "binds/submaps/emacs.lua";
-    }
-    {
-      name = "binds.submaps.tmux";
-      path = "binds/submaps/tmux.lua";
-    }
+    (luaModuleFromName "binds.groups")
+    (luaModuleFromName "binds.layouts.master")
+    (luaModuleFromName "binds.layouts.hy3")
+    (luaModuleFromName "binds.layouts.scrolling")
+    (luaModuleFromName "binds.submaps.core")
+    (luaModuleFromName "binds.submaps.emacs")
+    (luaModuleFromName "binds.submaps.tmux")
   ];
 
   modules = initModules ++ optionalModules;

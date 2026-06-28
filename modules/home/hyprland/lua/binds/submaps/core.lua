@@ -39,14 +39,45 @@ return function(ctx)
 		bind(key, ctx.layout.specific(layout, action), desc, opts)
 	end
 
-	local function move_window(direction)
-		return ctx.layout.bind({
-			hy3 = ctx.layout.hy3.moveWindow(direction),
-			default = hl.dsp.window.move({ direction = direction }),
-		})
+	local function toggle_state(name)
+		return function()
+			ctx.state.toggle(name)
+		end
 	end
 
-	defineSubmap("passthrough", function() end)
+	local function clear_state()
+		ctx.state.clearUser()
+	end
+
+	defineSubmap("passthrough", function()
+		bind(ctx.desktop.mod .. " + ALT + BackSpace", function()
+			ctx.state.set("passthrough", false)
+			hl.dispatch(hl.dsp.submap("reset"))
+		end, "Exit passthrough", { allowPassthrough = true })
+	end, { persistent = true, escape = false })
+
+	defineSubmap("state", function()
+		bind("S", toggle_state("streaming"), "Toggle streaming")
+		bind("R", toggle_state("remote-streaming"), "Toggle remote streaming")
+		bind("C", toggle_state("screen-recording"), "Toggle screen recording")
+		bind("D", toggle_state("do-not-disturb"), "Toggle do not disturb")
+		bind("P", function()
+			ctx.state.set("passthrough", true)
+			hl.dispatch(hl.dsp.submap("passthrough"))
+		end, "Enable passthrough")
+		bind("N", clear_state, "Clear state")
+	end)
+
+	ctx.state.onChange(function(name, enabled)
+		if name ~= "passthrough" then
+			return
+		end
+		if enabled then
+			hl.dispatch(hl.dsp.submap("passthrough"))
+		elseif type(hl.get_current_submap) ~= "function" or hl.get_current_submap() == "passthrough" then
+			hl.dispatch(hl.dsp.submap("reset"))
+		end
+	end)
 
 	defineSubmap("walker", function()
 		binds.walkerSubmap()
@@ -118,83 +149,30 @@ return function(ctx)
 		bindSubmap("G", "group", "Groups")
 	end)
 
-	defineSubmap("windowMove", function()
-		bindBack("window", "Back to windows")
-		bind("left", move_window("l"), "Move left", { repeating = true })
-		bind("right", move_window("r"), "Move right", { repeating = true })
-		bind("up", move_window("u"), "Move up", { repeating = true })
-		bind("down", move_window("d"), "Move down", { repeating = true })
-	end, { persistent = true })
-
 	defineSubmap("windowResize", function()
 		bindBack("window", "Back to windows")
-		bind(
-			"left",
-			hl.dsp.window.resize({ x = 75, y = 0, relative = true }),
-			"Resize left",
-			{ repeating = true }
-		)
-		bind(
-			"right",
-			hl.dsp.window.resize({ x = -75, y = 0, relative = true }),
-			"Resize right",
-			{ repeating = true }
-		)
-		bind("up", hl.dsp.window.resize({ x = 0, y = -75, relative = true }), "Resize up", { repeating = true })
-		bind(
-			"down",
-			hl.dsp.window.resize({ x = 0, y = 75, relative = true }),
-			"Resize down",
-			{ repeating = true }
-		)
-		bind(
-			"SHIFT + left",
-			hl.dsp.window.resize({ x = 75, y = 0, relative = true }),
-			"Resize left",
-			{ repeating = true, cheatsheet = false }
-		)
-		bind(
-			"SHIFT + right",
-			hl.dsp.window.resize({ x = -75, y = 0, relative = true }),
-			"Resize right",
-			{ repeating = true, cheatsheet = false }
-		)
-		bind(
-			"SHIFT + up",
-			hl.dsp.window.resize({ x = 0, y = -75, relative = true }),
-			"Resize up",
-			{ repeating = true, cheatsheet = false }
-		)
-		bind(
-			"SHIFT + down",
-			hl.dsp.window.resize({ x = 0, y = 75, relative = true }),
-			"Resize down",
-			{ repeating = true, cheatsheet = false }
-		)
-		bind(
-			"CONTROL + left",
-			hl.dsp.window.resize({ x = 160, y = 0, relative = true }),
-			"Resize left big",
-			{ repeating = true }
-		)
-		bind(
-			"CONTROL + right",
-			hl.dsp.window.resize({ x = -160, y = 0, relative = true }),
-			"Resize right big",
-			{ repeating = true }
-		)
-		bind(
-			"CONTROL + up",
-			hl.dsp.window.resize({ x = 0, y = -160, relative = true }),
-			"Resize up big",
-			{ repeating = true }
-		)
-		bind(
-			"CONTROL + down",
-			hl.dsp.window.resize({ x = 0, y = 160, relative = true }),
-			"Resize down big",
-			{ repeating = true }
-		)
+		for _, d in ipairs({
+			{ key = "left", x = 75, y = 0, bigX = 160, bigY = 0 },
+			{ key = "right", x = -75, y = 0, bigX = -160, bigY = 0 },
+			{ key = "up", x = 0, y = -75, bigX = 0, bigY = -160 },
+			{ key = "down", x = 0, y = 75, bigX = 0, bigY = 160 },
+		}) do
+			bind(d.key, function()
+				ctx.smartFocus(d.key)
+			end, "Focus " .. d.key, { repeating = true })
+			bind(
+				"SHIFT + " .. d.key,
+				hl.dsp.window.resize({ x = d.x, y = d.y, relative = true }),
+				"Resize " .. d.key,
+				{ repeating = true, cheatsheet = false }
+			)
+			bind(
+				"CONTROL + " .. d.key,
+				hl.dsp.window.resize({ x = d.bigX, y = d.bigY, relative = true }),
+				"Resize " .. d.key .. " big",
+				{ repeating = true }
+			)
+		end
 	end, { persistent = true })
 
 	defineSubmap("layout", function()
@@ -204,13 +182,9 @@ return function(ctx)
 		bind("D", function()
 			set_layout("hy3")
 		end, "Hy3 Layout")
-		bind("C", function()
-			set_layout("scrolling")
-		end, "Scrolling Layout")
 
 		bindSubmap("W", "window", "Window Actions")
 		bindSubmap("G", "group", "Group Actions")
-		bindSubmap("V", "windowMove", "Move Window")
 		bindSubmap("R", "windowResize", "Resize Window")
 
 		layout.bindMasterActions(function(key, msg, desc)
@@ -219,28 +193,19 @@ return function(ctx)
 		layout.bindHy3Actions(function(key, action, desc)
 			layout_action("hy3", key, action, desc)
 		end)
-		layout.bindScrollingActions(function(key, msg, desc, opts)
-			layout_message("scrolling", key, msg, desc, opts)
-		end)
 
 		bind(
-			"J",
+			"Left",
 			layout.bind({
-				scrolling = hl.dsp.layout("swapcol l"),
 				hy3 = layout.hy3.changeGroup("h"),
-				dwindle = hl.dsp.layout("swapsplit"),
-				monocle = hl.dsp.layout("cycleprev"),
 				master = hl.dsp.layout("cycleprev"),
 			}),
 			"Layout previous / swap left"
 		)
 		bind(
-			"K",
+			"Right",
 			layout.bind({
-				scrolling = hl.dsp.layout("swapcol r"),
 				hy3 = layout.hy3.changeGroup("v"),
-				dwindle = hl.dsp.layout("togglesplit"),
-				monocle = hl.dsp.layout("cyclenext"),
 				master = hl.dsp.layout("cyclenext"),
 			}),
 			"Layout next / swap right"
@@ -264,7 +229,9 @@ return function(ctx)
 		bind("S", hl.dsp.exec_cmd(commands.screenshot.region), "Screenshot (region)")
 		bind("CONTROL + S", hl.dsp.exec_cmd(commands.screenshot.fullscreen), "Screenshot (full)")
 		bind("SHIFT + S", hl.dsp.exec_cmd(commands.screenshot.fullscreen), "Screenshot (full)", { cheatsheet = false })
-		bind("A", hl.dsp.exec_cmd("pkill -SIGUSR1 wayscriber"), "Annotate")
+		if features.annotation then
+			bind("A", hl.dsp.exec_cmd(commands.annotation.toggle), "Annotate")
+		end
 		bind("C", hl.dsp.exec_cmd(commands.hyprpicker .. " -a"), "Color picker")
 		bind("L", hl.dsp.exec_cmd(commands.session.lock), "Lock")
 		bind("CONTROL + O", hl.dsp.exec_cmd(commands.session.logout), "Logout")
@@ -283,8 +250,8 @@ return function(ctx)
 		bind("Space", hl.dsp.exec_cmd(commands.media.toggle), "Play pause")
 		bind("P", hl.dsp.exec_cmd(commands.media.previous), "Previous track")
 		bind("N", hl.dsp.exec_cmd(commands.media.next), "Next track")
-		bind("left", hl.dsp.exec_cmd("playerctl -p playerctld position 10-"), "Seek -10s")
-		bind("right", hl.dsp.exec_cmd("playerctl -p playerctld position 10+"), "Seek +10s")
+		bind("left", hl.dsp.exec_cmd(commands.media.seekBackward), "Seek -10s")
+		bind("right", hl.dsp.exec_cmd(commands.media.seekForward), "Seek +10s")
 		bind("minus", hl.dsp.exec_cmd(commands.volume.down), "Volume down")
 		bind("plus", hl.dsp.exec_cmd(commands.volume.up), "Volume up")
 		bind("M", hl.dsp.exec_cmd(commands.volume.mute), "Toggle mute")

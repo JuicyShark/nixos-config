@@ -22,6 +22,12 @@ in {
       output = "HDMI-A-1";
       disabled = true;
     }
+    {
+      output = "iPad";
+      mode = "2420x1668@60";
+      position = "auto";
+      scale = 2;
+    }
   ];
 
   config = {
@@ -222,7 +228,7 @@ in {
       enable_swallow = true;
       swallow_regex = "^(com.mitchellh.ghostty|kitty)$";
       session_lock_xray = true;
-      vrr = 2;
+      vrr = 1;
       size_limits_tiled = true;
       mouse_move_enables_dpms = false;
     };

@@ -11,7 +11,7 @@ return function(ctx)
 		},
 		monitorWorkspace = {
 			enable = true,
-			target = "HDMI-A-2",
+			target = "virtual-screen",
 			workspaces = { "6", "7", "8", "9", "10" },
 		},
 	}

@@ -41,8 +41,8 @@ function HlRule:is_enabled() end
 hl = {}
 
 hl.plugin = {
-    hyprbars = {},
-    hy3 = {},
+	hyprbars = {},
+	hy3 = {},
 }
 
 ---@param keys string
@@ -244,14 +244,14 @@ function hl.dsp.group.lock_active(opts) end
 function hl.dsp.group.active(opts) end
 
 ---@class HlCfg
----@field apps { terminal: string, nvim: string, tmux: string, zellij: string, timeout: string, yazi: string, emacsclient: string, thunar: string, elephant: string, walker: string, noctalia: string, qutebrowser: string, vivaldi: string|nil, pwvucontrol: string, hyprpicker: string, wayscriber: string, jellyfinMpvShim: string }
----@field scripts { submapCheatsheet: string, submapCheatsheetCall: string }
+---@field apps { terminal: string, nvim: string, tmux: string, zellij: string, playerctl: string, pkill: string, systemctl: string, timeout: string, yazi: string, emacsclient: string, thunar: string, elephant: string, walker: string, noctalia: string, qutebrowser: string, vivaldi: string|nil, pwvucontrol: string, hyprpicker: string, wayscriber: string|nil, jellyfinMpvShim: string|nil }
+---@field scripts { submapCheatsheet: string, submapCheatsheetCall: string, hyprlandStatePublish: string }
 ---@field hyprctl string
 ---@field uwsmAppPrefix string
 ---@field screenshot { fullscreen: string, region: string, window: string }
----@field features { gaming: boolean, bloat: boolean, zsa: boolean, emacs: boolean, neovim: boolean, tmux: boolean }
+---@field features { gaming: boolean, bloat: boolean, annotation: boolean, jellyfinMpvShim: boolean, zsa: boolean, emacs: boolean, neovim: boolean, tmux: boolean }
 ---@field smartFocus { keys: { left: string, right: string, up: string, down: string }, multiplexers: { tmux: { mod: string }, zellij: { mod: string } } }
----@field sunshine { enable: boolean, virtualMonitor: string, virtualMode: string, virtualPosition: string, virtualScale: string, steamWorkspace: string, gameWorkspace: string }
+---@field sunshine { enable: boolean, stream: { monitor: string, position: string, width: integer, height: integer, refresh: integer, scale: number } }
 cfg = {}
 
 ---@class HyprCommands
@@ -262,12 +262,14 @@ cfg = {}
 ---@field files { emacs: string, thunar: string, yazi: string }
 ---@field emacs { raise: string, focusOrRaise: string, newFrame: string, cwd: string, capture: string, today: string, agenda: string, projects: string, weeklyReview: string, roamFind: string, roamCapture: string, roamSearch: string }
 ---@field walker { launcher: string, commands: string, clipboard: string, bitwarden: string, windows: string, service: string }
----@field autostart { elephant: string, noctalia: string, submapCheatsheet: string, wayscriber: string, jellyfinMpvShim: string }
+---@field autostart { hyprpolkitagent: string, elephant: string, noctalia: string, submapCheatsheet: string, wayscriber: string|nil, jellyfinMpvShim: string|nil }
 ---@field screenshot { fullscreen: string, region: string, window: string }
 ---@field volumeMixer string
 ---@field hyprpicker string
 ---@field notifications { clearActive: string }
----@field media { toggle: string, previous: string, next: string, stop: string }
+---@field media { toggle: string, previous: string, next: string, stop: string, seekForward: string, seekBackward: string }
+---@field annotation { toggle: string }
+---@field tmux { newSession: string, listSessions: string, attachSession: string, detach: string, reload: string }
 ---@field session { lock: string, logout: string, reboot: string, shutdown: string }
 ---@field volume { up: string, down: string, mute: string }
 ---@field noctaliaLauncher string
@@ -288,6 +290,16 @@ cfg = {}
 ---@field walkerSubmap fun()
 ---@field groupSubmap fun()
 
+---@class HyprState
+---@field set fun(name: string, enabled: boolean, meta: table?): string
+---@field setSource fun(source: string, name: string, enabled: boolean, meta: table?): string
+---@field toggle fun(name: string): string
+---@field active fun(name: string): boolean
+---@field snapshot fun(): table
+---@field primary fun(): string
+---@field onChange fun(fn: fun(name: string, enabled: boolean, primary: string, meta: table?))
+---@field clearUser fun(): string
+
 ---@class HyprCheatsheet
 ---@field reset fun(): string|nil
 ---@field withSubmap fun(name: string, reset: string|nil, body: fun())
@@ -298,6 +310,11 @@ cfg = {}
 ---@field hide fun()
 ---@field toggleOptions fun()
 ---@field write fun()
+
+---@class HyprWindowPolicy
+---@field gameClass string
+---@field gameTitle string
+---@field isGame fun(window: table?): boolean
 
 ---@class HyprDesktopPolicy
 ---@field mod string

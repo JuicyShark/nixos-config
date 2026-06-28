@@ -8,7 +8,7 @@ return function(ctx)
 
 	hl.on("hyprland.start", function()
 		local autostart = {
-			{ cmd = "systemctl --user start hyprpolkitagent.service" },
+			{ cmd = commands.autostart.hyprpolkitagent },
 			{ cmd = commands.autostart.elephant },
 			{ cmd = commands.walker.service },
 			{ cmd = commands.autostart.noctalia },

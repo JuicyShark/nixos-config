@@ -15,21 +15,8 @@ return function(ctx)
 	local workspaces = monitorWorkspace.workspaces or {}
 	local lastMonitor = nil
 
-	local function target_connected()
-		for _, monitor in ipairs(hl.get_monitors()) do
-			if monitor.name == targetMonitor then
-				return true
-			end
-		end
-		return false
-	end
-
-	local function reconcile()
-		local monitor = primaryMonitor
-		if target_connected() then
-			monitor = targetMonitor
-		end
-
+	local function set_owner(monitor)
+		monitor = monitor or primaryMonitor
 		if monitor == lastMonitor then
 			return
 		end
@@ -41,7 +28,14 @@ return function(ctx)
 		end
 	end
 
-	hl.on("hyprland.start", reconcile)
-	hl.on("monitor.added", reconcile)
-	hl.on("monitor.removed", reconcile)
+	ctx.monitorWorkspace = {
+		primary = primaryMonitor,
+		target = targetMonitor,
+		workspaces = workspaces,
+		setOwner = set_owner,
+	}
+
+	hl.on("hyprland.start", function()
+		set_owner(primaryMonitor)
+	end)
 end
