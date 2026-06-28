@@ -11,6 +11,9 @@
   gamingPackages = with pkgs; [
     heroic
     mangohud
+    prismlauncher
+  ];
+  extraGamingPackages = with pkgs; [
     goverlay
     osu-lazer-bin
     wowup-cf
@@ -29,9 +32,6 @@ in {
       cdemu.enable = cfg.virtual.enable;
       gamemode.enable = cfg.gaming.enable;
 
-      # AMD GPU tuner: fan curves, power profiles, per-app profiles.
-      corectrl.enable = cfg.gaming.enable;
-
       steam = {
         enable = cfg.gaming.enable && !isContainer;
         #extest.enable = true; # Steam Controller
@@ -44,6 +44,7 @@ in {
 
     environment.systemPackages =
       (lib.optionals cfg.gaming.enable gamingPackages)
+      ++ (lib.optionals (cfg.gaming.enable && cfg.gaming.extraTools.enable) extraGamingPackages)
       ++ (lib.optionals (cfg.gaming.enable && cfg.gaming.retro.enable) retroGamingPackages)
       ++ (lib.optionals cfg.virtual.enable [pkgs.quickemu]);
   };

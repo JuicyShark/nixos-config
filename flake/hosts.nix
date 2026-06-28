@@ -18,6 +18,22 @@
     };
   };
 
+  patchedNixflix = system:
+    inputs.nixpkgs.legacyPackages.${system}.applyPatches {
+      name = "nixflix-patched";
+      src = inputs.nixflix;
+      patches = [
+        ../patches/nixflix-prowlarr-indexer-field-secrets.patch
+      ];
+    };
+
+  patchedNixflixModule = system: {
+    imports = [
+      (import "${patchedNixflix system}/modules")
+      inputs.nixflix.inputs.vpn-confinement.nixosModules.default
+    ];
+  };
+
   mkNixosHost = {
     name,
     system,
@@ -60,7 +76,7 @@ in {
         name = "zues";
         system = "x86_64-linux";
         extraModules = [
-          inputs.nixflix.nixosModules.default
+          (patchedNixflixModule "x86_64-linux")
           ../hosts/zues/networking.nix
           ../hosts/zues/services.nix
           ../hosts/zues/gatus.nix

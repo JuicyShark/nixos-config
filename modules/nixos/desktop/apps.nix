@@ -13,20 +13,16 @@
     pwvucontrol
     discord
     tidal-hifi
-    godot
-    vivaldi
     localsend
-  ];
-
-  streamingPackages = with pkgs; [
-    streamlink
-    gpu-screen-recorder # low-overhead AMD HW-encoded replay buffer
   ];
 in {
   config = lib.mkIf cfg.enable {
     environment.systemPackages =
       (lib.optionals cfg.bloat.enable bloatPackages)
-      ++ (lib.optionals cfg.streaming.enable streamingPackages)
+      ++ (lib.optionals (cfg.bloat.enable && cfg.bloat.godot.enable) [pkgs.godot])
+      ++ (lib.optionals (cfg.bloat.enable && cfg.bloat.vivaldi.enable) [pkgs.vivaldi])
+      ++ (lib.optionals (cfg.streaming.enable && cfg.streaming.streamlink.enable) [pkgs.streamlink])
+      ++ (lib.optionals (cfg.streaming.enable && cfg.streaming.replay.enable) [pkgs.gpu-screen-recorder])
       ++ (lib.optionals cfg.guiFallback.enable [pkgs.grsync]);
   };
 }

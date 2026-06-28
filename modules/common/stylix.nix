@@ -1,23 +1,18 @@
 {
   inputs,
   system,
-  config,
   pkgs,
   lib,
   ...
 }: let
-  desktopEnabled = config.modules.desktop.enable or false;
   opacity = 0.95;
   fontSize = 13;
-  # Must use `system` (a specialArg) rather than pkgs.stdenv here because
-  # imports are resolved before config/pkgs are available.
   isLinux = lib.hasSuffix "-linux" system;
-  # Must use `system` (not pkgs.stdenv) for imports and optionalAttrs because
-  # pkgs depends on config, which causes infinite recursion when evaluated eagerly.
+
   stylixModule =
-    if lib.hasSuffix "-darwin" system
-    then inputs.stylix.darwinModules.stylix
-    else inputs.stylix.nixosModules.stylix;
+    if isLinux
+    then inputs.stylix.nixosModules.stylix
+    else inputs.stylix.darwinModules.stylix;
 in {
   imports = [stylixModule];
 
@@ -25,7 +20,7 @@ in {
     stylix =
       {
         enable = true;
-        autoEnable = desktopEnabled;
+        autoEnable = true;
         imageScalingMode = "fill";
         polarity = "dark";
 
@@ -33,10 +28,6 @@ in {
           url = "https://i.postimg.cc/0NyngmdF/5120x2160-Monstera.png";
           sha256 = "sha256-XjOKKMQKzyfiT+CrLGjExpYGu7/AVRk/inBp+xDJG3o=";
         };
-
-        #base16Scheme = "${pkgs.base16-schemes}/share/themes/materia.yaml";
-        #polarity = "dark";
-        #      base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-macchiato.yaml";
 
         base16Scheme = {
           system = "base16";
@@ -101,7 +92,6 @@ in {
       // lib.optionalAttrs isLinux {
         targets.console.enable = true;
 
-        # Linux-only stylix options (not present in nix-darwin's stylix module).
         icons = {
           enable = true;
           package = pkgs.adwaita-icon-theme;

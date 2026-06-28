@@ -27,7 +27,6 @@
     hyprshot
     cliphist
     wf-recorder
-    gparted
   ];
 in {
   imports = [
@@ -38,16 +37,29 @@ in {
 
   options.modules.desktop = {
     enable = mkEnableOption "desktop environment (Hyprland/Wayland)";
-    bloat.enable = mkEnableOption "extra desktop applications (Signal, Discord, Obsidian, etc.)";
+    bloat = {
+      enable = mkEnableOption "extra desktop applications (Signal, Discord, Obsidian, etc.)";
+      vivaldi.enable = mkEnableOption "Vivaldi browser";
+      godot.enable = mkEnableOption "Godot editor";
+    };
+    annotation.enable = mkEnableOption "Wayland screen annotation tooling";
     gaming = {
       enable = mkEnableOption "gaming features (Steam, GameMode, Wine, Proton, etc.)";
+      extraTools.enable = mkEnableOption "extra gaming tools (GOverlay, vkBasalt, WowUp, osu!)";
       retro.enable = mkOption {
         type = lib.types.bool;
-        default = true;
+        default = false;
         description = "Whether to install retro gaming tools and ports with the gaming bundle.";
       };
     };
-    streaming.enable = mkEnableOption "streaming tools (OBS, streamlink)";
+    streaming = {
+      enable = mkEnableOption "streaming tools";
+      chat.enable = mkEnableOption "streaming chat client";
+      mirror.enable = mkEnableOption "Wayland display mirroring tool";
+      streamlink.enable = mkEnableOption "Streamlink";
+      replay.enable = mkEnableOption "GPU Screen Recorder replay tooling";
+    };
+    media.jellyfinMpvShim.enable = mkEnableOption "Jellyfin MPV Shim";
     guiFallback.enable = mkEnableOption "GUI fallback applications (grsync, etc.)";
     virtual.enable = mkEnableOption "virtualization support (quickemu, cdemu)";
   };
@@ -66,10 +78,6 @@ in {
         {
           assertion = cfg.streaming.enable -> cfg.enable;
           message = "modules.desktop.streaming requires modules.desktop to be enabled";
-        }
-        {
-          assertion = cfg.sunshine.enable -> cfg.enable;
-          message = "modules.desktop.sunshine requires modules.desktop to be enabled";
         }
       ];
     }

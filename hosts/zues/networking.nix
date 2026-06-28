@@ -173,7 +173,10 @@ in {
         bogus-priv = true;
 
         domain = "home.arpa";
-        local = "/home.arpa/";
+        local = [
+          "/home.arpa/"
+          "/mc.nixlab.au/"
+        ];
         localise-queries = true;
 
         interface = ["br0"];
@@ -230,6 +233,7 @@ in {
         in
           # router also resolves without domain suffix (legacy compat)
           ["/router/192.168.1.99"]
+          ++ ["/mc.nixlab.au/192.168.1.52"]
           ++ map (svc: "/${svc}.home.arpa/192.168.1.99") dnsAliases
           ++ lib.concatMap (h: [
             "/${h.name}/${h.ip}"

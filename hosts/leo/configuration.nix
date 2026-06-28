@@ -3,6 +3,7 @@
   homeProfiles,
   config,
   pkgs,
+  lib,
   ...
 }: let
   hostKeys = {
@@ -11,19 +12,6 @@
   };
 
   inputLeapPort = 24800;
-  inputLeapConfig = pkgs.writeText "input-leap.conf" ''
-    section: screens
-      leo:
-      mac:
-    end
-
-    section: links
-      leo:
-        right = mac
-      mac:
-        left = leo
-    end
-  '';
 in {
   imports = with self.nixosModules; [
     system
@@ -35,7 +23,6 @@ in {
     stylix
     fonts
     emacs
-    sunshine
     glance
     monitoring
     nfs
@@ -48,14 +35,11 @@ in {
     openvpn
     smartmontools
     # AMD GPU tooling
-    lact # replaces: corectrl (modern daemon-based AMD GPU control)
+    lact
     radeontop
-    nvtopPackages.amd
     vulkan-tools
     mesa-demos
     input-leap
-    # Intel CPU diagnostics
-    intel-gpu-tools
   ];
 
   programs = {
@@ -130,9 +114,9 @@ in {
       enable = true;
       bloat.enable = true;
       gaming.enable = true;
-      guiFallback.enable = true;
+      guiFallback.enable = false;
+      media.jellyfinMpvShim.enable = true;
       streaming.enable = true;
-      sunshine.enable = true;
     };
     emacs.enable = true;
     recomp.enable = true;
@@ -191,6 +175,78 @@ in {
       package = pkgs.openrgb-with-all-plugins;
     };
 
+    sunshine = {
+      enable = true;
+      autoStart = true;
+      capSysAdmin = true;
+      openFirewall = true;
+      settings = {
+        capture = "wlr";
+        encoder = "vaapi";
+        stream_audio = "disabled";
+        fec_percentage = 0;
+        hevc_mode = 1;
+        av1_mode = 1;
+        max_bitrate = 35000;
+        output_name = "virtual-screen";
+        port = config.modules.ports.sunshine.http;
+      };
+      applications.apps = let
+        sunshineHyprlandStream = pkgs.writeShellScriptBin "sunshine-hyprland-stream" ''
+          set -eu
+
+          action="''${1:-}"
+          remote="''${2:-false}"
+
+          case "$remote" in
+            true|false) ;;
+            *)
+              echo "usage: sunshine-hyprland-stream start true|false" >&2
+              exit 2
+              ;;
+          esac
+
+          case "$action" in
+            start)
+              width="''${SUNSHINE_CLIENT_WIDTH:-2560}"
+              height="''${SUNSHINE_CLIENT_HEIGHT:-1440}"
+              fps="''${SUNSHINE_CLIENT_FPS:-120}"
+
+              exec ${lib.getExe pkgs.uwsm} app -- ${pkgs.hyprland}/bin/hyprctl eval "Juicy.sunshine.setStreaming(true, $remote, $width, $height, $fps)"
+              ;;
+            stop)
+              exec ${lib.getExe pkgs.uwsm} app -- ${pkgs.hyprland}/bin/hyprctl eval "Juicy.sunshine.setStreaming(false, false)"
+              ;;
+            *)
+              echo "usage: sunshine-hyprland-stream start true|false | stop" >&2
+              exit 2
+              ;;
+          esac
+        '';
+      in [
+        {
+          name = "Desktop";
+          image-path = "desktop.png";
+          prep-cmd = [
+            {
+              do = "${sunshineHyprlandStream}/bin/sunshine-hyprland-stream start false";
+              undo = "${sunshineHyprlandStream}/bin/sunshine-hyprland-stream stop";
+            }
+          ];
+        }
+        {
+          name = "Remote";
+          image-path = "desktop.png";
+          prep-cmd = [
+            {
+              do = "${sunshineHyprlandStream}/bin/sunshine-hyprland-stream start true";
+              undo = "${sunshineHyprlandStream}/bin/sunshine-hyprland-stream stop";
+            }
+          ];
+        }
+      ];
+    };
+
     journald.extraConfig = ''
       SystemMaxUse=512M
       RuntimeMaxUse=256M
@@ -202,28 +258,9 @@ in {
     irqbalance.enable = true;
   };
 
-  networking.firewall.allowedTCPPorts = [inputLeapPort];
+  security.wrappers.sunshine.capabilities = lib.mkForce "cap_sys_admin,cap_sys_nice+ep";
 
-  systemd.user.services.input-leap-server = {
-    description = "Input Leap server";
-    after = [
-      "network-online.target"
-      "graphical-session.target"
-      "xdg-desktop-portal.service"
-      "xdg-desktop-portal-hyprland.service"
-    ];
-    wants = [
-      "network-online.target"
-      "xdg-desktop-portal.service"
-      "xdg-desktop-portal-hyprland.service"
-    ];
-    wantedBy = ["graphical-session.target"];
-    serviceConfig = {
-      ExecStart = "${pkgs.input-leap}/bin/input-leaps -f -c ${inputLeapConfig} -n leo -a :${toString inputLeapPort}";
-      Restart = "on-failure";
-      RestartSec = 5;
-    };
-  };
+  networking.firewall.allowedTCPPorts = [inputLeapPort];
 
   fileSystems = {
     "/mnt/games" = {
@@ -287,7 +324,12 @@ in {
       options = ["bind"];
     };
   };
-
-  hardware.openrazer.enable = true;
-  hardware.steam-hardware.enable = true;
+  hardware = {
+    steam-hardware.enable = true;
+    openrazer = {
+      enable = true;
+      users = ["juicy"];
+      devicesOffOnScreensaver = true;
+    };
+  };
 }

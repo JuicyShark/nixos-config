@@ -31,11 +31,14 @@ in {
         "${config.users.users.${username}.home}/.ssh/id_ed25519"
         "/etc/ssh/ssh_host_ed25519_key"
       ];
-      secrets = {
-        ha-mqtt-pass.file = ../../secrets/ha-mqtt-pass.age;
-        wifi-pass.file = ../../secrets/wifi-pass.age;
-        juicy-password.file = ../../secrets/juicy-password.age;
-      };
+      secrets =
+        {
+          wifi-pass.file = ../../secrets/wifi-pass.age;
+          juicy-password.file = ../../secrets/juicy-password.age;
+        }
+        // lib.optionalAttrs config.modules.haPresence.enable {
+          ha-mqtt-pass.file = ../../secrets/ha-mqtt-pass.age;
+        };
     };
 
     environment = {

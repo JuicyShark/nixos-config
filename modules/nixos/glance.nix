@@ -48,6 +48,132 @@ in {
                     type = "split-column";
                     widgets = [
                       {
+                        type = "rss";
+                        title = "Nix & Linux";
+                        limit = 12;
+                        collapse-after = 6;
+                        cache = "6h";
+                        feeds = [
+                          {
+                            url = "https://nixos.org/blog/announcements-rss.xml";
+                            title = "NixOS";
+                            limit = 3;
+                          }
+                          {
+                            url = "https://discourse.nixos.org/c/announcements/8.rss";
+                            title = "NixOS Discourse";
+                            limit = 3;
+                          }
+                          {
+                            url = "https://lwn.net/headlines/rss";
+                            title = "LWN";
+                            limit = 3;
+                          }
+                          {
+                            url = "https://www.phoronix.com/rss.php";
+                            title = "Phoronix";
+                            limit = 3;
+                          }
+                        ];
+                      }
+                      {
+                        type = "rss";
+                        title = "Desktop";
+                        limit = 8;
+                        collapse-after = 4;
+                        cache = "6h";
+                        feeds = [
+                          {
+                            url = "https://hypr.land/rss.xml";
+                            title = "Hyprland";
+                            limit = 4;
+                          }
+                          {
+                            url = "https://github.com/hyprwm/Hyprland/releases.atom";
+                            title = "Hyprland Releases";
+                            limit = 2;
+                          }
+                          {
+                            url = "https://lobste.rs/t/linux.rss";
+                            title = "Lobsters Linux";
+                            limit = 2;
+                          }
+                        ];
+                      }
+                    ];
+                  }
+                  {
+                    type = "split-column";
+                    widgets = [
+                      {
+                        type = "rss";
+                        title = "Homelab";
+                        limit = 12;
+                        collapse-after = 6;
+                        cache = "6h";
+                        feeds = [
+                          {
+                            url = "https://grafana.com/blog/index.xml";
+                            title = "Grafana";
+                            limit = 2;
+                          }
+                          {
+                            url = "https://prometheus.io/blog/feed.xml";
+                            title = "Prometheus";
+                            limit = 2;
+                          }
+                          {
+                            url = "https://www.home-assistant.io/atom.xml";
+                            title = "Home Assistant";
+                            limit = 2;
+                          }
+                          {
+                            url = "https://jellyfin.org/index.xml";
+                            title = "Jellyfin";
+                            limit = 2;
+                          }
+                          {
+                            url = "https://tailscale.com/blog/index.xml";
+                            title = "Tailscale";
+                            limit = 2;
+                          }
+                          {
+                            url = "https://blog.cloudflare.com/rss/";
+                            title = "Cloudflare";
+                            limit = 2;
+                          }
+                        ];
+                      }
+                      {
+                        type = "rss";
+                        title = "Dev & AI";
+                        limit = 8;
+                        collapse-after = 4;
+                        cache = "6h";
+                        feeds = [
+                          {
+                            url = "https://openai.com/news/rss.xml";
+                            title = "OpenAI";
+                            limit = 3;
+                          }
+                          {
+                            url = "https://github.com/NixOS/nixpkgs/releases.atom";
+                            title = "nixpkgs Releases";
+                            limit = 2;
+                          }
+                          {
+                            url = "https://lobste.rs/t/nix.rss";
+                            title = "Lobsters Nix";
+                            limit = 3;
+                          }
+                        ];
+                      }
+                    ];
+                  }
+                  {
+                    type = "split-column";
+                    widgets = [
+                      {
                         type = "hacker-news";
                         collapse-after = 4;
                       }
