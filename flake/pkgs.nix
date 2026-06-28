@@ -13,6 +13,7 @@
     "hashcat"
     "keymapp"
     "metasploit"
+    "minecraft-server"
     "n64recomp"
     "aspell-dict-en-science"
     "obsidian"
@@ -29,6 +30,55 @@
     inputs.emacs-overlay.overlays.default
     inputs.nix-claude-code.overlays.default
     (_final: prev: {
+      sunshine = let
+        stablePkgs = import inputs.nixpkgs-stable {
+          inherit (prev.stdenv.hostPlatform) system;
+          config = nixpkgsConfig;
+        };
+      in
+        stablePkgs.sunshine;
+
+      minecraft-server = prev.stdenv.mkDerivation {
+        pname = "minecraft-server";
+        version = "26.2";
+
+        src = prev.fetchurl {
+          url = "https://piston-data.mojang.com/v1/objects/823e2250d24b3ddac457a60c92a6a941943fcd6a/server.jar";
+          sha1 = "823e2250d24b3ddac457a60c92a6a941943fcd6a";
+        };
+
+        preferLocalBuild = true;
+        dontUnpack = true;
+        nativeBuildInputs = [prev.makeWrapper];
+
+        installPhase = ''
+          runHook preInstall
+
+          install -Dm644 $src $out/lib/minecraft/server.jar
+
+          makeWrapper ${prev.lib.getExe prev.jdk25_headless} $out/bin/minecraft-server \
+            --append-flags "-jar $out/lib/minecraft/server.jar nogui" \
+            ${prev.lib.optionalString prev.stdenv.hostPlatform.isLinux "--prefix LD_LIBRARY_PATH : ${prev.lib.makeLibraryPath [prev.udev]}"}
+
+          runHook postInstall
+        '';
+
+        passthru.updateInfo = {
+          manifest = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json";
+          releaseTime = "2026-06-16T12:03:33+00:00";
+          serverSha1 = "823e2250d24b3ddac457a60c92a6a941943fcd6a";
+        };
+
+        meta = {
+          description = "Minecraft Server";
+          homepage = "https://minecraft.net";
+          sourceProvenance = with prev.lib.sourceTypes; [binaryBytecode];
+          license = prev.lib.licenses.unfreeRedistributable;
+          platforms = prev.lib.platforms.unix;
+          mainProgram = "minecraft-server";
+        };
+      };
+
       hyprlandPlugins =
         prev.hyprlandPlugins
         // {

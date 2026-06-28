@@ -5,10 +5,12 @@ let
   host_leo = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA8/IHW71dfwPEt2AxzwpyuZnFihjN2r9d8QPxrqvpAu";
   host_fallarbor = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHPsx9Mg7qBNYwHsyECMf1h6xFRxcrxBLuS0GSPxmk8A";
   host_zues = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOQOb2XaMyLNZNRKvrfcwxVgeIF3rqsSNyY3Kldv735z";
+  host_mac = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGRb3ffUy38yem/rXxEn1cLHDGajmU7roZ5V3Uv3QaT4";
   systems = [
     host_leo
     host_fallarbor
     host_zues
+    host_mac
   ];
 in {
   "juicy-password.age".publicKeys = users ++ systems;
@@ -17,6 +19,7 @@ in {
   "cloudflared-credentials.age".publicKeys = [host_zues] ++ users;
   "grafana-secret-key.age".publicKeys = [host_zues] ++ users;
   "ha-mqtt-pass.age".publicKeys = [host_leo] ++ users;
+  "minecraft-rcon-password.age".publicKeys = [host_mac];
 
   "deluge-auth.age".publicKeys = systems;
   "deluge-pass.age".publicKeys = systems;
@@ -30,7 +33,8 @@ in {
   "radarr-api.age".publicKeys = systems;
   "lidarr-api.age".publicKeys = systems;
   "bazarr-api.age".publicKeys = systems;
-
+  "pirates-cookie.age".publicKeys = systems;
+  "pirates-agent.age".publicKeys = systems;
   "coturn-key.age".publicKeys = systems;
   "wifi-pass.age".publicKeys = systems ++ users;
 }

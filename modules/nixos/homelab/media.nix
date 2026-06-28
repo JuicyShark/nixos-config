@@ -16,6 +16,7 @@
   apiSecret = name: config.age.secrets.${name}.path;
   radarrUhdProfile = "64fb5f9858489bdac2af690e27c8f42f"; # UHD Bluray + WEB
   sonarrProfile = "9d142234e45d6143785ac55f5a9e8dc9"; # WEB-1080p (Alternative)
+  sonarrEfficientProfile = "WEB-1080p Efficient";
   sonarrAnimeProfile = "20e0fc959f1f1704bed501f23bdae76f"; # [Anime] Remux-1080p
   arrHostConfig = port: {
     bindAddress = "127.0.0.1";
@@ -59,6 +60,7 @@ in {
           managedProfiles = [
             "UHD Bluray + WEB"
             "WEB-1080p (Alternative)"
+            sonarrEfficientProfile
             "[Anime] Remux-1080p"
           ];
         };
@@ -189,6 +191,18 @@ in {
                   until_score = 500;
                 };
               }
+              {
+                trash_id = sonarrProfile;
+                name = sonarrEfficientProfile;
+                reset_unmatched_scores.enabled = true;
+                min_format_score = 0;
+                min_upgrade_format_score = 1;
+                upgrade = {
+                  allowed = true;
+                  until_quality = "WEB 1080p";
+                  until_score = 1000;
+                };
+              }
             ];
             custom_formats = [
               {
@@ -201,6 +215,10 @@ in {
                     trash_id = sonarrProfile;
                     score = 300;
                   }
+                  {
+                    name = sonarrEfficientProfile;
+                    score = 600;
+                  }
                 ];
               }
               {
@@ -211,6 +229,10 @@ in {
                   {
                     trash_id = sonarrProfile;
                     score = 500;
+                  }
+                  {
+                    name = sonarrEfficientProfile;
+                    score = 1000;
                   }
                 ];
               }
@@ -281,6 +303,15 @@ in {
         config = {
           apiKey._secret = apiSecret "prowlarr-api";
           hostConfig = arrHostConfig ports.prowlarr;
+          indexers = [
+            {
+              name = "IPTorrents";
+              enable = true;
+              cookie._secret = apiSecret "pirates-cookie";
+              userAgent._secret = apiSecret "pirates-agent";
+              freeLeechOnly = true;
+            }
+          ];
         };
         settings = arrSettings ports.prowlarr;
       };
@@ -338,6 +369,20 @@ in {
         group = "media";
         mode = "0440";
         path = "/run/media-secrets/prowlarr-api";
+        symlink = false;
+      };
+      pirates-cookie = {
+        file = ../../../secrets/pirates-cookie.age;
+        group = "media";
+        mode = "0440";
+        path = "/run/media-secrets/pirates-cookie";
+        symlink = false;
+      };
+      pirates-agent = {
+        file = ../../../secrets/pirates-agent.age;
+        group = "media";
+        mode = "0440";
+        path = "/run/media-secrets/pirates-agent";
         symlink = false;
       };
       deluge-pass = {

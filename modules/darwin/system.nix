@@ -17,6 +17,7 @@ in {
 
   config = {
     age.identityPaths = [
+      "/etc/ssh/ssh_host_ed25519_key"
       "${config.users.users.${username}.home}/.ssh/id_rsa"
       "${config.users.users.${username}.home}/.ssh/id_ed25519"
     ];
@@ -46,6 +47,7 @@ in {
     };
 
     # Power management — "never" disables auto-sleep
+    power.sleep.computer = "never";
     power.sleep.display = "never";
   };
 }

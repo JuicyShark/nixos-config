@@ -16,10 +16,6 @@
     if pkgs.stdenv.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
-  homeDirectory =
-    if cfg.homeDirectory != null
-    then cfg.homeDirectory
-    else defaultHomeDirectory;
 in {
   config = {
     users =
@@ -75,7 +71,7 @@ in {
               )
               # Darwin: set home dir (shell is set in darwin/system.nix)
               // optionalAttrs pkgs.stdenv.isDarwin {
-                home = homeDirectory;
+                home = defaultHomeDirectory;
               };
           };
       };
@@ -98,7 +94,8 @@ in {
 
       users.${username} = {
         home = {
-          inherit username homeDirectory;
+          inherit username;
+          homeDirectory = defaultHomeDirectory;
         };
       };
     };

@@ -59,7 +59,7 @@ in {
         statdPort = 4000;
         exports =
           concatMapStringsSep "\n" (
-            host: "${cfg.exportPath} ${host}(rw,sync,no_subtree_check,all_squash,insecure,anonuid=${toString cfg.anonUid},anongid=${toString cfg.anonGid})"
+            host: "${cfg.exportPath} ${host}(rw,sync,no_subtree_check,insecure,all_squash,anonuid=${toString cfg.anonUid},anongid=${toString cfg.anonGid})"
           )
           cfg.allowedHosts;
       };

@@ -17,13 +17,14 @@
       shairport = import ../modules/nixos/shairport.nix;
       shell = import ../modules/common/shell.nix;
       stylix = import ../modules/common/stylix.nix;
-      sunshine = import ../modules/nixos/sunshine.nix;
       system = import ../modules/nixos/system.nix;
       unbound = import ../modules/nixos/unbound.nix;
     };
 
     darwinModules = {
       emacs = import ../modules/common/emacs.nix;
+      jellyfin = import ../modules/darwin/jellyfin.nix;
+      minecraft = import ../modules/darwin/minecraft.nix;
       shell = import ../modules/common/shell.nix;
       stylix = import ../modules/common/stylix.nix;
       system = import ../modules/darwin/system.nix;

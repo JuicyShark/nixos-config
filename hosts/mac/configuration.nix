@@ -23,35 +23,20 @@
     echo "Audio output ${audioOutputName} was not available"
     exit 0
   '';
-  startJellyfin = pkgs.writeShellScript "start-jellyfin" ''
-    set -u
-
-    for candidate in \
-      "/Applications/Jellyfin.app/Contents/MacOS/Jellyfin" \
-      "/Applications/Jellyfin.app/Contents/MacOS/jellyfin" \
-      "/Applications/Jellyfin Server.app/Contents/MacOS/Jellyfin Server" \
-      "/opt/homebrew/bin/jellyfin" \
-      "/usr/local/bin/jellyfin"
-    do
-      if [ -x "$candidate" ]; then
-        echo "Starting Jellyfin from $candidate"
-        exec "$candidate"
-      fi
-    done
-
-    echo "No Jellyfin executable found in expected locations"
-    exit 1
-  '';
 in {
   imports = with self.darwinModules; [
     system
     shell
     stylix
     emacs
+    jellyfin
+    minecraft
   ];
 
   modules = {
     emacs.enable = true;
+    jellyfin.enable = true;
+    minecraft.server.enable = true;
   };
 
   networking.hostName = "mac";
@@ -68,19 +53,6 @@ in {
     mas
     switchaudio-osx
   ];
-
-  launchd.daemons.jellyfin = {
-    serviceConfig = {
-      ProgramArguments = ["${startJellyfin}"];
-      KeepAlive = true;
-      RunAtLoad = true;
-      UserName = "juicy";
-      EnvironmentVariables.HOME = "/Users/juicy";
-      StandardOutPath = "/tmp/jellyfin-launchd.log";
-      StandardErrorPath = "/tmp/jellyfin-launchd.log";
-      ThrottleInterval = 30;
-    };
-  };
 
   launchd.user.agents.mac-audio-output = {
     serviceConfig = {
