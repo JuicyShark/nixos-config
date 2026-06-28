@@ -8,7 +8,7 @@
 #
 # Topics:
 #   homeassistant/sensor/<deviceId>/config   ← discovery (retained)
-#   homeassistant/sensor/<deviceId>/state    ← active|away|idle|sleep|offline (retained)
+#   homeassistant/sensor/<deviceId>/state    ← Hyprland primary state or offline (retained)
 #
 {
   osConfig,
@@ -88,6 +88,14 @@
 
   updateBin = "${ha-presence-update}/bin/ha-presence-update";
   discoverBin = "${ha-presence-discover}/bin/ha-presence-discover";
+  hyprctl = "${osConfig.programs.hyprland.package}/bin/hyprctl";
+  uwsm = lib.getExe pkgs.uwsm;
+  hyprState = name: enabled:
+    "${uwsm} app -- ${hyprctl} eval 'Juicy.state.set(\"${name}\", ${
+      if enabled
+      then "true"
+      else "false"
+    })'";
 in {
   config = lib.mkIf enabled {
     home.packages = [ha-presence-update ha-presence-discover mqttPub];
@@ -95,10 +103,13 @@ in {
     programs.noctalia.settings.hooks = {
       started = [
         discoverBin
-        "${updateBin} active"
+        "${uwsm} app -- ${hyprctl} eval 'Juicy.state.set(\"idle\", false)'"
       ];
-      session_locked = ["${updateBin} away"];
-      session_unlocked = ["${updateBin} active"];
+      session_locked = [(hyprState "locked" true)];
+      session_unlocked = [
+        (hyprState "locked" false)
+        (hyprState "idle" false)
+      ];
       logging_out = ["${updateBin} offline"];
       rebooting = ["${updateBin} offline"];
       shutting_down = ["${updateBin} offline"];
@@ -109,16 +120,16 @@ in {
         enabled = true;
         timeout = cfg.idleTimeout;
         action = "command";
-        command = "${updateBin} idle";
-        resume_command = "${updateBin} active";
+        command = hyprState "idle" true;
+        resume_command = hyprState "idle" false;
       };
 
       "ha-presence-sleep" = {
         enabled = true;
         timeout = cfg.sleepTimeout;
         action = "command";
-        command = "${updateBin} sleep";
-        resume_command = "${updateBin} active";
+        command = hyprState "idle" true;
+        resume_command = hyprState "idle" false;
       };
     };
 

@@ -20,8 +20,6 @@ in {
         ao = "pipewire";
       }
       // {
-        #    gpu-context = "waylandvk";
-        #    gpu-api = "vulkan";
         vo = "gpu-next";
         video-sync = "display-resample";
         interpolation = true;
@@ -29,7 +27,6 @@ in {
         fullscreen = false;
         keep-open = true;
         sub-auto = "fuzzy";
-        #sub-font = "Noto Sans Medium"; stylix now covers
         sub-blur = 10;
 
         screenshot-format = "png";
@@ -77,7 +74,11 @@ in {
   home.file = lib.mkIf (osConfig.modules.desktop.enable or false) {
     ".config/mpv/shaders/NVScaler.glsl".source = "${shaders_dir}/NVScaler.glsl";
   };
-  home.packages = lib.optionals (pkgs.stdenv.isLinux && (osConfig.modules.desktop.enable or false)) [
-    pkgs.jellyfin-mpv-shim
-  ];
+  home.packages =
+    lib.optionals (
+      pkgs.stdenv.isLinux
+      && (osConfig.modules.desktop.media.jellyfinMpvShim.enable or false)
+    ) [
+      pkgs.jellyfin-mpv-shim
+    ];
 }

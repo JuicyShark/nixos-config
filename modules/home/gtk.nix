@@ -12,6 +12,7 @@ lib.mkIf (pkgs.stdenv.isLinux && (osConfig.modules.desktop.enable or false)) {
     gtk3.extraConfig = {
       gtk-decoration-layout = "menu:";
       gtk-xft-antialias = 1;
+      gtk-xft-dpi = 98304;
       gtk-xft-hinting = 1;
       gtk-xft-hintstyle = "hintfull";
       gtk-xft-rgba = "rgb";

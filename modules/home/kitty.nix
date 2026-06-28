@@ -26,6 +26,12 @@ lib.mkIf ((osConfig.modules.desktop.enable or false) || pkgs.stdenv.isDarwin) {
         wayland_enable_ime = false;
         listen_on = "unix:\${XDG_RUNTIME_DIR}/kitty-{kitty_pid}";
         allow_remote_control = "socket-only";
+        hide_window_decorations = "yes";
+      }
+      // lib.optionalAttrs pkgs.stdenv.isDarwin {
+        macos_titlebar_color = "system";
+        macos_quit_when_last_window_closed = "no";
+        background_blur = 32;
       }
       // {
         dynamic_background_opacity = true;
@@ -33,7 +39,6 @@ lib.mkIf ((osConfig.modules.desktop.enable or false) || pkgs.stdenv.isDarwin) {
         window_padding_width = 5;
         single_window_padding_width = 0;
         placement_strategy = "bottom-left";
-        hide_window_decorations = "yes";
 
         visual_window_select_characters = "arstneio12345";
 
@@ -47,6 +52,8 @@ lib.mkIf ((osConfig.modules.desktop.enable or false) || pkgs.stdenv.isDarwin) {
       "ctrl+shift+c" = "copy_to_clipboard";
       "ctrl+v" = "paste_from_clipboard";
       "ctrl+shift+v" = "paste_from_clipboard";
+      "ctrl+shift+f3" = "command_palette";
+      "kitty_mod+slash" = "command_palette";
       "kitty_mod+w" = "close_os_window";
       "kitty_mod+enter" = "launch --cwd=current --type=os-window";
       "kitty_mod+f" = "show_scrollback";

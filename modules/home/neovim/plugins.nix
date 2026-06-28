@@ -44,6 +44,10 @@ in {
           };
           spec = [
             {
+              __unkeyed-1 = "<leader>e";
+              group = "Explorer";
+            }
+            {
               __unkeyed-1 = "<leader>f";
               group = "Find";
             }

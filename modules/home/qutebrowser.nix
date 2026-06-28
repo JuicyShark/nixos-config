@@ -22,7 +22,7 @@
     disown
   '';
 in
-  lib.mkIf ((osConfig.modules.desktop.enable or false) || pkgs.stdenv.isDarwin) {
+  lib.mkIf (osConfig.modules.desktop.enable or false) {
     xdg.dataFile."qutebrowser/userscripts/qute-mpv" = {
       source = mpvUserscript;
       executable = true;

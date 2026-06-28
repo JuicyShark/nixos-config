@@ -18,7 +18,6 @@
       epkgs:
         with epkgs; [
           treesit-grammars.with-all-grammars
-          vterm
           mu4e
         ]
     );
@@ -52,8 +51,6 @@ in {
 
         python3
 
-        #vterm
-        python3Packages.cmake
         gopls
         gore
         gotests
@@ -82,7 +79,6 @@ in {
         imagemagick
         libxml2 # xmllint for XML formatting
         lldb
-        maim # org-download screenshot backend
         mediainfo
         multimarkdown
         poppler-utils
@@ -101,7 +97,6 @@ in {
         (aspellWithDicts (ds: with ds; [en en-computers en-science]))
         # :tools editorconfig
         editorconfig-core-c
-        sqlite
         graphviz
 
         # :lang cc
