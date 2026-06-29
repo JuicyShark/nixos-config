@@ -319,4 +319,5 @@ cfg = {}
 ---@class HyprDesktopPolicy
 ---@field mod string
 ---@field primary { output: string, selector: string, wideColor: boolean }
+---@field double { output: string, position: string }
 ---@field monitorWorkspace { enable: boolean, target: string, workspaces: string[] }

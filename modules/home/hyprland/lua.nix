@@ -85,6 +85,7 @@
     (luaModuleFromName "state-watchers")
     (luaModuleFromName "hyprbars")
     (luaModuleFromName "special-workspaces")
+    (luaModuleFromName "monitor-states")
     (luaModuleFromName "sunshine")
     (luaModuleFromName "autostart")
     (luaModuleFromName "binds")

@@ -8,6 +8,7 @@ return function(ctx)
 		locked = false,
 		streaming = false,
 		["remote-streaming"] = false,
+		double = false,
 		["screen-recording"] = false,
 		["do-not-disturb"] = false,
 		passthrough = false,
@@ -23,6 +24,7 @@ return function(ctx)
 		"locked",
 		"remote-streaming",
 		"streaming",
+		"double",
 		"screen-recording",
 		"gaming",
 		"do-not-disturb",
@@ -159,7 +161,7 @@ return function(ctx)
 	end
 
 	function api.clearUser()
-		for _, name in ipairs({ "screen-recording", "do-not-disturb", "passthrough" }) do
+		for _, name in ipairs({ "streaming", "remote-streaming", "double", "screen-recording", "do-not-disturb", "passthrough" }) do
 			api.set(name, false)
 		end
 		return primary()

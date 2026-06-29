@@ -169,6 +169,17 @@ in {
       fileSystems = ["/"];
     };
 
+    nginx = {
+      enable = true;
+      recommendedGzipSettings = true;
+      recommendedOptimisation = true;
+      recommendedProxySettings = true;
+      virtualHosts."leo.home.arpa".locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString config.modules.ports.sunshine.http}";
+        proxyWebsockets = true;
+      };
+    };
+
     hardware.openrgb = {
       enable = true;
       motherboard = "intel";

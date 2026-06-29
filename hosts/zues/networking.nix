@@ -7,20 +7,17 @@
   ...
 }: let
   endpoints = self.lib.${pkgs.stdenv.hostPlatform.system}.services.mkHomelabEndpoints {inherit config;};
-  username = "juicy";
-
-  # Cloudflared secret files. Keep these explicit so an untracked local secret
-  # cannot change evaluation compared with a remote builder.
-  # To migrate: agenix -e secrets/cloudflared-cert.age  (paste cert.pem content)
-  #             agenix -e secrets/cloudflared-credentials.age (paste tunnel JSON content)
-  certAgeFile = ../../secrets/cloudflared-cert.age;
-  credentialsAgeFile = ../../secrets/cloudflared-credentials.age;
-  useAgeCert = false;
-  useAgeCredentials = false;
 in {
-  warnings =
-    lib.optional (!useAgeCert) "zues cloudflared is using /home/${username}/.cloudflared/cert.pem because secrets/cloudflared-cert.age does not exist."
-    ++ lib.optional (!useAgeCredentials) "zues cloudflared is using the user-home tunnel credentials because secrets/cloudflared-credentials.age does not exist.";
+  assertions = [
+    {
+      assertion = builtins.pathExists ../../secrets/cloudflared-cert.age;
+      message = "zues cloudflared requires secrets/cloudflared-cert.age.";
+    }
+    {
+      assertion = builtins.pathExists ../../secrets/cloudflared-credentials.age;
+      message = "zues cloudflared requires secrets/cloudflared-credentials.age.";
+    }
+  ];
 
   # Rate-limit new TCP connections forwarded from WAN (enp1s0) to LAN clients.
   # Protects LAN from SYN floods originating on the upstream link.
@@ -45,16 +42,16 @@ in {
     tailscale0.allowedTCPPorts = [445];
   };
 
-  age.secrets = lib.mkMerge [
-    (lib.mkIf useAgeCert {
-      cloudflared-cert.file = certAgeFile;
-      cloudflared-cert.owner = "cloudflared";
-    })
-    (lib.mkIf useAgeCredentials {
-      cloudflared-credentials.file = credentialsAgeFile;
-      cloudflared-credentials.owner = "cloudflared";
-    })
-  ];
+  age.secrets = {
+    cloudflared-cert = {
+      file = ../../secrets/cloudflared-cert.age;
+      owner = "cloudflared";
+    };
+    cloudflared-credentials = {
+      file = ../../secrets/cloudflared-credentials.age;
+      owner = "cloudflared";
+    };
+  };
 
   services = {
     cloudflared = {
@@ -62,14 +59,8 @@ in {
       tunnels."3c58774d-3e30-4151-a9e3-28daf4f5f307" = {
         default = "http_status:404";
 
-        certificateFile =
-          if useAgeCert
-          then config.age.secrets.cloudflared-cert.path
-          else "/home/${username}/.cloudflared/cert.pem";
-        credentialsFile =
-          if useAgeCredentials
-          then config.age.secrets.cloudflared-credentials.path
-          else "/home/${username}/.cloudflared/3c58774d-3e30-4151-a9e3-28daf4f5f307.json";
+        certificateFile = config.age.secrets.cloudflared-cert.path;
+        credentialsFile = config.age.secrets.cloudflared-credentials.path;
 
         ingress = endpoints.cloudflaredIngress;
       };

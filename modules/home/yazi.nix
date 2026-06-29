@@ -1,8 +1,12 @@
 {
   pkgs,
   lib,
+  osConfig,
   ...
-}: {
+}: let
+  emacsEnabled = osConfig.modules.emacs.enable or false;
+  emacsclient = lib.getExe' osConfig.modules.emacs.package "emacsclient";
+in {
   xdg.configFile."yazi/init.lua".text = ''
     Header:children_add(function()
      if ya.target_family() ~= "unix" then
@@ -43,6 +47,23 @@
         max_height = 3440;
         image_quality = 90;
       };
+    }
+    // lib.optionalAttrs emacsEnabled {
+      opener.emacs = [
+        {
+          run = ''${emacsclient} -c "$@"'';
+          desc = "Emacs client";
+          block = false;
+          for = "unix";
+        }
+      ];
+
+      open.prepend_rules = [
+        {
+          name = "*.org";
+          use = "emacs";
+        }
+      ];
     };
 
     keymap = {

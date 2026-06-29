@@ -112,7 +112,7 @@ in {
     enable = osConfig.services.sunshine.enable or false;
     stream = {
       monitor = "virtual-screen";
-      position = "5120x0";
+      position = "0x1440";
       width = 2560;
       height = 1440;
       refresh = 120;

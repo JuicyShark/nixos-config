@@ -49,6 +49,17 @@ return function(ctx)
 		ctx.state.clearUser()
 	end
 
+	local function solo_monitor()
+		if ctx.monitorStates and ctx.monitorStates.solo then
+			ctx.monitorStates.solo()
+			return
+		end
+
+		ctx.state.set("remote-streaming", false)
+		ctx.state.set("streaming", false)
+		ctx.state.set("double", false)
+	end
+
 	defineSubmap("passthrough", function()
 		bind(ctx.desktop.mod .. " + ALT + BackSpace", function()
 			ctx.state.set("passthrough", false)
@@ -57,8 +68,10 @@ return function(ctx)
 	end, { persistent = true, escape = false })
 
 	defineSubmap("state", function()
-		bind("S", toggle_state("streaming"), "Toggle streaming")
+		bind("S", solo_monitor, "Solo monitor")
+		bind("T", toggle_state("streaming"), "Toggle streaming")
 		bind("R", toggle_state("remote-streaming"), "Toggle remote streaming")
+		bind("M", toggle_state("double"), "Toggle double monitor")
 		bind("C", toggle_state("screen-recording"), "Toggle screen recording")
 		bind("D", toggle_state("do-not-disturb"), "Toggle do not disturb")
 		bind("P", function()
@@ -131,7 +144,7 @@ return function(ctx)
 		bindSubmap("R", "windowResize", "Resize window")
 		bind("CONTROL + M", hl.dsp.window.fullscreen({ mode = "fullscreen" }), "Toggle fullscreen")
 		bind("F", hl.dsp.window.float({ action = "toggle" }), "Toggle floating")
-		bind("CONTROL + F", function()
+		bind("P", function()
 			ctx.window.togglePictureInPicture()
 		end, "Picture in picture")
 		bind("SHIFT + Q", hl.dsp.window.close(), "Close window")
@@ -182,6 +195,9 @@ return function(ctx)
 		bind("D", function()
 			set_layout("hy3")
 		end, "Hy3 Layout")
+		bind("C", function()
+			set_layout("scrolling")
+		end, "Scrolling Layout")
 
 		bindSubmap("W", "window", "Window Actions")
 		bindSubmap("G", "group", "Group Actions")

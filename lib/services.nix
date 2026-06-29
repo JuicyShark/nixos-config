@@ -26,6 +26,7 @@
 
     jellyfinHost = config.modules.homelab.jellyfin.host or "192.168.1.52";
     vaultwardenPublicDomain = "pass.${publicDomain}";
+    sunshineUrl = "http://${host "leo"}:${toString ports.sunshine.http}";
 
     services = {
       router = {
@@ -252,6 +253,27 @@
         glance = "private";
       };
 
+      sunshine = {
+        title = "Sunshine";
+        enabled = true;
+        icon = "di:sunshine";
+        url = home "leo";
+        checkUrl = sunshineUrl;
+        upstream = sunshineUrl;
+        quickmarkName = "sunshine";
+        gatus.url = sunshineUrl;
+        blackbox = true;
+        glance = "private";
+        public = {
+          domain = "leo.${publicDomain}";
+          upstream = sunshineUrl;
+          checkUrl = public "leo.${publicDomain}";
+          blackbox = true;
+          gatus = true;
+          glance = true;
+        };
+      };
+
       homeAssistant = {
         title = "Home-Assist";
         aliases = ["hass"];
@@ -309,6 +331,7 @@
       "filebrowser"
       "headscale"
       "syncthing"
+      "sunshine"
       "glance"
       "homeAssistant"
       "gatus"
@@ -327,12 +350,14 @@
       "filebrowser"
       "jellyseerr"
       "syncthing"
+      "sunshine"
       "gatus"
     ];
 
     glancePublicOrder = [
       "jellyfin"
       "vaultwarden"
+      "sunshine"
     ];
 
     serviceList = map (name: services.${name}) serviceOrder;

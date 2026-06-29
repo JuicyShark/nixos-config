@@ -9,6 +9,10 @@ return function(ctx)
 			selector = "DP-2",
 			wideColor = true,
 		},
+		double = {
+			output = "HDMI-A-1",
+			position = "auto-center-right",
+		},
 		monitorWorkspace = {
 			enable = true,
 			target = "virtual-screen",
