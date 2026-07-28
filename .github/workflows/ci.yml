@@ -26,6 +26,9 @@ jobs:
       - uses: cachix/install-nix-action@v27
       - run: >
           nix build
-          .#checks.x86_64-linux.treefmt
-          .#checks.x86_64-linux.hyprland-lua-lint
+          .#checks.x86_64-linux.static
+          .#checks.x86_64-linux.hyprland-lua-syntax
+          .#checks.x86_64-linux.hyprland-monitor-policy
+          .#checks.x86_64-linux.monitoring-config
+          .#checks.x86_64-linux.nixvim-smoke
           --no-link

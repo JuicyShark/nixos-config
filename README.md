@@ -5,8 +5,7 @@ Personal NixOS and nix-darwin configuration.
 ## Shape
 
 ```text
-flake.nix       Input pins and the flake-parts entrypoint.
-flake/          Explicit hosts, module exports, pkgs policy, apps, shells, and checks.
+flake.nix       Input pins, host outputs, module exports, pkgs policy, apps, shells, and checks.
 hosts/          Machine-specific NixOS/nix-darwin configuration.
 modules/common/ Shared NixOS/nix-darwin modules.
 modules/nixos/  NixOS-only modules.
@@ -36,25 +35,38 @@ CI mirrors the local fast path:
 ```bash
 nix flake check --all-systems --no-build
 nix build \
-  .#checks.x86_64-linux.treefmt \
-  .#checks.x86_64-linux.hyprland-lua-lint \
+  .#checks.x86_64-linux.static \
+  .#checks.x86_64-linux.hyprland-lua-syntax \
   --no-link
 ```
 
-The repo has an optional pre-push hook in `.githooks/pre-push`. To install it from the dev shell:
+The repo has an optional pre-push hook in `.githooks/pre-push`. To enable it:
 
 ```bash
-NIX_CONFIG_AUTO_HOOKS=1 nix develop
+git config core.hooksPath .githooks
 ```
 
 ## Backup Recovery Notes
 
-`zues` creates restic repository passwords on first backup run:
+Leo and Zues use the same age-managed Restic credential:
 
-- `/var/lib/restic-services/password`
-- `/var/lib/restic-family/password`
+- Zues service state and family data are backed up from `chonk` to
+  `/mnt/smol/backups/zues-*`.
+- Leo's shared Git and Nix configuration are backed up from `smol` to
+  `/mnt/chonk/backups/leo-smol`.
 
-Keep offline copies of both files. A restore requires the matching password file; copy it back to the same path with root-only permissions before running restic or pass it with `restic --password-file`.
+Recover the repository password with:
+
+```bash
+age --decrypt -i ~/.ssh/id_ed25519 secrets/restic-repository-password.age
+```
+
+The initrd emergency shell uses a dedicated generated password, not the login
+password. Recover it for offline storage with:
+
+```bash
+age --decrypt -i ~/.ssh/id_ed25519 secrets/initrd-recovery-password.age
+```
 
 [NixOS]: https://nixos.org/
 [Nix Flakes]: https://wiki.nixos.org/wiki/Flakes
