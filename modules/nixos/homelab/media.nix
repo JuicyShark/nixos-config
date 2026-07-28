@@ -2,37 +2,65 @@
   lib,
   config,
   ...
-}:
-let
+}: let
   inherit (lib) mkForce mkIf;
-
-  homelabJellyfin = config.modules.homelab.jellyfin.enable;
-  homelabMedia = config.modules.homelab.media.enable;
-  jellyfinCfg = config.modules.homelab.jellyfin;
-
   inherit (config.modules) ports;
-  username = "juicy";
-  remoteJellyfin = homelabMedia && homelabJellyfin && !config.nixflix.jellyfin.enable;
 
   apiSecret = name: config.age.secrets.${name}.path;
+
   radarrUhdProfile = "64fb5f9858489bdac2af690e27c8f42f"; # UHD Bluray + WEB
-  sonarrProfile = "9d142234e45d6143785ac55f5a9e8dc9"; # WEB-1080p (Alternative)
-  sonarrEfficientProfile = "WEB-1080p Efficient";
-  sonarrH265Profile = "WEB-1080p H265 Compact";
-  sonarrAnimeProfile = "20e0fc959f1f1704bed501f23bdae76f"; # [Anime] Remux-1080p
+  web1080p = "9d142234e45d6143785ac55f5a9e8dc9"; # WEB-1080p (Alternative)
+  compressed1080p = "WEB-1080p Efficient";
+  compressed720p = "Low Quality Slop";
+  chineseImmersion1080p = "WEB-1080p Chinese Immersion";
+  anime = "20e0fc959f1f1704bed501f23bdae76f"; # [Anime] Remux-1080p
+
+  qualityMin = name: min: {
+    inherit name min;
+  };
+  movieQualityMinimums = [
+    (qualityMin "WEBDL-2160p" 10)
+    (qualityMin "WEBRip-2160p" 10)
+    (qualityMin "Bluray-2160p" 12)
+    (qualityMin "WEBDL-1080p" 4)
+    (qualityMin "WEBRip-1080p" 4)
+    (qualityMin "Bluray-1080p" 5)
+    (qualityMin "WEBDL-720p" 2)
+    (qualityMin "WEBRip-720p" 2)
+    (qualityMin "Bluray-720p" 3)
+  ];
+  seriesQualityMinimums = [
+    (qualityMin "HDTV-1080p" 4)
+    (qualityMin "WEBDL-1080p" 4)
+    (qualityMin "WEBRip-1080p" 4)
+    (qualityMin "Bluray-1080p" 5)
+    (qualityMin "HDTV-720p" 2)
+    (qualityMin "WEBDL-720p" 2)
+    (qualityMin "WEBRip-720p" 2)
+    (qualityMin "Bluray-720p" 3)
+  ];
+
+  username = config.modules.profile.username;
+  arrBindAddress =
+    if config.modules.homelab.media.enable
+    then config.vpnNamespaces.wg.namespaceAddress
+    else "127.0.0.1";
+
+  # Shared Settings
   arrHostConfig = port: {
-    bindAddress = "127.0.0.1";
-    inherit port;
-    username = "juicy";
+    inherit port username;
+    bindAddress = arrBindAddress;
     password._secret = apiSecret "juicy-password";
     authenticationMethod = "forms";
     authenticationRequired = "disabledForLocalAddresses";
     analyticsEnabled = true;
   };
+
+  # Shared Settings
   arrSettings = port: {
     server = {
       inherit port;
-      bindaddress = "127.0.0.1";
+      bindaddress = arrBindAddress;
     };
     auth = {
       method = mkForce "Forms";
@@ -40,115 +68,67 @@ let
     };
     log.analyticsEnabled = true;
   };
-in
-{
+in {
   config = {
-    nixflix = mkIf homelabMedia {
+    boot.kernel.sysctl."net.ipv6.conf.all.forwarding" = mkIf config.modules.homelab.media.enable (
+      mkForce 1
+    );
+
+    nixflix = mkIf config.modules.homelab.media.enable {
       enable = true;
       mediaDir = "/mnt/chonk/media";
       downloadsDir = "/mnt/chonk/media/torrent/data";
       stateDir = "/var/lib";
-      mediaUsers = [ username ];
-      serviceDependencies = [ "mnt-chonk.mount" ];
+      mediaUsers = [username];
+      serviceDependencies = ["mnt-chonk.mount"];
       nginx = {
         enable = true;
         domain = "home.arpa";
+      };
+      vpn = {
+        enable = true;
+        wgConfFile = config.age.secrets."zues-wg".path;
+        accessibleFrom = ["192.168.1.0/24"];
+      };
+      torrentClients.qbittorrent = {
+        enable = true;
+        group = "media";
+        downloadsDir = "/mnt/chonk/torrent";
+        subdomain = "torrent";
+        serverConfig = {
+          LegalNotice.Accepted = true;
+          Preferences = {
+            NetworkInterface = "wg-br";
+            WebUI = {
+              Username = username;
+              Password_PBKDF2 = "@ByteArray(8jdOijrb6SqrAuw5sM3WPg==:KBC5PSh+MrkB0ucA5IjlTTWKjx/JDz9HxoU81ycAU9jjLibqYc8CJAXiT6rh6MhFOvFEJVlSS1JzUex92C+60A==)";
+            };
+          };
+        };
+
+        vpn.enable = true;
       };
       postgres.enable = true;
       recyclarr = {
         enable = true;
         group = "media";
         cleanupUnmanagedProfiles = {
-          enable = true;
+          enable = false;
           managedProfiles = [
-            "UHD Bluray + WEB"
-            "WEB-1080p (Alternative)"
-            sonarrEfficientProfile
-            sonarrH265Profile
-            "[Anime] Remux-1080p"
+            "UHD Bluray + WEB" # radarrUahdProfile
+            "WEB-1080p (Alternative)" # web1080p
+            compressed1080p
+            chineseImmersion1080p
+            "[Anime] Remux-1080p" # anime
           ];
         };
         config = {
-          sonarr.sonarr_anime = {
-            quality_definition = {
-              type = "anime";
-              preferred_ratio = 0.0;
-            };
-            quality_profiles = [
-              {
-                trash_id = sonarrAnimeProfile;
-                reset_unmatched_scores.enabled = true;
-                min_format_score = 2000;
-                min_upgrade_format_score = 1;
-                upgrade = {
-                  allowed = true;
-                  until_quality = "Bluray 1080p";
-                  until_score = 10000;
-                };
-                qualities = [
-                  {
-                    name = "Bluray 1080p";
-                    qualities = [ "Bluray-1080p" ];
-                  }
-                  {
-                    name = "WEB 1080p";
-                    qualities = [
-                      "HDTV-1080p"
-                      "WEBRip-1080p"
-                      "WEBDL-1080p"
-                    ];
-                  }
-                  { name = "Bluray-720p"; }
-                  {
-                    name = "WEB 720p";
-                    qualities = [
-                      "HDTV-720p"
-                      "WEBRip-720p"
-                      "WEBDL-720p"
-                    ];
-                  }
-                  { name = "Bluray-480p"; }
-                  {
-                    name = "WEB 480p";
-                    qualities = [
-                      "WEBRip-480p"
-                      "WEBDL-480p"
-                    ];
-                  }
-                  { name = "DVD"; }
-                  { name = "SDTV"; }
-                ];
-              }
-            ];
-            custom_formats = [
-              {
-                trash_ids = [
-                  "418f50b10f1907201b6cfdf881f467b7" # Anime Dual Audio
-                ];
-                assign_scores_to = [
-                  {
-                    trash_id = sonarrAnimeProfile;
-                    score = 2000;
-                  }
-                ];
-              }
-              {
-                trash_ids = [
-                  "b2550eb333d27b75833e25b8c2557b38" # 10bit
-                ];
-                assign_scores_to = [
-                  {
-                    trash_id = sonarrAnimeProfile;
-                    score = 101;
-                  }
-                ];
-              }
-            ];
-          };
+          #Sonarr radarr profile
           radarr.radarr = {
             quality_definition = {
               type = "movie";
               preferred_ratio = 0.0;
+              qualities = movieQualityMinimums;
             };
             quality_profiles = [
               {
@@ -178,14 +158,16 @@ in
               }
             ];
           };
+          # Sonarr Profiles
           sonarr.sonarr = {
             quality_definition = {
               type = "series";
               preferred_ratio = 0.0;
+              qualities = seriesQualityMinimums;
             };
             quality_profiles = [
               {
-                trash_id = sonarrProfile;
+                trash_id = web1080p;
                 reset_unmatched_scores.enabled = true;
                 min_format_score = 0;
                 min_upgrade_format_score = 300;
@@ -196,11 +178,78 @@ in
                 };
               }
               {
-
-                name = sonarrH265Profile;
+                name = compressed1080p;
                 reset_unmatched_scores.enabled = true;
                 min_format_score = 0;
-                min_upgrade_format_score = 1;
+                min_upgrade_format_score = 150;
+                upgrade = {
+                  allowed = true;
+                  until_quality = "HDTV-1080p";
+                  until_score = 1000;
+                };
+                qualities = [
+                  {name = "HDTV-1080p";}
+                  {name = "HDTV-720p";}
+                  {name = "WEBDL-1080p";}
+                  {name = "WEBDL-720p";}
+                  {
+                    name = "LQ";
+                    qualities = [
+                      "WEBDL-480p"
+                      "SDTV"
+                      "DVD"
+                    ];
+                  }
+                  {
+                    name = "WEBRIPS";
+                    qualities = [
+                      "WEBRip-1080p"
+                      "WEBRip-720p"
+                      "WEBRip-480p"
+                    ];
+                  }
+                ];
+              }
+              {
+                name = compressed720p;
+                reset_unmatched_scores.enabled = true;
+                min_format_score = 0;
+                min_upgrade_format_score = 150;
+                upgrade = {
+                  allowed = true;
+                  until_quality = "HDTV-1080p";
+                  until_score = 1000;
+                };
+                qualities = [
+                  {name = "HDTV-720p";}
+                  {name = "HDTV-1080p";}
+                  {name = "WEBDL-720p";}
+
+                  {
+                    name = "LQ";
+                    qualities = [
+                      "WEBDL-480p"
+                      "SDTV"
+                      "DVD"
+                    ];
+                  }
+
+                  {
+                    name = "WEB";
+                    qualities = [
+                      "WEBRip-1080p"
+                      "WEBDL-1080p"
+                      "WEBRip-720p"
+                      "WEBRip-480p"
+                    ];
+                  }
+                ];
+              }
+              {
+                name = chineseImmersion1080p;
+                reset_unmatched_scores.enabled = true;
+                min_format_score = 0;
+                min_upgrade_format_score = 150;
                 upgrade = {
                   allowed = true;
                   until_quality = "HDTV-1080p";
@@ -214,7 +263,48 @@ in
                       "WEBDL-1080p"
                     ];
                   }
-                  { name = "HDTV-1080p"; }
+                  {name = "HDTV-1080p";}
+                ];
+              }
+              {
+                trash_id = anime;
+                reset_unmatched_scores.enabled = true;
+                min_format_score = 2000;
+                min_upgrade_format_score = 1;
+                upgrade = {
+                  allowed = true;
+                  until_quality = "Bluray-1080p";
+                  until_score = 10000;
+                };
+                qualities = [
+                  {name = "Bluray-1080p";}
+                  {
+                    name = "WEB 1080p";
+                    qualities = [
+                      "HDTV-1080p"
+                      "WEBRip-1080p"
+                      "WEBDL-1080p"
+                    ];
+                  }
+                  {name = "Bluray-720p";}
+                  {
+                    name = "WEB 720p";
+                    qualities = [
+                      "HDTV-720p"
+                      "WEBRip-720p"
+                      "WEBDL-720p"
+                    ];
+                  }
+                  {name = "Bluray-480p";}
+                  {
+                    name = "WEB 480p";
+                    qualities = [
+                      "WEBRip-480p"
+                      "WEBDL-480p"
+                    ];
+                  }
+                  {name = "DVD";}
+                  {name = "SDTV";}
                 ];
               }
             ];
@@ -222,19 +312,23 @@ in
               {
                 trash_ids = [
                   "47435ece6b99a0b477caf360e79ba0bb" # x265 (HD)
-                  "9b64dff695c2115facf1b6ea59c9bd07" # x265 (no HDR/DV)
+                  #  "9b64dff695c2115facf1b6ea59c9bd07" # x265 (no HDR/DV)
                 ];
                 assign_scores_to = [
                   {
-                    trash_id = sonarrProfile;
-                    score = 300;
+                    trash_id = web1080p;
+                    score = mkForce 300;
                   }
                   {
-                    name = sonarrEfficientProfile;
-                    score = 600;
+                    name = compressed1080p;
+                    score = 1000;
                   }
                   {
-                    name = sonarrH265Profile;
+                    name = compressed720p;
+                    score = 1000;
+                  }
+                  {
+                    name = chineseImmersion1080p;
                     score = 1000;
                   }
                 ];
@@ -245,7 +339,15 @@ in
                 ];
                 assign_scores_to = [
                   {
-                    name = sonarrH265Profile;
+                    name = compressed1080p;
+                    score = 100;
+                  }
+                  {
+                    name = compressed720p;
+                    score = 100;
+                  }
+                  {
+                    name = chineseImmersion1080p;
                     score = 100;
                   }
                 ];
@@ -256,16 +358,142 @@ in
                 ];
                 assign_scores_to = [
                   {
-                    trash_id = sonarrProfile;
+                    trash_id = web1080p;
                     score = 500;
                   }
                   {
-                    name = sonarrEfficientProfile;
+                    name = compressed1080p;
                     score = 1000;
                   }
                   {
-                    name = sonarrH265Profile;
+                    name = compressed720p;
+                    score = 1100;
+                  }
+                  {
+                    name = chineseImmersion1080p;
+                    score = 1000;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "ae575f95ab639ba5d15f663bf019e3e8" # Language: Not Original
+                ];
+                assign_scores_to = [
+                  {
+                    name = chineseImmersion1080p;
+                    score = -10000;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "69aa1e159f97d860440b04cd6d590c4f" # Language: Not English
+                ];
+                assign_scores_to = [
+                  {
+                    name = chineseImmersion1080p;
+                    score = 250;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "ceb6ca558f4a3d47a00ebbdcb7fa7922" # Dual Audio Asian
+                ];
+                assign_scores_to = [
+                  {
+                    name = chineseImmersion1080p;
                     score = 800;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "7ba05c6e0e14e793538174c679126996" # MULTi
+                ];
+                assign_scores_to = [
+                  {
+                    name = chineseImmersion1080p;
+                    score = 300;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "a69163b534969846c60b6b294e8ed7b3" # Asian Tier 01
+                  "4712302767772003bfeb01d1f5f0a6fd" # Asian Tier 02
+                  "0183b666f79529efb85df21b7a2cf913" # Asian Tier 03
+                ];
+                assign_scores_to = [
+                  {
+                    name = chineseImmersion1080p;
+                    score = 700;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "9a836f109fc47f7c459703c1dbafeeec" # Asian LQ
+                ];
+                assign_scores_to = [
+                  {
+                    name = chineseImmersion1080p;
+                    score = -10000;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "4c67ff059210182b59cdd41697b8cb08" # Bilibili
+                  "6123bfd18480b3b0d038caaa38cfa35f" # iQIY
+                  "932fafe503110be779ae49342dfad30b" # WETV
+                  "e9e79cb37b02f8296976f3ed3128c8cf" # YOUKU
+                  "932d0a3499cc4c529fb86e3adf1326d9" # Viki
+                  "93c9d1e566dca8b34d57f5efbbf85f28" # VIU
+                  "b61e27491a46c1e23bfb2f2497870495" # Hami
+                  "dc44a5d07db7938a84e4401a7b5059bc" # KKTV
+                  "f3e4d3733b4dce640081977b8c500f19" # LINETV
+                  "6e14bcd243960ebe991e475ab86fd44e" # MyTVSuper
+                ];
+                assign_scores_to = [
+                  {
+                    name = chineseImmersion1080p;
+                    score = 300;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "418f50b10f1907201b6cfdf881f467b7" # Anime Dual Audio
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = anime;
+                    score = 2000;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "b2550eb333d27b75833e25b8c2557b38" # 10bit
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = anime;
+                    score = 100;
+                  }
+                  {
+                    trash_id = web1080p;
+                    score = 100;
+                  }
+                  {
+                    name = compressed1080p;
+                    score = 100;
+                  }
+                  {
+                    name = compressed720p;
+                    score = 100;
                   }
                 ];
               }
@@ -275,40 +503,31 @@ in
       };
       flaresolverr.enable = true;
 
-      downloadarr.deluge = mkIf config.services.deluge.enable {
-        enable = true;
-        dependencies = [ "delugeweb.service" ];
-        port = ports.delugeWeb;
-        password._secret = apiSecret "deluge-pass";
+      downloadarr = {
+        qbittorrent = {
+          enable = true;
+          password._secret = apiSecret "qbit";
+        };
       };
-
       sonarr = {
         enable = true;
+        vpn.enable = true;
         group = "media";
         dataDir = "/var/lib/sonarr/";
-        mediaDirs = [ "/mnt/chonk/media/shows" ];
+        mediaDirs = [
+          "/mnt/chonk/media/shows"
+          #"/mnt/chonk/media/anime"
+        ];
         config = {
           apiKey._secret = apiSecret "sonarr-api";
-
           hostConfig = arrHostConfig ports.sonarr;
         };
         settings = arrSettings ports.sonarr;
       };
 
-      sonarr-anime = {
-        enable = true;
-        group = "media";
-        dataDir = "/var/lib/sonarr-anime/";
-        mediaDirs = [ "/mnt/chonk/media/anime" ];
-        config = {
-          apiKey._secret = apiSecret "sonarr-api";
-          hostConfig = arrHostConfig 8990;
-        };
-        settings = arrSettings 8990;
-      };
-
       radarr = {
         enable = true;
+        vpn.enable = true;
         group = "media";
         dataDir = "/var/lib/radarr/";
         config = {
@@ -320,6 +539,7 @@ in
 
       lidarr = {
         enable = true;
+        vpn.enable = true;
         group = "media";
         dataDir = "/var/lib/lidarr";
         config = {
@@ -331,6 +551,7 @@ in
 
       prowlarr = {
         enable = true;
+        vpn.enable = true;
         group = "media";
         dataDir = "/var/lib/prowlarr";
         config = {
@@ -342,7 +563,23 @@ in
               enable = true;
               cookie._secret = apiSecret "pirates-cookie";
               userAgent._secret = apiSecret "pirates-agent";
+              freeLeechOnly = false;
+              priority = 25;
+            }
+            {
+              name = "IPTorrents (freeleech)";
+              schemaName = "IPTorrents";
+              enable = true;
+              cookie._secret = apiSecret "pirates-cookie";
+              userAgent._secret = apiSecret "pirates-agent";
               freeLeechOnly = true;
+              priority = 15;
+            }
+
+            {
+              name = "Nyaa.si";
+              enable = true;
+              priority = 25;
             }
           ];
         };
@@ -356,16 +593,22 @@ in
         group = "media";
         dataDir = "/var/lib/seerr";
         jellyfin = {
-          inherit (jellyfinCfg) adminUsername;
+          adminUsername = username;
           adminPassword._secret = apiSecret "jellyfin-admin-password";
           hostname = "jellyfin.home.arpa";
           port = 80;
-          externalHostname = "http://jellyfin.home.arpa";
+          externalHostname = "https://jellyfin.nixlab.au";
         };
       };
     };
 
-    age.secrets = mkIf homelabMedia {
+    age.secrets = mkIf config.modules.homelab.media.enable {
+      "zues-wg" = {
+        file = ../../../secrets/zues-wg.age;
+        owner = "root";
+        group = "root";
+        mode = "0400";
+      };
       jellyfin-admin-password = {
         file = ../../../secrets/jellyfin-admin-password.age;
         group = "media";
@@ -418,22 +661,19 @@ in
         path = "/run/media-secrets/pirates-agent";
         symlink = false;
       };
-      deluge-pass = {
-        file = ../../../secrets/deluge-pass.age;
+      qbit = {
+        file = ../../../secrets/qbit.age;
         group = "media";
         mode = "0440";
-        path = "/run/media-secrets/deluge-pass";
+        path = "/run/media-secrets/qbit-pass";
         symlink = false;
       };
     };
 
     users.groups.media.gid = lib.mkOverride 10 2000;
-    users.groups.media.members = [
-      username
-    ]
-    ++ lib.optional config.services.deluge.enable config.services.deluge.user;
+    users.groups.media.members = [username];
 
-    systemd.services = mkIf remoteJellyfin {
+    systemd.services = mkIf (!config.nixflix.jellyfin.enable) {
       seerr-setup.enable = mkForce false;
       seerr-user-settings.enable = mkForce false;
       seerr-jellyfin.enable = mkForce false;
@@ -443,25 +683,18 @@ in
     };
 
     services = {
+      transmission.enable = mkForce false;
+
       nginx = {
-        enable = mkIf (homelabMedia || homelabJellyfin || config.services.deluge.enable) true;
-        virtualHosts =
-          lib.optionalAttrs homelabJellyfin {
-            # Jellyfin needs WebSocket upgrade for live TV / casting
-            "jellyfin.home.arpa".locations."/" = {
-              proxyPass = "http://${jellyfinCfg.host}:${toString ports.jellyfin}";
-              extraConfig = ''
-                proxy_http_version 1.1;
-                proxy_set_header Upgrade $http_upgrade;
-                proxy_set_header Connection "upgrade";
-              '';
-            };
-          }
-          // lib.optionalAttrs config.services.deluge.enable {
-            "deluge.home.arpa".locations."/" = {
-              proxyPass = "http://127.0.0.1:${toString ports.delugeWeb}";
-            };
-          };
+        enable = mkIf config.modules.homelab.media.enable true;
+        virtualHosts."jellyfin.home.arpa".locations."/" = {
+          proxyPass = "http://192.168.1.52:${toString ports.jellyfin}";
+          extraConfig = ''
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+          '';
+        };
       };
     };
   };

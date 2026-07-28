@@ -29,20 +29,47 @@ in {
       };
       provision = {
         enable = true;
-        datasources.settings.datasources = [
-          {
-            name = "Prometheus";
-            type = "prometheus";
-            access = "proxy";
-            url = "http://${hostFqdn}:${toString ports.prometheus}";
-          }
-          {
-            name = "Loki";
-            type = "loki";
-            access = "proxy";
-            url = "http://${hostFqdn}:${toString ports.loki}";
-          }
-        ];
+        datasources.settings = {
+          deleteDatasources = [
+            {
+              name = "Prometheus";
+              orgId = 1;
+            }
+            {
+              name = "Loki";
+              orgId = 1;
+            }
+            {
+              name = "Alertmanager";
+              orgId = 1;
+            }
+          ];
+          datasources = [
+            {
+              name = "Prometheus";
+              uid = "prometheus";
+              type = "prometheus";
+              isDefault = true;
+              access = "proxy";
+              url = "http://${hostFqdn}:${toString ports.prometheus}";
+            }
+            {
+              name = "Loki";
+              uid = "loki";
+              type = "loki";
+              access = "proxy";
+              url = "http://${hostFqdn}:${toString ports.loki}";
+            }
+            {
+              name = "Alertmanager";
+              uid = "alertmanager";
+              type = "alertmanager";
+              access = "proxy";
+              url = "http://${hostFqdn}:${toString ports.alertmanager}";
+              jsonData.implementation = "prometheus";
+            }
+          ];
+        };
         dashboards.settings = {
           apiVersion = 1;
           providers = [
@@ -51,7 +78,7 @@ in {
               folder = "Homelab";
               type = "file";
               disableDeletion = false;
-              editable = true;
+              editable = false;
               options.path = toString dashboardsDir;
             }
           ];

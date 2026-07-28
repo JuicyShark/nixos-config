@@ -1,291 +1,233 @@
 {lib}: {
+  # Homelab service catalog.
+  #
+  # The attr name is the service name. Most generated names come directly from
+  # that key: <name>.home.arpa, qutebrowser quickmark names, Gatus labels, and
+  # Glance titles. Use `homeName` only when the LAN hostname intentionally
+  # differs from the service key, such as jellyseerr -> seerr.
   mkHomelabEndpoints = {config}: let
     inherit (config.modules) ports;
+
+    # Backend addresses. User-facing names belong in service entries below.
     hosts = {
       leo = "192.168.1.54";
       zues = "192.168.1.99";
       homeAssistant = "192.168.1.49";
     };
 
+    internalDomain = "home.arpa";
+    publicDomain = "nixlab.au";
+
     port = name: ports.${name};
     host = name: hosts.${name};
 
-    internalDomain = "home.arpa";
-    publicDomain = "nixlab.au";
-    hostFqdn = "${config.networking.hostName or "zues"}.${internalDomain}";
-
+    # URL constructors. `home` is the zues-fronted LAN surface; `local` is for
+    # zues-local backends; `remote` is for services hosted elsewhere.
     local = portName: "http://127.0.0.1:${toString (port portName)}";
-    localPath = portName: path: "${local portName}${path}";
     remote = hostName: portName: "http://${host hostName}:${toString (port portName)}";
     remoteHost = address: portName: "http://${address}:${toString (port portName)}";
-    remoteHostPath = address: portName: path: "${remoteHost address portName}${path}";
     home = name: "http://${name}.${internalDomain}";
-    homePath = name: path: "${home name}${path}";
     public = domain: "https://${domain}";
-    publicPath = domain: path: "${public domain}${path}";
 
     jellyfinHost = config.modules.homelab.jellyfin.host or "192.168.1.52";
     vaultwardenPublicDomain = "pass.${publicDomain}";
-    sunshineUrl = "http://${host "leo"}:${toString ports.sunshine.http}";
+    sunshineStatusUrl = "http://${host "leo"}:${toString ports.sunshine.http}";
+    sunshineAdminUrl = "https://leo.${internalDomain}:${toString ports.sunshine.web}";
 
-    services = {
-      router = {
-        title = "Router";
-        aliases = ["router"];
+    removeScheme = url: lib.removePrefix "https://" (lib.removePrefix "http://" url);
+    urlHost = url:
+      builtins.head (
+        lib.splitString ":" (builtins.head (lib.splitString "/" (removeScheme url)))
+      );
+    isHomeArpaUrl = url: lib.hasSuffix ".${internalDomain}" (urlHost url);
+    isPublicDomain = domain: domain == publicDomain || lib.hasSuffix ".${publicDomain}" domain;
+
+    mkLocalApp = {
+      portName,
+      homeName ? portName,
+      icon ? null,
+      enabled ? true,
+      backendUrl ? local portName,
+      checkPath ? null,
+      statusPath ? null,
+      statusUrl ?
+        if statusPath == null
+        then backendUrl
+        else "${backendUrl}${statusPath}",
+      altStatusCodes ? null,
+    }:
+      {
+        inherit enabled homeName;
+        url = home homeName;
+        checkUrl =
+          if checkPath == null
+          then home homeName
+          else "${home homeName}${checkPath}";
+        inherit statusUrl;
+        upstream = backendUrl;
+      }
+      // lib.optionalAttrs (icon != null) {inherit icon;}
+      // lib.optionalAttrs (altStatusCodes != null) {inherit altStatusCodes;};
+
+    nixflixBackend = serviceName: portName: let
+      hostConfig = config.nixflix.${serviceName}.config.hostConfig or {};
+      address = hostConfig.bindAddress or "127.0.0.1";
+      servicePort = hostConfig.port or (port portName);
+    in "http://${address}:${toString servicePort}";
+
+    # Service facts. Keep entries boring: only write fields that differ from
+    # the service key or from the local-app defaults.
+    rawServices = {
+      # zues-local apps with the standard home.arpa -> localhost shape.
+      grafana = mkLocalApp {
+        portName = "grafana";
+        icon = "di:grafana";
+        enabled = config.services.grafana.enable or false;
       };
 
+      prometheus = mkLocalApp {
+        portName = "prometheus";
+        enabled = config.services.prometheus.enable or false;
+        checkPath = "/-/ready";
+        statusPath = "/-/healthy";
+      };
+
+      alertmanager = mkLocalApp {
+        portName = "alertmanager";
+        icon = "si:prometheus";
+        enabled = config.services.prometheus.alertmanager.enable or false;
+        checkPath = "/-/ready";
+        statusPath = "/-/ready";
+      };
+
+      loki = mkLocalApp {
+        portName = "loki";
+        enabled = config.services.loki.enable or false;
+        checkPath = "/ready";
+        statusPath = "/ready";
+      };
+
+      jellyseerr = mkLocalApp {
+        portName = "jellyseerr";
+        homeName = "seerr";
+        icon = "di:jellyseerr";
+        enabled = config.nixflix.seerr.enable or config.services.seerr.enable or false;
+      };
+
+      sonarr = mkLocalApp {
+        portName = "sonarr";
+        icon = "di:sonarr";
+        enabled = config.nixflix.sonarr.enable or false;
+        backendUrl = nixflixBackend "sonarr" "sonarr";
+        statusUrl = home "sonarr";
+      };
+
+      radarr = mkLocalApp {
+        portName = "radarr";
+        icon = "di:radarr";
+        enabled = config.nixflix.radarr.enable or false;
+        backendUrl = nixflixBackend "radarr" "radarr";
+        statusUrl = home "radarr";
+      };
+
+      lidarr = mkLocalApp {
+        portName = "lidarr";
+        icon = "di:lidarr";
+        enabled = config.nixflix.lidarr.enable or false;
+        backendUrl = nixflixBackend "lidarr" "lidarr";
+        statusUrl = home "lidarr";
+      };
+
+      prowlarr = mkLocalApp {
+        portName = "prowlarr";
+        icon = "di:prowlarr";
+        enabled = config.nixflix.prowlarr.enable or false;
+        backendUrl = nixflixBackend "prowlarr" "prowlarr";
+        statusUrl = home "prowlarr";
+      };
+
+      filebrowser = mkLocalApp {
+        portName = "filebrowser";
+        homeName = "files";
+        icon = "di:filebrowser";
+        enabled = config.modules.homelab.filebrowser.enable or false;
+      };
+
+      syncthing = mkLocalApp {
+        portName = "syncthing";
+        icon = "di:syncthing";
+        enabled = config.services.syncthing.enable or false;
+      };
+
+      # Manual entries: remote backends, public-only services, or nonstandard
+      # health/status URLs.
+      router.homeName = "router";
+
       glance = {
-        title = "Glance";
         url = home "zues";
         checkUrl = remote "leo" "glance";
-        quickmarkName = "glance";
-        gatus.url = remote "leo" "glance";
+        statusUrl = remote "leo" "glance";
         public = {
           domain = publicDomain;
           upstream = remote "leo" "glance";
           checkUrl = public publicDomain;
-          blackbox = true;
         };
-      };
-
-      grafana = {
-        title = "Grafana";
-        aliases = ["grafana"];
-        icon = "di:grafana";
-        url = home "grafana";
-        checkUrl = home "grafana";
-        upstream = local "grafana";
-        quickmarkName = "grafana";
-        gatus.url = local "grafana";
-        blackbox = true;
-        glance = "private";
-      };
-
-      prometheus = {
-        title = "Prometheus";
-        aliases = ["prometheus"];
-        url = home "prometheus";
-        checkUrl = homePath "prometheus" "/-/ready";
-        upstream = local "prometheus";
-        quickmarkName = "prometheus";
-        gatus.url = localPath "prometheus" "/-/healthy";
-        blackbox = true;
-      };
-
-      alertmanager = {
-        title = "Alertmanager";
-        aliases = ["alertmanager"];
-        url = home "alertmanager";
-        upstream = local "alertmanager";
-        quickmarkName = "alertmanager";
-        gatus.url = localPath "alertmanager" "/-/healthy";
-      };
-
-      loki = {
-        title = "Loki";
-        aliases = ["loki"];
-        url = home "loki";
-        checkUrl = homePath "loki" "/ready";
-        upstream = local "loki";
-        quickmarkName = "loki";
-        gatus.url = localPath "loki" "/ready";
-        blackbox = true;
       };
 
       jellyfin = {
-        title = "Jellyfin";
         enabled = config.modules.homelab.jellyfin.enable or false;
-        aliases = ["jellyfin"];
         icon = "di:jellyfin";
+        homeName = "jellyfin";
         url = home "jellyfin";
-        checkUrl = homePath "jellyfin" "/web/index.html";
+        checkUrl = "${home "jellyfin"}/web/index.html";
         upstream = remoteHost jellyfinHost "jellyfin";
-        quickmarkName = "jellyfin";
-        gatus.url = remoteHostPath jellyfinHost "jellyfin" "/health";
-        blackbox = true;
-        glance = "private";
+        statusUrl = "${remoteHost jellyfinHost "jellyfin"}/health";
         public = {
           domain = "jellyfin.${publicDomain}";
           upstream = remoteHost jellyfinHost "jellyfin";
-          checkUrl = publicPath "jellyfin.${publicDomain}" "/web/index.html";
-          gatusUrl = publicPath "jellyfin.${publicDomain}" "/health";
-          blackbox = true;
-          gatus = true;
-          glance = true;
+          checkUrl = "${public "jellyfin.${publicDomain}"}/web/index.html";
+          statusUrl = "${public "jellyfin.${publicDomain}"}/health";
         };
       };
 
-      jellyseerr = {
-        title = "Jellyseerr";
-        enabled = config.nixflix.seerr.enable or config.services.seerr.enable or false;
-        aliases = ["seerr"];
-        icon = "di:jellyseerr";
-        url = home "seerr";
-        upstream = local "jellyseerr";
-        quickmarkName = "seerr";
-        gatus.url = local "jellyseerr";
-        glance = "private";
-      };
-
-      sonarr = {
-        title = "Sonarr";
-        enabled = config.nixflix.sonarr.enable or false;
-        aliases = ["sonarr"];
-        icon = "di:sonarr";
-        url = home "sonarr";
-        upstream = local "sonarr";
-        quickmarkName = "sonarr";
-        gatus.url = local "sonarr";
-        blackbox = true;
-        glance = "private";
-      };
-
-      radarr = {
-        title = "Radarr";
-        enabled = config.nixflix.radarr.enable or false;
-        aliases = ["radarr"];
-        icon = "di:radarr";
-        url = home "radarr";
-        upstream = local "radarr";
-        quickmarkName = "radarr";
-        gatus.url = local "radarr";
-        blackbox = true;
-        glance = "private";
-      };
-
-      lidarr = {
-        title = "Lidarr";
-        enabled = config.nixflix.lidarr.enable or false;
-        aliases = ["lidarr"];
-        icon = "di:lidarr";
-        url = home "lidarr";
-        upstream = local "lidarr";
-        quickmarkName = "lidarr";
-        gatus.url = local "lidarr";
-        blackbox = true;
-        glance = "private";
-      };
-
-      prowlarr = {
-        title = "Prowlarr";
-        enabled = config.nixflix.prowlarr.enable or false;
-        aliases = ["prowlarr"];
-        icon = "di:prowlarr";
-        url = home "prowlarr";
-        upstream = local "prowlarr";
-        quickmarkName = "prowlarr";
-        gatus.url = local "prowlarr";
-        blackbox = true;
-        glance = "private";
-      };
-
-      deluge = {
-        title = "Deluge";
-        enabled = config.services.deluge.enable or false;
-        aliases = ["deluge"];
-        icon = "di:deluge";
-        url = home "deluge";
-        upstream = local "delugeWeb";
-        quickmarkName = "deluge";
-        gatus.url = local "delugeWeb";
-        blackboxAuth = true;
-        glance = "private";
+      torrent = {
+        enabled = config.nixflix.torrentClients.qbittorrent.enable or false;
+        icon = "di:qbittorrent";
+        homeName = "torrent";
+        url = home "torrent";
         altStatusCodes = [401];
       };
 
       vaultwarden = {
-        title = "Vaultwarden";
         enabled = config.services.vaultwarden.enable or false;
-        aliases = ["vaultwarden"];
         icon = "di:vaultwarden";
+        homeName = "vaultwarden";
         url = home "vaultwarden";
         checkUrl = home "vaultwarden";
         upstream = local "vaultwarden";
-        quickmarkName = "vaultwarden";
-        gatus.url = localPath "vaultwarden" "/alive";
-        blackbox = true;
+        statusUrl = "${local "vaultwarden"}/alive";
         public = {
           domain = vaultwardenPublicDomain;
           upstream = local "vaultwarden";
           checkUrl = public vaultwardenPublicDomain;
-          blackbox = true;
-          gatus = true;
-          glance = true;
+          statusUrl = public vaultwardenPublicDomain;
         };
-      };
-
-      filebrowser = {
-        title = "Files";
-        enabled = config.modules.homelab.filebrowser.enable or false;
-        aliases = ["files"];
-        icon = "di:filebrowser";
-        url = home "files";
-        upstream = local "filebrowser";
-        quickmarkName = "files";
-        gatus.url = local "filebrowser";
-        blackbox = true;
-        glance = "private";
-      };
-
-      headscale = {
-        title = "Headscale";
-        enabled = config.modules.homelab.headscale.enable or false;
-        upstream = local "headscale";
-        gatus.url = localPath "headscale" "/health";
-        public = {
-          domain = "ts.${publicDomain}";
-          upstream = local "headscale";
-          checkUrl = publicPath "ts.${publicDomain}" "/health";
-          gatusUrl = publicPath "ts.${publicDomain}" "/health";
-          gatus = true;
-        };
-      };
-
-      syncthing = {
-        title = "Syncthing";
-        enabled = config.services.syncthing.enable or false;
-        aliases = ["syncthing"];
-        icon = "di:syncthing";
-        url = home "syncthing";
-        upstream = local "syncthing";
-        quickmarkName = "syncthing";
-        gatus.url = local "syncthing";
-        glance = "private";
       };
 
       sunshine = {
-        title = "Sunshine";
-        enabled = true;
         icon = "di:sunshine";
-        url = home "leo";
-        checkUrl = sunshineUrl;
-        upstream = sunshineUrl;
-        quickmarkName = "sunshine";
-        gatus.url = sunshineUrl;
-        blackbox = true;
-        glance = "private";
-        public = {
-          domain = "leo.${publicDomain}";
-          upstream = sunshineUrl;
-          checkUrl = public "leo.${publicDomain}";
-          blackbox = true;
-          gatus = true;
-          glance = true;
-        };
+        url = sunshineAdminUrl;
+        checkUrl = sunshineStatusUrl;
+        statusUrl = sunshineStatusUrl;
       };
 
-      homeAssistant = {
-        title = "Home-Assist";
-        aliases = ["hass"];
+      hass = {
         icon = "di:home-assistant";
-        url = remote "homeAssistant" "homeAssistant";
+        homeName = "hass";
+        url = home "hass";
         checkUrl = remote "homeAssistant" "homeAssistant";
         upstream = remote "homeAssistant" "homeAssistant";
-        quickmarkName = "hass";
-        quickmarkUrl = home "hass";
-        gatus.url = remote "homeAssistant" "homeAssistant";
-        blackbox = true;
-        glance = "private";
+        statusUrl = remote "homeAssistant" "homeAssistant";
         public = {
           domain = "hass.${publicDomain}";
           upstream = remote "homeAssistant" "homeAssistant";
@@ -293,156 +235,168 @@
       };
 
       gatus = {
-        title = "Gatus";
         enabled = config.modules.homelab.gatus.enable or false;
-        aliases = ["status"];
         icon = "di:gatus";
+        homeName = "status";
         url = home "status";
         upstream = local "gatus";
-        quickmarkName = "status";
-        glance = "private";
         public = {
           domain = "status.${publicDomain}";
           upstream = local "gatus";
         };
       };
 
-      nixlab = {
-        title = "nixlab";
-        url = public publicDomain;
-        quickmarkName = "nixlab";
-      };
+      nixlab.url = public publicDomain;
     };
 
-    serviceOrder = [
-      "router"
-      "grafana"
-      "prometheus"
-      "alertmanager"
-      "loki"
-      "jellyfin"
-      "jellyseerr"
-      "sonarr"
-      "radarr"
-      "lidarr"
-      "prowlarr"
-      "deluge"
-      "vaultwarden"
-      "filebrowser"
-      "headscale"
-      "syncthing"
-      "sunshine"
-      "glance"
-      "homeAssistant"
-      "gatus"
-      "nixlab"
+    # Output order is grouped for human scanning and reused by quickmarks,
+    # status checks, and dashboard lists.
+    serviceGroups = {
+      frontDoors = [
+        "router"
+        "glance"
+      ];
+      observability = [
+        "grafana"
+        "prometheus"
+        "alertmanager"
+        "loki"
+      ];
+      media = [
+        "jellyfin"
+        "jellyseerr"
+        "sonarr"
+        "radarr"
+        "lidarr"
+        "prowlarr"
+        "torrent"
+      ];
+      personal = [
+        "vaultwarden"
+        "filebrowser"
+        "syncthing"
+      ];
+      remoteIntegrations = [
+        "sunshine"
+        "hass"
+      ];
+      statusAndLanding = [
+        "gatus"
+        "nixlab"
+      ];
+    };
+
+    serviceOrder = lib.concatLists [
+      serviceGroups.frontDoors
+      serviceGroups.observability
+      serviceGroups.media
+      serviceGroups.personal
+      serviceGroups.remoteIntegrations
+      serviceGroups.statusAndLanding
     ];
 
-    glancePrivateOrder = [
-      "jellyfin"
-      "sonarr"
-      "radarr"
-      "lidarr"
-      "prowlarr"
-      "deluge"
-      "grafana"
-      "homeAssistant"
-      "filebrowser"
-      "jellyseerr"
-      "syncthing"
-      "sunshine"
-      "gatus"
-    ];
+    normalizeService = name: svc:
+      {
+        inherit name;
+        title = name;
+        enabled = svc.enabled or true;
+      }
+      // lib.optionalAttrs (svc ? icon) {inherit (svc) icon;}
+      // lib.optionalAttrs (svc ? homeName) {inherit (svc) homeName;}
+      // lib.optionalAttrs (svc ? url) {inherit (svc) url;}
+      // lib.optionalAttrs (svc ? checkUrl) {inherit (svc) checkUrl;}
+      // lib.optionalAttrs (svc ? upstream) {inherit (svc) upstream;}
+      // lib.optionalAttrs (svc ? statusUrl) {inherit (svc) statusUrl;}
+      // lib.optionalAttrs (svc ? altStatusCodes) {inherit (svc) altStatusCodes;}
+      // lib.optionalAttrs (svc ? public) {inherit (svc) public;};
 
-    glancePublicOrder = [
-      "jellyfin"
-      "vaultwarden"
-      "sunshine"
-    ];
-
+    services = lib.mapAttrs normalizeService rawServices;
     serviceList = map (name: services.${name}) serviceOrder;
     enabled = svc: svc.enabled or true;
+    hasIcon = svc: svc ? icon;
     enabledServiceList = lib.filter enabled serviceList;
-    publicServices = lib.filter (svc: enabled svc && (svc.public.domain or null) != null && (svc.public.ingress or true)) serviceList;
-    mkGatusEndpoint = svc: {
+    publicServices =
+      lib.filter (
+        svc: (svc.public.domain or null) != null && (svc.public.ingress or true)
+      )
+      enabledServiceList;
+
+    mkStatusPageEndpoint = svc: {
       name = svc.title;
-      inherit (svc.gatus) url;
-      interval = svc.gatus.interval or "1m";
-      conditions = svc.gatus.conditions or ["[STATUS] == 200"];
+      url = svc.statusUrl;
+      interval = svc.statusInterval or "1m";
+      conditions = svc.statusConditions or ["[STATUS] == 200"];
     };
-    mkPublicGatusEndpoint = svc: {
+    mkPublicStatusPageEndpoint = svc: {
       name = "${svc.title} (public)";
-      url = svc.public.gatusUrl or (svc.public.checkUrl or (public svc.public.domain));
-      interval = svc.public.gatusInterval or "5m";
-      conditions = svc.public.gatusConditions or ["[STATUS] == 200"];
+      url = svc.public.statusUrl or (svc.public.checkUrl or (public svc.public.domain));
+      interval = svc.public.statusInterval or "5m";
+      conditions = svc.public.statusConditions or ["[STATUS] == 200"];
     };
+
     mkGlanceSite = svc:
       {
-        inherit (svc) title url icon;
+        inherit (svc) title url;
         check-url = svc.checkUrl or svc.url;
       }
+      // lib.optionalAttrs (svc ? icon) {inherit (svc) icon;}
       // lib.optionalAttrs (svc ? altStatusCodes) {
         alt-status-codes = svc.altStatusCodes;
       };
-    mkPublicGlanceSite = svc: {
-      title = svc.public.title or svc.title;
-      url = svc.public.url or (public svc.public.domain);
-      check-url = svc.public.checkUrl or (public svc.public.domain);
-      icon = svc.public.icon or svc.icon;
-    };
+    mkPublicGlanceSite = svc:
+      {
+        inherit (svc) title;
+        url = svc.public.url or (public svc.public.domain);
+        check-url = svc.public.checkUrl or (public svc.public.domain);
+      }
+      // lib.optionalAttrs (svc ? icon) {inherit (svc) icon;}
+      // lib.optionalAttrs (svc.public ? icon) {icon = svc.public.icon;};
+    hasLanGlanceUrl = svc: (svc ? url) && isHomeArpaUrl svc.url;
+    hasPublicGlanceDomain = svc: (svc.public.domain or null) != null && isPublicDomain svc.public.domain;
   in {
     inherit services;
 
-    dnsAliases = lib.unique (lib.concatMap (svc: svc.aliases or []) serviceList);
+    # zues dnsmasq maps these enabled service names to <name>.home.arpa.
+    # Host DNS entries live in hosts/zues/networking.nix.
+    homeArpaServiceAliases = lib.unique (
+      map (svc: svc.homeName) (lib.filter (svc: svc ? homeName) enabledServiceList)
+    );
 
-    cloudflaredIngress = lib.listToAttrs (
-      map (svc:
-        lib.nameValuePair svc.public.domain {
-          service = svc.public.upstream;
-        })
+    # Cloudflared tunnel ingress for public hostnames owned by this catalog.
+    publicTunnelIngress = lib.listToAttrs (
+      map (
+        svc:
+          lib.nameValuePair svc.public.domain {
+            service = svc.public.upstream;
+          }
+      )
       publicServices
     );
 
-    quickmarks = lib.listToAttrs (
-      map (svc: lib.nameValuePair svc.quickmarkName (svc.quickmarkUrl or svc.url))
-      (lib.filter (svc: enabled svc && svc ? quickmarkName) serviceList)
+    # Every enabled service with a URL gets a quickmark named after its LAN
+    # hostname when it has one, otherwise after the service key.
+    qutebrowserQuickmarks = lib.listToAttrs (
+      map (svc: lib.nameValuePair (svc.homeName or svc.name) svc.url) (
+        lib.filter (svc: enabled svc && svc ? url) serviceList
+      )
     );
 
-    gatusEndpoints =
-      map mkGatusEndpoint (lib.filter (svc: enabled svc && svc ? gatus) serviceList)
-      ++ map mkPublicGatusEndpoint (
-        lib.filter (svc: enabled svc && (svc.public.gatus or false) && (svc.public.domain or null) != null) serviceList
+    statusPageEndpoints =
+      map mkStatusPageEndpoint (
+        lib.filter (svc: enabled svc && hasIcon svc && svc ? statusUrl) serviceList
+      )
+      ++ map mkPublicStatusPageEndpoint (
+        lib.filter (
+          svc: enabled svc && hasIcon svc && (svc.public.statusUrl or null) != null
+        )
+        serviceList
       );
 
-    blackboxHttpTargets =
-      lib.concatMap (
-        svc:
-          lib.optionals (svc.blackbox or false) [(svc.checkUrl or svc.url)]
-          ++ lib.optionals ((svc.public.blackbox or false) && (svc.public.domain or null) != null) [
-            (svc.public.checkUrl or (public svc.public.domain))
-          ]
-      )
-      enabledServiceList;
-
-    blackboxHttpAuthTargets =
-      lib.concatMap (
-        svc: lib.optionals (svc.blackboxAuth or false) [(svc.checkUrl or svc.url)]
-      )
-      enabledServiceList;
-
-    blackboxTcpTargets = [
-      "${hostFqdn}:22"
-      "leo.${internalDomain}:22"
-      "turn.${publicDomain}:3478"
-    ];
-
-    glancePrivateSites = map mkGlanceSite (
-      lib.filter (svc: enabled svc && (svc.glance or null) == "private") (map (name: services.${name}) glancePrivateOrder)
-    );
+    # Glance is derived, not configured per service: every enabled LAN service
+    # URL is a LAN site, and every enabled nixlab.au public hostname is public.
+    glanceLanSites = map mkGlanceSite (lib.filter hasLanGlanceUrl enabledServiceList);
     glancePublicSites = map mkPublicGlanceSite (
-      lib.filter (svc: enabled svc && (svc.public.glance or false) && (svc.public.domain or null) != null) (
-        map (name: services.${name}) glancePublicOrder
-      )
+      lib.filter hasPublicGlanceDomain publicServices
     );
   };
 }

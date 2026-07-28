@@ -15,22 +15,8 @@
   cacheDir = "/var/cache/jellyfin";
   logDir = "${dataDir}/log";
   launchdLog = "${logDir}/launchd.log";
-  stableStartJellyfin = "/Library/PrivilegedHelperTools/org.nixos.jellyfin.start";
   jellyfin = lib.getExe pkgs.jellyfin;
-
-  startJellyfin = pkgs.writeShellScript "start-jellyfin" ''
-    set -eu
-
-    cd ${lib.escapeShellArg "${pkgs.jellyfin}/lib/jellyfin"}
-
-
-
-    exec ${lib.escapeShellArg jellyfin} \
-      --datadir ${lib.escapeShellArg dataDir} \
-      --configdir ${lib.escapeShellArg configDir} \
-      --cachedir ${lib.escapeShellArg cacheDir} \
-      --logdir ${lib.escapeShellArg logDir}
-  '';
+  jellyfinWorkDir = "${pkgs.jellyfin}/lib/jellyfin";
 in {
   options.modules.jellyfin.enable = lib.mkEnableOption "Jellyfin media server on Darwin";
 
@@ -42,7 +28,7 @@ in {
       groups.media = {
         gid = 2000;
         description = "Shared media services";
-        members = ["jellyfin" "juicy"];
+        members = ["jellyfin" username];
       };
 
       users.jellyfin = {
@@ -74,8 +60,6 @@ in {
       /bin/chmod -R u+rwX,g+rwX ${lib.escapeShellArg home} ${lib.escapeShellArg dataDir} ${lib.escapeShellArg cacheDir}
       /bin/chmod -a "jellyfin allow search" ${lib.escapeShellArg userHome} 2>/dev/null || true
       /bin/chmod +a "jellyfin allow search" ${lib.escapeShellArg userHome}
-      /usr/bin/install -d -o root -g wheel -m 0755 /Library/PrivilegedHelperTools
-      /usr/bin/install -o root -g wheel -m 0755 ${lib.escapeShellArg startJellyfin} ${lib.escapeShellArg stableStartJellyfin}
       /usr/bin/touch ${lib.escapeShellArg launchdLog}
       /usr/sbin/chown jellyfin:media ${lib.escapeShellArg launchdLog}
       /bin/chmod 0644 ${lib.escapeShellArg launchdLog}
@@ -83,13 +67,23 @@ in {
 
     launchd.daemons.jellyfin = {
       serviceConfig = {
-        ProgramArguments = [stableStartJellyfin];
+        ProgramArguments = [
+          jellyfin
+          "--datadir"
+          dataDir
+          "--configdir"
+          configDir
+          "--cachedir"
+          cacheDir
+          "--logdir"
+          logDir
+        ];
+        WorkingDirectory = jellyfinWorkDir;
         # System LaunchDaemons start at boot, before any user logs in.
         RunAtLoad = true;
         # KeepAlive makes launchd bring Jellyfin back after crashes or exits.
         KeepAlive = true;
-        # macOS autofs/NFS mounts under /System/Volumes/Data/mnt are visible to
-        # the login user but unreliable for a separate system service user.
+        # Run as the login user so autofs/NFS media mounts are visible.
         UserName = username;
         GroupName = "media";
         EnvironmentVariables.HOME = home;

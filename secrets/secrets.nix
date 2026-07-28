@@ -14,27 +14,31 @@ let
   ];
 in {
   "juicy-password.age".publicKeys = users ++ systems;
-  "cloudflare-token.env.age".publicKeys = systems;
+  "initrd-recovery-password.age".publicKeys = users;
+  "restic-repository-password.age".publicKeys =
+    users
+    ++ [
+      host_leo
+      host_zues
+    ];
+  "cloudflare-token.env.age".publicKeys = [host_zues] ++ users;
   "cloudflared-cert.age".publicKeys = [host_zues] ++ users;
   "cloudflared-credentials.age".publicKeys = [host_zues] ++ users;
   "grafana-secret-key.age".publicKeys = [host_zues] ++ users;
   "ha-mqtt-pass.age".publicKeys = [host_leo] ++ users;
-  "minecraft-rcon-password.age".publicKeys = [host_mac];
+  "minecraft-rcon-password.age".publicKeys = [host_mac] ++ users;
 
-  "deluge-auth.age".publicKeys = systems;
-  "deluge-pass.age".publicKeys = systems;
-
-  "vaultwarden.env.age".publicKeys = systems;
-  "jellyfin-api.age".publicKeys = systems;
-  "jellyfin-admin-password.age".publicKeys = systems;
-  "seerr-api.age".publicKeys = systems;
-  "prowlarr-api.age".publicKeys = systems;
-  "sonarr-api.age".publicKeys = systems;
-  "radarr-api.age".publicKeys = systems;
-  "lidarr-api.age".publicKeys = systems;
-  "bazarr-api.age".publicKeys = systems;
-  "pirates-cookie.age".publicKeys = systems;
-  "pirates-agent.age".publicKeys = systems;
-  "coturn-key.age".publicKeys = systems;
-  "wifi-pass.age".publicKeys = systems ++ users;
+  "qbit.age".publicKeys = [host_zues] ++ users;
+  "vaultwarden.env.age".publicKeys = [host_zues] ++ users;
+  "jellyfin-api.age".publicKeys = [host_zues] ++ users;
+  "jellyfin-admin-password.age".publicKeys = [host_zues] ++ users;
+  "seerr-api.age".publicKeys = [host_zues] ++ users;
+  "prowlarr-api.age".publicKeys = [host_zues] ++ users;
+  "sonarr-api.age".publicKeys = [host_zues] ++ users;
+  "radarr-api.age".publicKeys = [host_zues] ++ users;
+  "lidarr-api.age".publicKeys = [host_zues] ++ users;
+  "pirates-cookie.age".publicKeys = [host_zues] ++ users;
+  "pirates-agent.age".publicKeys = [host_zues] ++ users;
+  "zues-wg.age".publicKeys = [host_zues] ++ users;
+  "coturn-key.age".publicKeys = [host_fallarbor] ++ users;
 }

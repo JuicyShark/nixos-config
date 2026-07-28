@@ -1,6 +1,6 @@
 # Locale and Time Configuration
 #
-# Manages timezone, locale, and system state version.
+# Manages timezone and locale. Each host owns its immutable state version.
 # Extracted from system.nix for better modularity.
 _: {
   config = {
@@ -13,7 +13,5 @@ _: {
         "en_US.UTF-8/UTF-8"
       ];
     };
-
-    system.stateVersion = "26.11";
   };
 }

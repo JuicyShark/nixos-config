@@ -6,7 +6,7 @@
   inherit (lib) mkEnableOption;
   inherit (config.modules) ports;
   cfg = config.modules.homelab.filebrowser;
-  username = "juicy";
+  username = config.modules.profile.username;
   rootPath = "/srv/chonk/family";
 in {
   options.modules.homelab.filebrowser.enable = mkEnableOption "Filebrowser web file manager";
@@ -21,7 +21,7 @@ in {
         address = "127.0.0.1";
         port = ports.filebrowser;
         root = rootPath;
-        noauth = true;
+        noauth = false;
       };
     };
 
@@ -29,7 +29,7 @@ in {
       locations."/" = {
         proxyPass = "http://127.0.0.1:${toString ports.filebrowser}";
       };
-      # Restrict to LAN and Tailscale — noauth means anyone who reaches it has access.
+      # Keep the UI private even when it is reached from an allowed network.
       extraConfig = ''
         allow 192.168.1.0/24;
         allow 100.64.0.0/10;

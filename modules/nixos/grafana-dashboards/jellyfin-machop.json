@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -12,7 +15,7 @@
       }
     ]
   },
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "links": [
@@ -32,7 +35,10 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -80,71 +86,17 @@
         {
           "expr": "up{job=\"jellyfin_sessions\"}",
           "instant": true,
-          "legendFormat": "sessions exporter",
           "refId": "A"
         }
       ],
-      "title": "Jellyfin Exporter",
+      "title": "Session Exporter Up",
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
       },
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
-      "id": 2,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "expr": "probe_success{job=\"blackbox_http\",instance=\"http://jellyfin.home.arpa/web/index.html\"}",
-          "instant": true,
-          "legendFormat": "jellyfin.home.arpa",
-          "refId": "A"
-        }
-      ],
-      "title": "Proxy Probe",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -177,17 +129,19 @@
       },
       "targets": [
         {
-          "expr": "sum(jellyfin_active)",
+          "expr": "scrape_samples_scraped{job=\"jellyfin_sessions\"}",
           "instant": true,
-          "legendFormat": "sessions",
           "refId": "A"
         }
       ],
-      "title": "Active Sessions",
+      "title": "Scrape Samples",
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -219,7 +173,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "s"
         },
         "overrides": []
       },
@@ -246,17 +200,19 @@
       },
       "targets": [
         {
-          "expr": "sum(jellyfin_is_paused)",
+          "expr": "scrape_duration_seconds{job=\"jellyfin_sessions\"}",
           "instant": true,
-          "legendFormat": "paused",
           "refId": "A"
         }
       ],
-      "title": "Paused Sessions",
+      "title": "Scrape Duration",
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -285,59 +241,19 @@
       },
       "targets": [
         {
-          "expr": "sum(jellyfin_active)",
-          "legendFormat": "active",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(jellyfin_is_paused)",
-          "legendFormat": "paused",
-          "refId": "B"
-        }
-      ],
-      "title": "Session Trend",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 5
-      },
-      "id": 6,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "probe_duration_seconds{job=\"blackbox_http\",instance=\"http://jellyfin.home.arpa/web/index.html\"}",
-          "legendFormat": "proxy",
+          "expr": "up{job=\"jellyfin_sessions\"}",
+          "legendFormat": "{{instance}}",
           "refId": "A"
         }
       ],
-      "title": "Jellyfin Probe Duration",
+      "title": "Session Exporter Health",
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -365,16 +281,19 @@
       },
       "targets": [
         {
-          "expr": "sum by (user_name, client_name, device_name) (jellyfin_active)",
-          "legendFormat": "{{user_name}} / {{client_name}} / {{device_name}}",
+          "expr": "sum(jellyfin_active)",
+          "legendFormat": "active sessions",
           "refId": "A"
         }
       ],
-      "title": "Active Clients",
+      "title": "Jellyfin Sessions (when exporter is up)",
       "type": "bargauge"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -407,11 +326,14 @@
           "refId": "A"
         }
       ],
-      "title": "Active Media Types",
+      "title": "Jellyfin Media Types (when exporter is up)",
       "type": "bargauge"
     },
     {
-      "datasource": "Loki",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {

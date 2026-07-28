@@ -1,15 +1,24 @@
 {
   system,
+  config,
   pkgs,
   lib,
   ...
 }: let
   isLinux = lib.hasSuffix "-linux" system;
+  isWorkstation = pkgs.stdenv.isDarwin || (config.modules.desktop.enable or false);
+  cfg = config.modules.shell;
 in {
-  options.modules.shell.atuin.syncUrl = lib.mkOption {
-    type = lib.types.str;
-    default = "";
-    description = "Atuin sync server URL (empty string disables sync)";
+  options.modules.shell = {
+    atuin.syncUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = "Atuin sync server URL (empty string disables sync)";
+    };
+
+    admin.enable = lib.mkEnableOption "host administration and hardware diagnostics";
+    dev.enable = lib.mkEnableOption "development and Nix authoring tools";
+    extras.enable = lib.mkEnableOption "non-essential terminal toys";
   };
 
   config = lib.mkMerge [
@@ -20,52 +29,53 @@ in {
           fd
           xh
           file
-          timg
           mtr
           whois
           duf
-          stress
-          fastfetch
-          cmatrix
           p7zip
-          peaclock
           tealdeer
-          ffmpeg
-          imagemagick
+        ]
+        ++ lib.optionals cfg.dev.enable [
           nix-init
           nix-update
           nix-search-cli
           nix-tree
           nix-inspect
-          # Modern CLI replacements / additions
           dust # replaces: du
           procs # replaces: ps
           sd # replaces: sed (simple substitutions)
-          gping # replaces: ping (graphical)
-          trippy # replaces: mtr / traceroute
           choose # replaces: cut / awk (simple field extraction)
           hyperfine # benchmarking (no direct OG; replaces ad-hoc `time` loops)
           tokei # replaces: cloc / wc -l
           ouch # replaces: tar / unzip / 7z (universal archive)
-          dig
+          codex
         ]
-        ++ [claude-code]
-        # Linux-only hardware/network tools
-        ++ lib.optionals isLinux [
+        ++ lib.optionals isWorkstation [
+          ffmpeg
+          imagemagick
+        ]
+        ++ lib.optionals (isLinux && cfg.admin.enable) [
           hwinfo
           hdparm
           lsof
-          nh
           nix-output-monitor
           nvd
+          stress-ng
+          gping
+          trippy
           bandwhich # replaces: nethogs / iftop (per-process bandwidth)
+        ]
+        ++ lib.optionals (isWorkstation && cfg.extras.enable) [
+          timg
+          cmatrix
+          peaclock
         ];
 
       programs = {
         zsh.enable = true;
         direnv = {
-          enable = true;
-          nix-direnv.enable = true;
+          enable = cfg.dev.enable || isWorkstation;
+          nix-direnv.enable = cfg.dev.enable || isWorkstation;
         };
       };
     }
@@ -88,7 +98,7 @@ in {
       # NixOS manages neovim system-wide; on darwin home-manager handles it
       programs = {
         nh.enable = true;
-        neovim.enable = true;
+        neovim.enable = !isWorkstation;
         direnv.silent = true;
       };
     })

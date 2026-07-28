@@ -13,6 +13,7 @@ in {
   imports = [
     home-manager
     inputs.agenix.nixosModules.default
+    inputs.nix-index-database.nixosModules.default
     ../common/options.nix
     ./base/boot.nix
     ../common/nix.nix
@@ -32,10 +33,7 @@ in {
         "/etc/ssh/ssh_host_ed25519_key"
       ];
       secrets =
-        {
-          wifi-pass.file = ../../secrets/wifi-pass.age;
-          juicy-password.file = ../../secrets/juicy-password.age;
-        }
+        {juicy-password.file = ../../secrets/juicy-password.age;}
         // lib.optionalAttrs config.modules.haPresence.enable {
           ha-mqtt-pass.file = ../../secrets/ha-mqtt-pass.age;
         };
@@ -46,27 +44,12 @@ in {
       systemPackages = with pkgs;
         optionals cfg.keyboard.zsa [
           keymapp
-          kontroll
         ];
     };
 
     networking = {
       useDHCP = lib.mkDefault true;
       enableIPv6 = lib.mkDefault true;
-      domain = "local";
-
-      firewall = let
-        inherit (config.modules) ports;
-      in {
-        allowedUDPPorts =
-          [
-            ports.dhcpClient
-            ports.dhcpServer
-            ports.kdeConnect
-          ]
-          ++ optionals cfg.openSrb2Port [5029];
-        allowedTCPPorts = optionals cfg.openDevPort [3000];
-      };
     };
 
     services = {

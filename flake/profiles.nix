@@ -1,57 +1,57 @@
-{self, ...}: let
-  hm = self.homeModules;
-in {
-  _module.args.homeProfiles = rec {
-    cli = with hm; [
-      atuin
-      bat
-      btop
+{homeModules}: rec {
+  cli = with homeModules; [
+    atuin
+    bat
+    btop
+    eza
+    fastfetch
+    fzf
+    git
+    ripgrep
+    ssh
+    starship
+    tmux
+    zoxide
+    zsh
+  ];
+
+  workstationCli =
+    cli
+    ++ (with homeModules; [
       editorconfig
-      eza
-      fastfetch
-      fzf
-      git
       lazygit
       neovim
-      ripgrep
-      ssh
-      starship
-      tmux
       yazi
-      zoxide
-      zsh
-    ];
+    ]);
 
-    desktop =
-      cli
-      ++ (with hm; [
-        chromium
-        emacs
-        gtk
-        ha-presence
-        hyprland
-        kitty
-        mime-apps
-        mpv
-        noctalia-shell
-        obs
-        qutebrowser
-        rbw
-        shairport
-        walker
-        xdg-desktop-entries
-        xdg-user-dirs
-        xresources
-      ]);
+  desktop =
+    workstationCli
+    ++ (with homeModules; [
+      chromium
+      desktop-apps
+      emacs
+      gtk
+      ha-presence
+      hyprland
+      kitty
+      mime-apps
+      mpv
+      noctalia-shell
+      obs
+      qutebrowser
+      rbw
+      shairport
+      xdg-desktop-entries
+      xdg-user-dirs
+      xresources
+    ]);
 
-    darwin =
-      cli
-      ++ (with hm; [
-        emacs
-        kitty
-        mpv
-        qutebrowser
-        xdg-user-dirs
-      ]);
-  };
+  darwin =
+    workstationCli
+    ++ (with homeModules; [
+      emacs
+      kitty
+      mpv
+      xdg-user-dirs
+    ]);
 }

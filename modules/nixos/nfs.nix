@@ -7,13 +7,7 @@
   inherit (lib.types) ints listOf str;
   cfg = config.modules.nfs;
   lanSubnet = "192.168.1.0/24";
-  nfsPorts = [
-    111
-    2049
-    4000
-    4001
-    4002
-  ];
+  nfsPort = 2049;
 in {
   options.modules.nfs = {
     exportPath = mkOption {
@@ -49,14 +43,12 @@ in {
 
   config = mkIf (cfg.exportPath != "") {
     services = {
-      gvfs.enable = true;
-      rpcbind.enable = true;
+      nfs.settings.nfsd = {
+        vers3 = false;
+        vers4 = true;
+      };
       nfs.server = {
         enable = true;
-
-        lockdPort = 4001;
-        mountdPort = 4002;
-        statdPort = 4000;
         exports =
           concatMapStringsSep "\n" (
             host: "${cfg.exportPath} ${host}(rw,sync,no_subtree_check,insecure,all_squash,anonuid=${toString cfg.anonUid},anongid=${toString cfg.anonGid})"
@@ -66,8 +58,9 @@ in {
     };
 
     networking.firewall.interfaces = lib.genAttrs cfg.firewallInterfaces (_: {
-      allowedTCPPorts = nfsPorts;
-      allowedUDPPorts = nfsPorts;
+      allowedTCPPorts = [nfsPort];
     });
+
+    systemd.services.nfs-server.unitConfig.RequiresMountsFor = [cfg.exportPath];
   };
 }

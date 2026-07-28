@@ -1,90 +1,404 @@
 {
-  "annotations": {"list": [{"builtIn": 1, "datasource": "-- Grafana --", "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}]},
-  "editable": true,
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": false,
   "graphTooltip": 0,
   "panels": [
     {
       "id": 1,
       "type": "stat",
-      "title": "Jellyfin Sessions",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
-      "targets": [{"expr": "sum(jellyfin_active)", "instant": true, "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "palette-classic"}}, "overrides": []},
-      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+      "title": "Sonarr Series",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(sonarr_series_total)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
     },
     {
       "id": 2,
       "type": "stat",
-      "title": "Deluge Download Rate",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
-      "targets": [{"expr": "sum(deluge_download_rate_bytes)", "instant": true, "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "Bps", "color": {"mode": "palette-classic"}}, "overrides": []},
-      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+      "title": "Radarr Movies",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(radarr_movie_total)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
     },
     {
       "id": 3,
       "type": "stat",
-      "title": "Deluge Upload Rate",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
-      "targets": [{"expr": "sum(deluge_upload_rate_bytes)", "instant": true, "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "Bps", "color": {"mode": "palette-classic"}}, "overrides": []},
-      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+      "title": "Prowlarr Indexers",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(prowlarr_indexer_enabled_total)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
     },
     {
       "id": 4,
       "type": "stat",
       "title": "Media Jobs Up",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
-      "targets": [{"expr": "sum(up{job=~\"sonarr|radarr|lidarr|prowlarr|deluge\"})", "instant": true, "refId": "A"}],
-      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]}, "color": {"mode": "thresholds"}, "unit": "short"}, "overrides": []},
-      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"}
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(up{job=~\"sonarr|radarr|lidarr|prowlarr\"})",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 4
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
     },
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Deluge Transfer",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "title": "Arr Queues",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
       "targets": [
-        {"expr": "sum(deluge_download_rate_bytes)", "legendFormat": "download", "refId": "A"},
-        {"expr": "sum(deluge_upload_rate_bytes)", "legendFormat": "upload", "refId": "B"}
+        {
+          "expr": "sum(sonarr_queue_total)",
+          "legendFormat": "sonarr",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(radarr_queue_total)",
+          "legendFormat": "radarr",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(lidarr_queue_total)",
+          "legendFormat": "lidarr",
+          "refId": "C"
+        }
       ],
-      "fieldConfig": {"defaults": {"unit": "Bps", "color": {"mode": "palette-classic"}}, "overrides": []},
-      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
     },
     {
       "id": 6,
       "type": "timeseries",
-      "title": "Jellyfin Session Trend",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
-      "targets": [{"expr": "sum(jellyfin_active)", "legendFormat": "sessions", "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "palette-classic"}}, "overrides": []},
-      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
+      "title": "Media Health Issues",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "targets": [
+        {
+          "expr": "sum(sonarr_system_health_issues)",
+          "legendFormat": "sonarr",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(radarr_system_health_issues)",
+          "legendFormat": "radarr",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(lidarr_system_health_issues)",
+          "legendFormat": "lidarr",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(prowlarr_system_health_issues)",
+          "legendFormat": "prowlarr",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
     },
     {
       "id": 7,
       "type": "timeseries",
-      "title": "Arr/Deluge Errors (Logs)",
-      "datasource": "Loki",
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 13},
+      "title": "Arr/qBittorrent Errors (Logs)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
       "targets": [
-        {"expr": "sum by (unit) (count_over_time({job=\"systemd-journal\",unit=~\"sonarr.service|radarr.service|lidarr.service|prowlarr.service|deluged.service|deluge-web.service\"} |~ \"(?i)(error|failed|exception|timeout)\" [5m]))", "legendFormat": "{{unit}}", "refId": "A"}
+        {
+          "expr": "sum by (unit) (count_over_time({job=\"systemd-journal\",unit=~\"sonarr.service|radarr.service|lidarr.service|prowlarr.service|qbittorrent.service\"} |~ \"(?i)(error|failed|exception|timeout)\" [5m]))",
+          "legendFormat": "{{unit}}",
+          "refId": "A"
+        }
       ],
-      "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "palette-classic"}}, "overrides": []},
-      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}}
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
   "style": "dark",
-  "tags": ["homelab", "media"],
-  "templating": {"list": [{"name": "job", "type": "query", "datasource": "Prometheus", "definition": "label_values(up, job)", "query": {"query": "label_values(up, job)", "refId": "job"}, "includeAll": true, "multi": true, "current": {"selected": true, "text": "All", "value": "$__all"}}]},
-  "time": {"from": "now-24h", "to": "now"},
+  "tags": [
+    "homelab",
+    "media"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(up, job)",
+        "query": {
+          "query": "label_values(up, job)",
+          "refId": "job"
+        },
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
   "timezone": "browser",
   "title": "Media Pipeline",
   "uid": "media-pipeline",

@@ -13,16 +13,14 @@
 in {
   config = {
     boot = {
-      initrd.systemd.emergencyAccess = true;
+      # Dedicated recovery credential. Its plaintext is encrypted for the
+      # operator in secrets/initrd-recovery-password.age.
+      initrd.systemd.emergencyAccess = "$6$J1Ma975obw7zdziD$P5MJ7sO.ezItQizSWomRjSR0tihaGtCYdNeGPz/5D4SBtcMPen8uGKqYVo16ilCON8894zBHPpCwxzYJKecsf/";
 
       tmp =
         if cfg.highMemory.enable
         then {useTmpfs = true;}
         else {cleanOnBoot = true;};
-
-      binfmt.emulatedSystems = mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [
-        "aarch64-linux"
-      ];
 
       loader = mkIf (!config.boot.isContainer) {
         systemd-boot = mkIf (pkgs.stdenv.hostPlatform.system != "aarch64-linux") {
@@ -35,7 +33,6 @@ in {
         efi.canTouchEfiVariables = lib.mkDefault true;
       };
 
-      kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_stable;
       blacklistedKernelModules = ["floppy"];
       zfs.forceImportRoot = lib.mkDefault false;
     };

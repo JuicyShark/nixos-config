@@ -3,16 +3,6 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
 
-    flake-parts = {
-      url = "github:hercules-ci/flake-parts";
-      inputs.nixpkgs-lib.follows = "nixpkgs";
-    };
-
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -38,17 +28,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    elephant = {
-      url = "github:abenz1267/elephant";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    walker = {
-      url = "github:abenz1267/walker";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.elephant.follows = "elephant";
-    };
-
     nix-darwin = {
       url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -69,22 +48,8 @@
     };
 
     hyprland = {
-      url = "github:3l0w/Hyprland/feat/input-capture-impl";
+      url = "github:hyprwm/Hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    xdph = {
-      url = "github:3l0w/xdg-desktop-portal-hyprland/feat/input-capture-impl";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.hyprland-protocols.follows = "hyprland/hyprland-protocols";
-      inputs.hyprlang.follows = "hyprland/hyprlang";
-      inputs.hyprutils.follows = "hyprland/hyprutils";
-      inputs.hyprwayland-scanner.follows = "hyprland/hyprwayland-scanner";
-    };
-
-    hy3 = {
-      url = "github:outfoxxed/hy3";
-      inputs.hyprland.follows = "hyprland";
     };
 
     nixvim = {
@@ -92,30 +57,80 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nix-claude-code = {
-      url = "github:ryoppippi/nix-claude-code";
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = inputs:
-    inputs.flake-parts.lib.mkFlake {inherit inputs;} {
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
+  outputs = inputs @ {
+    self,
+    nixpkgs,
+    nixpkgs-stable,
+    nix-darwin,
+    ...
+  }: let
+    inherit (nixpkgs) lib;
+
+    linuxSystems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+
+    systems =
+      linuxSystems
+      ++ [
         "aarch64-darwin"
-        "x86_64-darwin"
       ];
 
-      imports = [
-        inputs.treefmt-nix.flakeModule
-        ./flake/pkgs.nix
-        ./flake/modules.nix
-        ./flake/profiles.nix
-        ./flake/hosts.nix
-        ./flake/apps.nix
-        ./flake/devshells.nix
-        ./flake/checks.nix
-      ];
+    forAllSystems = function: lib.genAttrs systems function;
+    forLinuxSystems = function: lib.genAttrs linuxSystems function;
+
+    packageExports = import ./flake/pkgs.nix {
+      inherit inputs nixpkgs nixpkgs-stable;
     };
+    inherit (packageExports) mkPkgs nixpkgsConfig nixpkgsOverlays;
+
+    moduleExports = import ./flake/modules.nix {inherit nixpkgs;};
+    inherit (moduleExports) nixosModules darwinModules homeModules;
+
+    homeProfiles = import ./flake/profiles.nix {inherit homeModules;};
+
+    hostOutputs = import ./flake/hosts.nix {
+      inherit
+        inputs
+        self
+        lib
+        nixpkgs
+        nix-darwin
+        homeProfiles
+        nixpkgsConfig
+        nixpkgsOverlays
+        ;
+    };
+
+    deploymentApps = import ./flake/apps.nix {inherit lib self;};
+    mkDevShells = import ./flake/devshells.nix;
+    mkLinuxChecks = import ./flake/checks.nix {inherit self mkPkgs;};
+  in {
+    inherit nixosModules darwinModules homeModules;
+    inherit (moduleExports) lib;
+    inherit (hostOutputs) nixosConfigurations darwinConfigurations;
+
+    apps = forLinuxSystems (
+      system: let
+        pkgs = mkPkgs system;
+      in
+        deploymentApps pkgs
+    );
+
+    devShells = forAllSystems (system: mkDevShells (mkPkgs system));
+
+    formatter = forAllSystems (system: (mkPkgs system).alejandra);
+
+    checks = {
+      x86_64-linux = mkLinuxChecks "x86_64-linux";
+      aarch64-darwin.mac-eval = self.darwinConfigurations.mac.system;
+    };
+  };
 }

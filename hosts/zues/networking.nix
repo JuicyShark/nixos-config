@@ -1,45 +1,31 @@
-# Zues networking: firewall, Cloudflare tunnel, Avahi, Samba, Tailscale, DNS stack.
+# Zues networking: firewall, Cloudflare tunnel, Avahi, and DNS stack.
 {
   self,
   config,
   lib,
-  pkgs,
   ...
 }: let
-  endpoints = self.lib.${pkgs.stdenv.hostPlatform.system}.services.mkHomelabEndpoints {inherit config;};
+  endpoints = self.lib.services.mkHomelabEndpoints {
+    inherit config;
+  };
 in {
-  assertions = [
-    {
-      assertion = builtins.pathExists ../../secrets/cloudflared-cert.age;
-      message = "zues cloudflared requires secrets/cloudflared-cert.age.";
-    }
-    {
-      assertion = builtins.pathExists ../../secrets/cloudflared-credentials.age;
-      message = "zues cloudflared requires secrets/cloudflared-credentials.age.";
-    }
-  ];
-
-  # Rate-limit new TCP connections forwarded from WAN (enp1s0) to LAN clients.
-  # Protects LAN from SYN floods originating on the upstream link.
-  # Established/related traffic is already fast-patched by conntrack.
-  networking.firewall.extraForwardRules = ''
-    iifname "enp1s0" ct state new limit rate 500/second burst 1000 packets accept
-    iifname "enp1s0" ct state new drop
-  '';
-
   networking.firewall.interfaces = {
     br0 = {
       allowedTCPPorts = [
-        445
-        5357
-        5358
+        53
+        80
+        config.modules.ports.loki
       ];
       allowedUDPPorts = [
-        3702
+        53
+        67
         5353
       ];
     };
-    tailscale0.allowedTCPPorts = [445];
+    tailscale0.allowedTCPPorts = [
+      80
+      config.modules.ports.loki
+    ];
   };
 
   age.secrets = {
@@ -62,7 +48,7 @@ in {
         certificateFile = config.age.secrets.cloudflared-cert.path;
         credentialsFile = config.age.secrets.cloudflared-credentials.path;
 
-        ingress = endpoints.cloudflaredIngress;
+        ingress = endpoints.publicTunnelIngress;
       };
     };
 
@@ -75,52 +61,6 @@ in {
         enable = true;
         userServices = true;
       };
-    };
-
-    samba = {
-      enable = true;
-      openFirewall = false;
-      settings = {
-        global = {
-          "server min protocol" = "SMB2";
-          "disable netbios" = "yes";
-          "smb ports" = "445";
-          "interfaces" = "lo br0 tailscale0";
-          "bind interfaces only" = "yes";
-          "hosts allow" = "127. 192.168.1.0/24 100.64.0.0/10";
-          "hosts deny" = "0.0.0.0/0";
-          "map to guest" = "Bad User";
-          "guest account" = "nobody";
-        };
-
-        FamilyShared = {
-          path = "/srv/chonk/family/Shared";
-          "browseable" = "yes";
-          "read only" = "yes";
-          "guest ok" = "yes";
-          "force user" = "media";
-          "force group" = "media";
-          "create mask" = "0664";
-          "directory mask" = "0775";
-        };
-
-        FamilyUploads = {
-          path = "/srv/chonk/family/Uploads";
-          "browseable" = "yes";
-          "read only" = "no";
-          "guest ok" = "yes";
-          "force user" = "media";
-          "force group" = "media";
-          "create mask" = "0664";
-          "directory mask" = "0775";
-        };
-      };
-    };
-
-    samba-wsdd = {
-      enable = true;
-      interface = "br0";
-      openFirewall = false;
     };
 
     unbound = {
@@ -201,7 +141,7 @@ in {
 
         address = let
           # All services running on zues, exposed at <name>.home.arpa
-          inherit (endpoints) dnsAliases;
+          inherit (endpoints) homeArpaServiceAliases;
           # Hosts with both short and FQDN entries
           hosts = [
             {
@@ -211,6 +151,14 @@ in {
             {
               name = "leo";
               ip = "192.168.1.54";
+            }
+            {
+              name = "machop";
+              ip = "192.168.1.52";
+            }
+            {
+              name = "hass";
+              ip = "192.168.1.49";
             }
             {
               name = "zues";
@@ -225,7 +173,7 @@ in {
           # router also resolves without domain suffix (legacy compat)
           ["/router/192.168.1.99"]
           ++ ["/mc.nixlab.au/192.168.1.52"]
-          ++ map (svc: "/${svc}.home.arpa/192.168.1.99") dnsAliases
+          ++ map (svc: "/${svc}.home.arpa/192.168.1.99") homeArpaServiceAliases
           ++ lib.concatMap (h: [
             "/${h.name}/${h.ip}"
             "/${h.name}.home.arpa/${h.ip}"

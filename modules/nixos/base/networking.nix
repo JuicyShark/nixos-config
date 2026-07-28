@@ -18,6 +18,13 @@
   isServer = config.modules.monitoring.enable;
 in
   lib.mkIf pkgs.stdenv.isLinux {
+    # Shared firewall snippets use nftables syntax. Keep every Linux host on
+    # the same backend so those rules cannot silently disappear.
+    networking = {
+      nftables.enable = true;
+      firewall.enable = true;
+    };
+
     boot.kernel.sysctl = lib.mkMerge [
       {
         # ── Congestion control ────────────────────────────────────────────────

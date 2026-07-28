@@ -2,11 +2,10 @@
 {
   self,
   config,
-  pkgs,
   ...
 }: let
   portsCfg = config.modules.ports;
-  endpoints = self.lib.${pkgs.stdenv.hostPlatform.system}.services.mkHomelabEndpoints {inherit config;};
+  endpoints = self.lib.services.mkHomelabEndpoints {inherit config;};
 in {
   modules.homelab.gatus.settings = {
     web = {
@@ -18,6 +17,6 @@ in {
       path = "/var/lib/gatus/data.db";
     };
     ui.title = "nixlab status";
-    endpoints = endpoints.gatusEndpoints;
+    endpoints = endpoints.statusPageEndpoints;
   };
 }

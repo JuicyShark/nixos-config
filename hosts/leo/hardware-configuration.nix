@@ -10,7 +10,6 @@
   ];
 
   hardware = {
-    keyboard.zsa.enable = true;
     logitech.wireless.enable = true;
     xone.enable = true;
     amdgpu.initrd.enable = true;
@@ -18,13 +17,8 @@
       enable = true;
       enable32Bit = true;
       extraPackages = with pkgs; [
-        mesa
-        vulkan-loader
-        vulkan-tools
-        # VA-API for hardware video decode in browsers and media players
-        libva
-        libvdpau-va-gl
-        # OpenCL via amdgpu (useful for Blender, darktable, etc.)
+        # Mesa already provides Vulkan and VA-API for the RX 7800 XT.
+        # Keep this driver path for drivers only; diagnostics live in systemPackages.
         rocmPackages.clr.icd
       ];
     };
@@ -32,7 +26,6 @@
   };
 
   services = {
-    xserver.videoDrivers = lib.mkDefault ["amdgpu"];
     udev.extraRules = ''
       ACTION=="add|change", KERNEL=="nvme[0-9]n[0-9]", ATTR{queue/scheduler}="none"
       ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
@@ -104,19 +97,6 @@
       "noatime"
     ];
   };
-
-  # Persistent subvolume — uncomment after creating @persist on disk
-  # and after adding "subvol=@" to the / mount above.
-  # fileSystems."/persist" = {
-  #   device = "/dev/disk/by-uuid/abe7aa06-2f9e-431c-a9f1-5029ff0c3c65";
-  #   fsType = "btrfs";
-  #   options = [
-  #     "subvol=@persist"
-  #     "compress=zstd:1"
-  #     "noatime"
-  #   ];
-  #   neededForBoot = true;
-  # };
 
   fileSystems."/boot" = {
     device = "/dev/disk/by-uuid/C412-43B2";

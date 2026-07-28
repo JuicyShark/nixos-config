@@ -27,12 +27,11 @@
     };
 
     system = {
-      keyboard.zsa = lib.mkEnableOption "ZSA keyboard firmware (keymapp + kontroll)";
+      keyboard.zsa = lib.mkEnableOption "ZSA keyboard firmware (keymapp)";
       highMemory.enable = lib.mkEnableOption "high-RAM optimizations (tmpfs for /tmp)";
+      media.enable = lib.mkEnableOption "shared media user and group";
 
       mullvad.enable = lib.mkEnableOption "Mullvad VPN client";
-      openSrb2Port = lib.mkEnableOption "SRB2 multiplayer firewall port (UDP 5029)";
-      openDevPort = lib.mkEnableOption "development server firewall port (TCP 3000)";
     };
 
     haPresence = {

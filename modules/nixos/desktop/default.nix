@@ -7,22 +7,18 @@
 }: let
   inherit (config.boot) isContainer;
   inherit (lib) mkIf mkEnableOption mkOption;
-  username = "juicy";
+  username = config.modules.profile.username;
 
   cfg = config.modules.desktop;
 
   desktopBasePackages = with pkgs; [
-    btop
-    #bitwarden-desktop
     pulsemixer
     rsync
     wl-clipboard-rs
     gparted
     imv
     pciutils
-    libmtp
     # Wayland/Hyprland QoL
-    wlr-randr
     wdisplays
     hyprshot
     cliphist
@@ -32,12 +28,11 @@ in {
   imports = [
     inputs.noctalia-greeter.nixosModules.default
     ./gaming.nix
-    ./apps.nix
   ];
 
   options.modules.desktop = {
     enable = mkEnableOption "desktop environment (Hyprland/Wayland)";
-    bloat = {
+    applications = {
       enable = mkEnableOption "extra desktop applications (Signal, Discord, Obsidian, etc.)";
       vivaldi.enable = mkEnableOption "Vivaldi browser";
       godot.enable = mkEnableOption "Godot editor";
@@ -46,6 +41,14 @@ in {
     gaming = {
       enable = mkEnableOption "gaming features (Steam, GameMode, Wine, Proton, etc.)";
       extraTools.enable = mkEnableOption "extra gaming tools (GOverlay, vkBasalt, WowUp, osu!)";
+      gamescope = {
+        enable = mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Whether to enable the Gamescope Wayland micro-compositor for games.";
+        };
+        session.enable = mkEnableOption "a dedicated Steam Gamescope session";
+      };
       retro.enable = mkOption {
         type = lib.types.bool;
         default = false;
@@ -56,11 +59,8 @@ in {
       enable = mkEnableOption "streaming tools";
       chat.enable = mkEnableOption "streaming chat client";
       mirror.enable = mkEnableOption "Wayland display mirroring tool";
-      streamlink.enable = mkEnableOption "Streamlink";
-      replay.enable = mkEnableOption "GPU Screen Recorder replay tooling";
     };
     media.jellyfinMpvShim.enable = mkEnableOption "Jellyfin MPV Shim";
-    guiFallback.enable = mkEnableOption "GUI fallback applications (grsync, etc.)";
     virtual.enable = mkEnableOption "virtualization support (quickemu, cdemu)";
   };
 
@@ -68,8 +68,8 @@ in {
     {
       assertions = [
         {
-          assertion = cfg.bloat.enable -> cfg.enable;
-          message = "modules.desktop.bloat requires modules.desktop to be enabled";
+          assertion = cfg.applications.enable -> cfg.enable;
+          message = "modules.desktop.applications requires modules.desktop to be enabled";
         }
         {
           assertion = cfg.gaming.enable -> cfg.enable;
@@ -96,40 +96,27 @@ in {
         enable = true;
         platformTheme = lib.mkForce "qt5ct";
       };
-      hardware.graphics.enable32Bit = true;
-      hardware.i2c.enable = !isContainer;
+      hardware = {
+        graphics.enable32Bit = true;
+        i2c.enable = !isContainer;
+        bluetooth.enable = true;
+      };
 
       users.users.${username}.extraGroups = lib.optionals (!isContainer) ["i2c"];
-
-      # Bluetooth
-      hardware.bluetooth.enable = true;
-
-      environment.sessionVariables = {
-        NIXOS_OZONE_WL = "1";
-        GDK_BACKEND = "wayland,x11";
-        QT_QPA_PLATFORM = "wayland;xcb";
-        SDL_VIDEODRIVER = "wayland,x11";
-        PROTON_ENABLE_WAYLAND = "1";
-        PULSE_LATENCY_MSEC = "60";
-        MOZ_ENABLE_WAYLAND = "1";
-        TZ = config.time.timeZone;
-        QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
-        _JAVA_AWT_WM_NONREPARENTING = "1";
-
-        XDG_SESSION_TYPE = "wayland";
-        XDG_SCREENSHOTS_DIR = "/home/${username}/media/pictures/screenshots";
-      };
 
       programs = {
         hyprland = {
           enable = !isContainer;
-          portalPackage = inputs.xdph.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
           withUWSM = !isContainer;
+          portalPackage = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
         };
         uwsm.enable = mkIf (!isContainer) true;
         thunar.enable = true;
-        wayvnc.enable = true;
-        ssh.startAgent = true;
+        ssh = {
+          startAgent = true;
+          enableAskPassword = true;
+          askPassword = "${pkgs.wayprompt}/bin/wayprompt-ssh-askpass";
+        };
 
         nix-ld = {
           enable = true;
@@ -145,6 +132,7 @@ in {
 
       xdg.portal = {
         enable = !isContainer;
+        xdgOpenUsePortal = !isContainer;
         extraPortals = with pkgs; [
           xdg-desktop-portal-gtk
         ];
@@ -162,8 +150,6 @@ in {
           settings.default_session.user = "greeter";
         };
 
-        flatpak.enable = true;
-        blueman.enable = true;
         playerctld.enable = true;
         libinput.mouse.accelProfile = "flat";
 
@@ -183,12 +169,6 @@ in {
         # Firmware updates over LVFS (NVMe, dock/monitor controllers,
         # Logitech receivers, ZSA boards via flashing tools, etc.).
         fwupd.enable = true;
-
-        # Auto-nice foreground apps (compositor, games) over background work (nix-daemon, syncthing)
-        ananicy = {
-          enable = true;
-          package = pkgs.ananicy-cpp;
-        };
       };
 
       programs.noctalia-greeter.enable = !isContainer;

@@ -35,7 +35,6 @@ in {
     environment.systemPackages = with pkgs;
       lib.optionals pkgs.stdenv.isLinux [
         binutils # native-comp needs 'as'
-        wl-clipboard-rs # org-download clipboard support on Wayland
       ]
       ++ lib.optional (pkgs.stdenv.isLinux && config.programs.gnupg.agent.enable) pinentry-emacs
       ++ [
@@ -50,6 +49,16 @@ in {
         ledger
 
         python3
+
+        # LSP servers and formatters
+        basedpyright
+        lua-language-server
+        marksman
+        prettier
+        ruff
+        typescript-language-server
+        vscode-langservers-extracted
+        yaml-language-server
 
         gopls
         gore
@@ -105,7 +114,6 @@ in {
 
         # :lang nix
         age
-        nixfmt
       ];
 
     fonts.packages = [pkgs.nerd-fonts.symbols-only];

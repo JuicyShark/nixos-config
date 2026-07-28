@@ -2,11 +2,13 @@
   self,
   config,
   lib,
-  pkgs,
   ...
 }: let
   portsCfg = config.modules.ports;
-  endpoints = self.lib.${pkgs.stdenv.hostPlatform.system}.services.mkHomelabEndpoints {inherit config;};
+  homelabConfig = self.nixosConfigurations.zues.config;
+  endpoints = self.lib.services.mkHomelabEndpoints {
+    config = homelabConfig;
+  };
 in {
   options.modules.glance.enable = lib.mkEnableOption "Glance homelab dashboard";
 
@@ -42,7 +44,7 @@ in {
                     cache = "1m";
                     title = "Private Services";
 
-                    sites = endpoints.glancePrivateSites;
+                    sites = endpoints.glanceLanSites;
                   }
                   {
                     type = "split-column";

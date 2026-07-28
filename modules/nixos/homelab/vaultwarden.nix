@@ -27,12 +27,8 @@ in {
         WEB_VAULT_ENABLED = true;
         ENABLE_PROMETHEUS_METRICS = true;
         PUSH_ENABLED = true;
-        LOG_LEVEL = "info";
+        LOG_LEVEL = "warn";
         EXTENDED_LOGGING = false;
-
-        WEBSOCKET_ENABLED = true;
-        WEBSOCKET_ADDRESS = "127.0.0.1";
-        WEBSOCKET_PORT = ports.vaultwardenWs;
 
         SMTP_HOST = "smtp.gmail.com";
         SMTP_PORT = 465;
@@ -44,6 +40,7 @@ in {
 
     services.nginx.virtualHosts."vaultwarden.home.arpa".locations."/" = {
       proxyPass = "http://127.0.0.1:${toString ports.vaultwarden}";
+      proxyWebsockets = true;
     };
   };
 }

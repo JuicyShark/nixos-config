@@ -12,7 +12,6 @@ in {
     system
     shell
     homelab
-    filebrowser
     monitoring
     stylix
     unbound
@@ -20,33 +19,27 @@ in {
     acme
   ];
 
-  networking.hostName = "zues";
-  environment.variables.FLAKE = "/mnt/chonk/self";
-  programs.nh.flake = "/mnt/chonk/self";
+  networking = {
+    hostName = "zues";
+    domain = "home.arpa";
+  };
+  environment.variables.FLAKE = "/mnt/smol/nixos-config";
+  programs.nh.flake = "/mnt/smol/nixos-config";
   home-manager.sharedModules = homeProfiles.cli;
 
-  system.autoUpgrade = {
-    enable = true;
-    flake = "/mnt/chonk/self";
-    dates = "Sun 04:00";
-    randomizedDelaySec = "45min";
-    persistent = true;
-    operation = "switch";
-    allowReboot = true;
-    flags = [
-      "--update-input"
-      "nixpkgs"
-      "-L"
-    ];
-  };
+  # Keep the shared palette and console target without enabling desktop theme
+  # integrations or their packages on the headless router/NAS.
+  stylix.autoEnable = lib.mkForce false;
+
+  # The shared flake is a mutable working tree. Upgrades remain an intentional
+  # remote deployment from Leo instead of a router-side unattended switch.
+  system.autoUpgrade.enable = false;
 
   modules = {
     profile.hashedPasswordFile = config.age.secrets.juicy-password.path;
     homelab = {
       smtpEmail = "maxwellb9879@gmail.com";
-      deluge.enable = true;
       filebrowser.enable = true;
-      headscale.enable = true;
       jellyfin.enable = true;
       media.enable = true;
       syncthing.enable = false;
@@ -58,6 +51,8 @@ in {
       host.enable = true;
       nas.enable = true;
     };
+    system.media.enable = true;
+    shell.admin.enable = true;
     nfs = {
       exportPath = "/srv/chonk";
       # Restrict to known clients only; all clients are squashed to media.
@@ -76,14 +71,21 @@ in {
     ethtool
     tcpdump
     conntrack-tools
-    nethogs
-    iftop
     pv
     restic
     smartmontools
     nvme-cli
-    lsof
   ];
+
+  services.tailscale = {
+    enable = true;
+    openFirewall = true;
+    useRoutingFeatures = "server";
+    extraUpFlags = [
+      "--accept-dns=false"
+      "--advertise-routes=192.168.1.0/24"
+    ];
+  };
 
   nix.sshServe = {
     enable = true;
@@ -93,15 +95,5 @@ in {
     keys = [leoBuilderKey];
   };
 
-  services.tailscale = {
-    enable = true;
-    openFirewall = true;
-    useRoutingFeatures = "both";
-    extraUpFlags = [
-      "--login-server=https://ts.nixlab.au"
-      "--accept-dns=false"
-      "--accept-routes"
-      "--advertise-routes=192.168.1.0/24"
-    ];
-  };
+  system.stateVersion = "25.11";
 }

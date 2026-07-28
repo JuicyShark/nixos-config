@@ -9,6 +9,7 @@
   domain = "nixlab.au";
   turnHost = "turn.nixlab.au";
   leoBuilderKey = lib.removeSuffix "\n" (builtins.readFile ../leo/id_ed25519.pub);
+  homeDirectory = "/home/${config.modules.profile.username}";
 in {
   imports = with self.nixosModules; [
     system
@@ -20,8 +21,8 @@ in {
     iperf3
   ];
 
-  environment.variables.FLAKE = "/home/juicy/nixos-config";
-  programs.nh.flake = "/home/juicy/nixos-config";
+  environment.variables.FLAKE = "${homeDirectory}/nixos-config";
+  programs.nh.flake = "${homeDirectory}/nixos-config";
   home-manager.sharedModules = homeProfiles.cli;
 
   age.secrets = {
@@ -62,6 +63,7 @@ in {
 
   networking = {
     hostName = "fallarbor";
+    inherit domain;
 
     firewall = {
       enable = true;
@@ -93,14 +95,11 @@ in {
       RateLimitBurst=1000
     '';
 
-    fail2ban.enable = true;
-
     tailscale = {
       enable = true;
       openFirewall = true;
       useRoutingFeatures = "client";
       extraUpFlags = [
-        "--login-server=https://ts.nixlab.au"
         "--accept-dns=false"
         "--accept-routes"
       ];
@@ -132,4 +131,6 @@ in {
   systemd.tmpfiles.rules = [
     "d /run/coturn 0750 turnserver turnserver -"
   ];
+
+  system.stateVersion = "25.11";
 }

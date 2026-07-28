@@ -1,37 +1,40 @@
 {
   inputs,
-  lib,
-  ...
+  nixpkgs,
+  nixpkgs-stable,
 }: let
+  inherit (nixpkgs) lib;
+
   unfreePackages = [
     "2ship2harkinian"
-    "bloodhound"
-    "burpsuite"
+    "bambu-studio"
     "castlabs-electron"
-    "claude"
     "discord"
-    "hashcat"
     "keymapp"
-    "metasploit"
     "minecraft-server"
     "n64recomp"
     "aspell-dict-en-science"
     "obsidian"
     "osu-lazer-bin"
     "shipwright"
+    "skyfactory5-server-pack"
     "steam"
     "steam-unwrapped"
+    "unrar"
     "vivaldi"
     "wowup-cf"
     "xone-dongle-firmware"
   ];
 
+  nixpkgsConfig = {
+    allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) unfreePackages;
+  };
+
   nixpkgsOverlays = [
     inputs.emacs-overlay.overlays.default
-    inputs.nix-claude-code.overlays.default
     (_final: prev: {
       sunshine = let
-        stablePkgs = import inputs.nixpkgs-stable {
+        stablePkgs = import nixpkgs-stable {
           inherit (prev.stdenv.hostPlatform) system;
           config = nixpkgsConfig;
         };
@@ -79,49 +82,35 @@
         };
       };
 
-      hyprlandPlugins =
-        prev.hyprlandPlugins
-        // {
-          hyprbars = prev.hyprlandPlugins.hyprbars.overrideAttrs (old: {
-            postPatch =
-              (old.postPatch or "")
-              + ''
-                sed -i '/#include <hyprland\/src\/Compositor.hpp>/a #include <hyprland/src/state/MonitorState.hpp>' main.cpp
-                substituteInPlace main.cpp \
-                  --replace-fail 'g_pCompositor->m_monitors' 'State::monitorState()->monitors()'
-              '';
-          });
-          hy3 = inputs.hy3.packages.${prev.stdenv.hostPlatform.system}.hy3.overrideAttrs (old: {
-            postPatch =
-              (old.postPatch or "")
-              + ''
-                substituteInPlace src/Hy3Layout.cpp \
-                  --replace-fail '#include <hyprland/src/state/WorkspaceState.hpp>' "" \
-                  --replace-fail 'State::workspaceState()->query().id(target.id).run()' 'g_pCompositor->getWorkspaceByID(target.id)' \
-                  --replace-fail 'State::workspaceState()->create(target.id, origin_ws->monitorID(), target.name)' 'g_pCompositor->createNewWorkspace(target.id, origin_ws->monitorID(), target.name)'
-                sed -i '/auto next_monitor = State::monitorState()/,+4c\	auto next_monitor = g_pCompositor->getMonitorInDirection(this->monitor().lock(), shiftToMathDirection(direction));' src/Hy3Layout.cpp
-              '';
-          });
+      skyfactory5-server-pack = prev.fetchzip {
+        name = "skyfactory5-server-pack-5.0.8";
+        url = "https://edge.forgecdn.net/files/6290/699/SkyFactory_5_Server_5.0.8.zip";
+        hash = "sha256-UowGdnLar/jWwMwjXpr+wygbRd6xiVl1n+0es84X7x4=";
+        stripRoot = false;
+        meta = {
+          description = "SkyFactory 5 server pack";
+          homepage = "https://www.curseforge.com/minecraft/modpacks/skyfactory-5";
+          license = prev.lib.licenses.unfreeRedistributable;
+          platforms = prev.lib.platforms.unix;
         };
+      };
+
+      lazymc = prev.lazymc.overrideAttrs (old: {
+        patches =
+          (old.patches or [])
+          ++ [
+            ../patches/lazymc-probe-until-login-ready.patch
+          ];
+      });
     })
   ];
-
-  nixpkgsConfig = {
-    allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) unfreePackages;
-  };
+in {
+  inherit nixpkgsConfig nixpkgsOverlays;
 
   mkPkgs = system:
-    import inputs.nixpkgs {
+    import nixpkgs {
       inherit system;
       config = nixpkgsConfig;
       overlays = nixpkgsOverlays;
     };
-in {
-  _module.args = {
-    inherit mkPkgs nixpkgsConfig nixpkgsOverlays unfreePackages;
-  };
-
-  perSystem = {system, ...}: {
-    _module.args.pkgs = mkPkgs system;
-  };
 }

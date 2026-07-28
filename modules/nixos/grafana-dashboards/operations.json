@@ -16,60 +16,48 @@
     ]
   },
   "editable": false,
-  "graphTooltip": 1,
+  "graphTooltip": 0,
   "panels": [
     {
       "id": 1,
       "type": "stat",
-      "title": "Smartctl Exporter",
+      "title": "Critical Alerts",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
-        "h": 4,
-        "w": 4,
+        "h": 5,
+        "w": 6,
         "x": 0,
         "y": 0
       },
       "targets": [
         {
-          "expr": "up{job=\"smartctl\"}",
+          "expr": "sum(ALERTS{alertstate=\"firing\",severity=\"critical\"}) or vector(0)",
           "instant": true,
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": 0
               },
               {
-                "color": "green",
+                "color": "red",
                 "value": 1
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "DOWN"
-                },
-                "1": {
-                  "text": "UP"
-                }
-              }
-            }
-          ]
+          }
         },
         "overrides": []
       },
@@ -91,58 +79,43 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "SMART Status",
+      "title": "Failed Units",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
-        "h": 4,
-        "w": 12,
-        "x": 4,
+        "h": 5,
+        "w": 6,
+        "x": 6,
         "y": 0
       },
       "targets": [
         {
-          "expr": "smartctl_device_smart_status{instance=\"zues\"}",
+          "expr": "sum(node_systemd_unit_state{state=\"failed\"}) or vector(0)",
           "instant": true,
-          "legendFormat": "{{device}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": 0
               },
               {
-                "color": "green",
+                "color": "red",
                 "value": 1
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "FAIL",
-                  "color": "red"
-                },
-                "1": {
-                  "text": "Pass",
-                  "color": "green"
-                }
-              }
-            }
-          ]
+          }
         },
         "overrides": []
       },
@@ -150,7 +123,7 @@
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "auto",
-        "orientation": "horizontal",
+        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -164,41 +137,46 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "NVMe Critical Warnings",
+      "title": "Backup Timers Present",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 16,
+        "h": 5,
+        "w": 6,
+        "x": 12,
         "y": 0
       },
       "targets": [
         {
-          "expr": "sum(smartctl_device_critical_warning{instance=\"zues\"})",
+          "expr": "count(node_systemd_timer_last_trigger_seconds{name=~\"restic-backups-.*\\\\.timer\"})",
           "instant": true,
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": 0
               },
               {
-                "color": "red",
+                "color": "yellow",
                 "value": 1
+              },
+              {
+                "color": "green",
+                "value": 3
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
           }
         },
         "overrides": []
@@ -221,45 +199,46 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "NVMe Media Errors",
+      "title": "Monitored Hosts Up",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
+        "h": 5,
+        "w": 6,
+        "x": 18,
         "y": 0
       },
       "targets": [
         {
-          "expr": "sum(smartctl_device_media_errors{instance=\"zues\"})",
+          "expr": "sum(up{job=\"node\"})",
           "instant": true,
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": 0
               },
               {
-                "color": "orange",
+                "color": "yellow",
                 "value": 1
               },
               {
-                "color": "red",
-                "value": 10
+                "color": "green",
+                "value": 3
               }
             ]
-          },
-          "color": {
-            "mode": "thresholds"
           }
         },
         "overrides": []
@@ -282,7 +261,7 @@
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Disk Temperature",
+      "title": "Hours Since Backup Timer Trigger",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -291,21 +270,21 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 5
       },
       "targets": [
         {
-          "expr": "smartctl_device_temperature{instance=\"zues\",temperature_type=\"current\"}",
-          "legendFormat": "{{device}}",
+          "expr": "(time() - node_systemd_timer_last_trigger_seconds{name=~\"restic-backups-.*\\\\.timer\"}) / 3600",
+          "legendFormat": "{{instance}} {{name}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "unit": "h",
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "celsius",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -314,37 +293,33 @@
                 "value": 0
               },
               {
-                "color": "orange",
-                "value": 50
+                "color": "yellow",
+                "value": 24
               },
               {
                 "color": "red",
-                "value": 65
+                "value": 36
               }
             ]
-          },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
           }
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom"
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       }
     },
     {
       "id": 6,
       "type": "timeseries",
-      "title": "NVMe Available Spare %",
+      "title": "Node Exporter Health",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -353,26 +328,23 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 5
       },
       "targets": [
         {
-          "expr": "smartctl_device_available_spare{instance=\"zues\"}",
-          "legendFormat": "spare {{device}}",
+          "expr": "up{job=\"node\"}",
+          "legendFormat": "{{instance}}",
           "refId": "A"
-        },
-        {
-          "expr": "smartctl_device_available_spare_threshold{instance=\"zues\"}",
-          "legendFormat": "threshold {{device}}",
-          "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 1,
           "color": {
             "mode": "palette-classic"
-          },
-          "unit": "percent"
+          }
         },
         "overrides": []
       },
@@ -389,202 +361,31 @@
     },
     {
       "id": 7,
-      "type": "gauge",
-      "title": "NVMe Wear (% Used)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 0,
-        "y": 12
-      },
-      "targets": [
-        {
-          "expr": "smartctl_device_percentage_used{instance=\"zues\"}",
-          "instant": true,
-          "legendFormat": "{{device}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "orange",
-                "value": 70
-              },
-              {
-                "color": "red",
-                "value": 90
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "horizontal",
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      }
-    },
-    {
-      "id": 8,
-      "type": "stat",
-      "title": "Error Log Entries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 8,
-        "y": 12
-      },
-      "targets": [
-        {
-          "expr": "smartctl_device_error_log_count{instance=\"zues\"}",
-          "instant": true,
-          "legendFormat": "{{device}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "orange",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 10
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      }
-    },
-    {
-      "id": 9,
-      "type": "stat",
-      "title": "Power On Time",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 16,
-        "y": 12
-      },
-      "targets": [
-        {
-          "expr": "smartctl_device_power_on_seconds{instance=\"zues\"} / 86400",
-          "instant": true,
-          "legendFormat": "{{device}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "d",
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      }
-    },
-    {
-      "id": 10,
       "type": "timeseries",
-      "title": "Disk Error Logs",
+      "title": "Failed Units by Host",
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "prometheus",
+        "uid": "prometheus"
       },
       "gridPos": {
-        "h": 6,
-        "w": 24,
+        "h": 8,
+        "w": 12,
         "x": 0,
-        "y": 18
+        "y": 13
       },
       "targets": [
         {
-          "expr": "sum by (host) (count_over_time({job=\"systemd-journal\",unit=~\"smartd.service|smartmontools.service\"} |~ \"(?i)(error|fail|warning|offline|reallocated|pending)\" [5m]))",
-          "legendFormat": "{{host}}",
+          "expr": "sum by (instance) (node_systemd_unit_state{state=\"failed\"})",
+          "legendFormat": "{{instance}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
           "color": {
             "mode": "palette-classic"
-          },
-          "unit": "short"
+          }
         },
         "overrides": []
       },
@@ -595,26 +396,70 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Backup Errors (Logs)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "targets": [
+        {
+          "expr": "sum by (host, unit) (count_over_time({job=\"systemd-journal\",unit=~\"restic-backups-.*\\\\.service|postgresqlBackup-.*\\\\.service|backup-vaultwarden\\\\.service\"} |~ \"(?i)(error|failed|fatal|denied)\" [15m]))",
+          "legendFormat": "{{host}} {{unit}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     }
   ],
-  "refresh": "5m",
+  "refresh": "30s",
   "schemaVersion": 39,
   "style": "dark",
   "tags": [
     "homelab",
-    "disk",
-    "hardware"
+    "operations",
+    "backups"
   ],
+  "templating": {
+    "list": []
+  },
   "time": {
     "from": "now-24h",
     "to": "now"
   },
   "timezone": "browser",
-  "title": "Disk Health",
-  "uid": "disk-health",
+  "title": "Operations",
+  "uid": "operations",
   "version": 1,
   "weekStart": ""
 }

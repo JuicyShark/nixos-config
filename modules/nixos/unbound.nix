@@ -15,6 +15,6 @@ in {
   services.prometheus.exporters.unbound = lib.mkIf config.services.unbound.enable {
     enable = true;
     port = exporterPorts.unbound;
-    openFirewall = true;
+    openFirewall = false;
   };
 }

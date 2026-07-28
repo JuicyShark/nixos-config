@@ -54,9 +54,9 @@
         "noauto"
         "nofail"
         "_netdev"
-        "soft"
-        "timeo=30"
-        "retrans=3"
+        "hard"
+        "timeo=600"
+        "retrans=2"
       ];
     };
 
@@ -89,7 +89,6 @@
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
   services.resolved.enable = lib.mkForce false;
-  networking.nftables.enable = true;
   networking = {
     useNetworkd = false;
     useDHCP = false;
@@ -97,20 +96,11 @@
     resolvconf.enable = false;
 
     firewall = {
-      trustedInterfaces = [
-        "br0"
-        "tailscale0"
-      ];
-
       # Tailscale subnet routing sends packets in on tailscale0 but returns them
       # via br0/enp1s0 — strict reverse path check would drop these.
       checkReversePath = "loose";
 
-      allowedTCPPorts = [
-        53
-      ];
       allowedUDPPorts = [
-        53
         41641
       ];
     };

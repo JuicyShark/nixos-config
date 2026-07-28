@@ -12,7 +12,6 @@
   homelabJellyfin = config.modules.homelab.jellyfin.enable or false;
   inherit (config.modules) ports;
   exporterPorts = config.modules.ports.exporters;
-  username = "juicy";
 
   mkNixflixService = service: port:
     lib.attrByPath ["nixflix" service] {
@@ -42,27 +41,9 @@ in {
       radarr-api = mkExporterSecret "radarr-api" config.services.prometheus.exporters.exportarr-radarr.enable config.services.prometheus.exporters.exportarr-radarr.user;
       sonarr-api = mkExporterSecret "sonarr-api" config.services.prometheus.exporters.exportarr-sonarr.enable config.services.prometheus.exporters.exportarr-sonarr.user;
       lidarr-api = mkExporterSecret "lidarr-api" config.services.prometheus.exporters.exportarr-lidarr.enable config.services.prometheus.exporters.exportarr-lidarr.user;
-      deluge-pass = mkExporterSecret "deluge-pass" config.services.prometheus.exporters.deluge.enable config.services.prometheus.exporters.deluge.delugeUser;
     };
 
     services.prometheus.exporters = {
-      blackbox = {
-        enable = homelabMonitoring;
-        openFirewall = false;
-        port = exporterPorts.blackbox;
-        enableConfigCheck = false;
-        configFile = "/etc/blackbox-exporter/config.yml";
-      };
-
-      deluge = {
-        enable = config.services.deluge.enable && homelabMonitoring;
-        delugeUser = username;
-        delugePasswordFile = config.age.secrets.deluge-pass.path;
-        delugePort = config.services.deluge.config.daemon_port;
-        openFirewall = false;
-        port = exporterPorts.deluge;
-      };
-
       exportarr-lidarr = {
         enable = (mkNixflixService "lidarr" ports.lidarr).enable && homelabMonitoring;
         apiKeyFile = config.age.secrets.lidarr-api.path;

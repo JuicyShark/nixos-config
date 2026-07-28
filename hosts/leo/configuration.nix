@@ -12,36 +12,54 @@
   };
 
   inputLeapPort = 24800;
+  username = config.modules.profile.username;
+  homeDirectory = "/home/${username}";
 in {
-  imports = with self.nixosModules; [
-    system
-    shell
-    desktop
-    pipewire
-    recomp
-    shairport
-    stylix
-    fonts
-    emacs
-    glance
-    monitoring
-    nfs
-    ios
-  ];
+  imports =
+    (with self.nixosModules; [
+      system
+      shell
+      desktop
+      pipewire
+      recomp
+      shairport
+      stylix
+      fonts
+      git-server
+      emacs
+      glance
+      monitoring
+      nfs
+      ios
+    ])
+    ++ [./backups.nix];
 
-  environment.systemPackages = with pkgs; [
-    lm_sensors
-    nvme-cli
-    openvpn
-    smartmontools
-    # AMD GPU tooling
-    lact
-    radeontop
-    vulkan-tools
-    mesa-demos
-    input-leap
-  ];
+  environment = {
+    systemPackages = with pkgs; [
+      lm_sensors
+      nvme-cli
+      smartmontools
+      # AMD GPU tooling
+      radeontop
+      vulkan-tools
+      mesa-demos
+      input-leap
+    ];
+    variables.FLAKE = "/mnt/smol/nixos-config";
+    etc."input-leap.conf".text = ''
+      section: screens
+        leo:
+        mac:
+      end
 
+      section: links
+        leo:
+          right = mac
+        mac:
+          left = leo
+      end
+    '';
+  };
   programs = {
     ssh.knownHosts = {
       zues = {
@@ -65,43 +83,75 @@ in {
 
     gamemode.settings = {
       general = {
+        desiredgov = "performance";
         renice = 10;
         softrealtime = "auto";
         inhibit_screensaver = 1;
       };
 
       cpu = {
-        governor = "performance";
         park_cores = "no";
         pin_cores = "yes";
-        energy_performance_preference = "performance";
       };
 
       gpu = {
         apply_gpu_optimisations = "accept-responsibility";
-        gpu_device = 0;
+        # card0 is the UHD 770; card1 is the RX 7800 XT driving the displays.
+        gpu_device = 1;
         amd_performance_level = "high";
       };
     };
+
+    gamescope.args = lib.mkAfter [
+      # Stable PCI ID for Leo's RX 7800 XT; avoids selecting the Intel iGPU.
+      "--prefer-vk-device"
+      "1002:747e"
+    ];
+
+    steam.gamescopeSession.args = [
+      "--adaptive-sync"
+      "--hdr-enabled"
+      "-W"
+      "5120"
+      "-H"
+      "1440"
+      "-r"
+      "120"
+    ];
   };
 
   networking = {
     hostName = "leo";
+    domain = "home.arpa";
+    firewall.interfaces.enp7s0.allowedTCPPorts = [
+      config.modules.ports.alloy
+      config.modules.ports.exporters.node
+    ];
     hosts."192.168.1.99" = [
       "zues"
       "zues.home.arpa"
     ];
   };
-  environment.variables.FLAKE = "/mnt/smol/nixos-config";
   home-manager.sharedModules = homeProfiles.desktop;
 
-  # lact daemon for AMD GPU fan/power control
-  systemd.services.lactd = {
-    description = "AMDGPU Control Daemon";
-    after = ["multi-user.target"];
-    wantedBy = ["multi-user.target"];
-    serviceConfig.ExecStart = "${pkgs.lact}/bin/lact daemon";
-    enable = true;
+  boot = {
+    kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_stable;
+    binfmt.emulatedSystems = ["aarch64-linux"];
+  };
+
+  services.lact.enable = true;
+
+  systemd.user.services.input-leap-server = {
+    description = "Share Leo keyboard and mouse with Mac";
+    wantedBy = ["graphical-session.target"];
+    partOf = ["graphical-session.target"];
+    after = ["graphical-session.target"];
+    unitConfig.ConditionUser = username;
+    serviceConfig = {
+      ExecStart = "${pkgs.input-leap}/bin/input-leaps --no-daemon --name leo --config /etc/input-leap.conf --use-ei";
+      Restart = "on-failure";
+      RestartSec = 3;
+    };
   };
 
   modules = {
@@ -110,17 +160,23 @@ in {
       keyboard.zsa = true;
       highMemory.enable = true;
     };
+    shell = {
+      admin.enable = true;
+      dev.enable = true;
+    };
     desktop = {
       enable = true;
-      bloat.enable = true;
+      applications.enable = true;
       gaming.enable = true;
-      guiFallback.enable = false;
+      gaming.gamescope.session.enable = true;
       media.jellyfinMpvShim.enable = true;
       streaming.enable = true;
     };
     emacs.enable = true;
+    gitServer.enable = true;
     recomp.enable = true;
     glance.enable = true;
+    monitoring.host.enable = true;
     ios.enable = true;
     haPresence = {
       enable = true;
@@ -134,50 +190,29 @@ in {
       enable = true;
       name = "Max Linux";
     };
-    shell.atuin.syncUrl = "http://192.168.1.99:8888";
     nfs = {
       exportPath = "/srv/smol";
       firewallInterfaces = [
         "enp7s0"
-        "tailscale0"
       ];
     };
   };
   services = {
     syncthing = {
       enable = true;
-      user = "juicy";
-      dataDir = "/home/juicy";
+      user = username;
+      dataDir = homeDirectory;
       guiAddress = "127.0.0.1:${toString config.modules.ports.syncthing}";
       openDefaultPorts = true;
-    };
-
-    tailscale = {
-      enable = true;
-      openFirewall = true;
-      useRoutingFeatures = "client";
-      extraUpFlags = [
-        "--login-server=https://ts.nixlab.au"
-        "--accept-dns=false"
-        "--accept-routes"
-      ];
     };
 
     btrfs.autoScrub = {
       enable = true;
       interval = "monthly";
-      fileSystems = ["/"];
-    };
-
-    nginx = {
-      enable = true;
-      recommendedGzipSettings = true;
-      recommendedOptimisation = true;
-      recommendedProxySettings = true;
-      virtualHosts."leo.home.arpa".locations."/" = {
-        proxyPass = "http://127.0.0.1:${toString config.modules.ports.sunshine.http}";
-        proxyWebsockets = true;
-      };
+      fileSystems = [
+        "/"
+        "/srv/smol"
+      ];
     };
 
     hardware.openrgb = {
@@ -208,6 +243,45 @@ in {
 
           action="''${1:-}"
           remote="''${2:-false}"
+          hyprctl_cmd="${pkgs.hyprland}/bin/hyprctl"
+          uwsm_cmd="${lib.getExe pkgs.uwsm}"
+          stream_output="virtual-screen"
+
+          output_present() {
+            expected_width="''${1:-}"
+            expected_height="''${2:-}"
+            if ! monitors="$("$uwsm_cmd" app -- "$hyprctl_cmd" monitors -j 2>/dev/null)"; then
+              return 2
+            fi
+            ${lib.getExe pkgs.jq} -e \
+              --arg output "$stream_output" \
+              --arg width "$expected_width" \
+              --arg height "$expected_height" \
+              'any(.[];
+                .name == $output
+                and ($width == "" or .width == ($width | tonumber))
+                and ($height == "" or .height == ($height | tonumber))
+              )' <<<"$monitors" >/dev/null
+          }
+
+          wait_for_output() {
+            expected="$1"
+            expected_width="''${2:-}"
+            expected_height="''${3:-}"
+            attempts=0
+            while [ "$attempts" -lt 50 ]; do
+              if output_present "$expected_width" "$expected_height"; then
+                [ "$expected" = present ] && return 0
+              else
+                result=$?
+                [ "$result" -eq 1 ] && [ "$expected" = absent ] && return 0
+              fi
+              attempts=$((attempts + 1))
+              ${pkgs.coreutils}/bin/sleep 0.1
+            done
+            echo "sunshine-hyprland-stream: timed out waiting for $stream_output to become $expected" >&2
+            return 1
+          }
 
           case "$remote" in
             true|false) ;;
@@ -223,10 +297,12 @@ in {
               height="''${SUNSHINE_CLIENT_HEIGHT:-1440}"
               fps="''${SUNSHINE_CLIENT_FPS:-120}"
 
-              exec ${lib.getExe pkgs.uwsm} app -- ${pkgs.hyprland}/bin/hyprctl eval "Juicy.sunshine.setStreaming(true, $remote, $width, $height, $fps)"
+              "$uwsm_cmd" app -- "$hyprctl_cmd" eval "Juicy.sunshine.setStreaming(true, $remote, $width, $height, $fps)"
+              wait_for_output present "$width" "$height"
               ;;
             stop)
-              exec ${lib.getExe pkgs.uwsm} app -- ${pkgs.hyprland}/bin/hyprctl eval "Juicy.sunshine.setStreaming(false, false)"
+              "$uwsm_cmd" app -- "$hyprctl_cmd" eval "Juicy.sunshine.setStreaming(false, false)"
+              wait_for_output absent
               ;;
             *)
               echo "usage: sunshine-hyprland-stream start true|false | stop" >&2
@@ -271,7 +347,9 @@ in {
 
   security.wrappers.sunshine.capabilities = lib.mkForce "cap_sys_admin,cap_sys_nice+ep";
 
-  networking.firewall.allowedTCPPorts = [inputLeapPort];
+  networking.firewall.allowedTCPPorts = [
+    inputLeapPort
+  ];
 
   fileSystems = {
     "/mnt/games" = {
@@ -282,16 +360,6 @@ in {
         "nofail"
         "x-systemd.automount"
         "x-systemd.device-timeout=5s"
-      ];
-    };
-
-    "/mnt/games/SteamLibrary/steamapps/compatdata" = {
-      device = "/home/juicy/.steam/steamcompat";
-      fsType = "none";
-      options = [
-        "bind"
-        "nofail"
-        "x-systemd.automount"
       ];
     };
 
@@ -306,16 +374,10 @@ in {
         "x-systemd.device-timeout=15s"
       ];
     };
-
-    "/mnt/torrents" = {
-      device = "/srv/smol/torrents";
+    "/mnt/smol" = {
+      device = "/srv/smol";
       fsType = "none";
-      options = [
-        "bind"
-        "nofail"
-        "x-systemd.automount"
-        "x-systemd.requires-mounts-for=/srv/smol"
-      ];
+      options = ["bind"];
     };
 
     "/mnt/chonk" = {
@@ -323,24 +385,24 @@ in {
       fsType = "nfs";
       options = [
         "nfsvers=4"
+        "hard"
+        "timeo=600"
+        "retrans=2"
         "fsc"
         "x-systemd.automount"
         "nofail"
+        "_netdev"
       ];
-    };
-
-    "/mnt/smol" = {
-      device = "/srv/smol";
-      fsType = "none";
-      options = ["bind"];
     };
   };
   hardware = {
     steam-hardware.enable = true;
     openrazer = {
       enable = true;
-      users = ["juicy"];
+      users = [username];
       devicesOffOnScreensaver = true;
     };
   };
+
+  system.stateVersion = "25.11";
 }

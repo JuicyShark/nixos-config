@@ -10,8 +10,10 @@
   inherit (lib) optionalAttrs;
   cfg = config.modules.profile;
   inherit (cfg) username;
+  mediaEnabled = config.modules.system.media.enable;
   # boot.isContainer only exists on NixOS; safe via lazy &&
   isContainer = pkgs.stdenv.isLinux && config.boot.isContainer;
+  hasStylix = config ? stylix && (config.stylix.enable or false);
   defaultHomeDirectory =
     if pkgs.stdenv.isDarwin
     then "/Users/${username}"
@@ -20,17 +22,17 @@ in {
   config = {
     users =
       optionalAttrs pkgs.stdenv.isLinux {
-        mutableUsers = true;
+        mutableUsers = false;
       }
       // optionalAttrs (pkgs.stdenv.isLinux && isContainer) {
         allowNoPasswordLogin = true;
       }
-      // optionalAttrs pkgs.stdenv.isLinux {
+      // optionalAttrs (pkgs.stdenv.isLinux && mediaEnabled) {
         groups.media.gid = 2000;
       }
       // {
         users =
-          optionalAttrs pkgs.stdenv.isLinux {
+          optionalAttrs (pkgs.stdenv.isLinux && mediaEnabled) {
             media = {
               isSystemUser = true;
               uid = 2000;
@@ -52,18 +54,19 @@ in {
                   extraGroups =
                     if isContainer
                     then []
-                    else [
-                      "wheel"
-                      "networkmanager"
-                      "dialout"
-                      "feedbackd"
-                      "video"
-                      "audio"
-                      "render"
-                      "input"
-                      "uinput"
-                      "media"
-                    ];
+                    else
+                      [
+                        "wheel"
+                        "networkmanager"
+                        "dialout"
+                        "feedbackd"
+                        "video"
+                        "audio"
+                        "render"
+                        "input"
+                        "uinput"
+                      ]
+                      ++ lib.optional mediaEnabled "media";
                 }
                 // optionalAttrs (pkgs.stdenv.isLinux && cfg.hashedPasswordFile != null) {
                   inherit (cfg) hashedPasswordFile;
@@ -86,7 +89,10 @@ in {
 
       sharedModules = [
         {
-          home.stateVersion = cfg.homeStateVersion;
+          home = {
+            pointerCursor.enable = lib.mkDefault (pkgs.stdenv.isLinux && hasStylix);
+            stateVersion = cfg.homeStateVersion;
+          };
           # generateCaches is slow/broken on darwin
           programs.man.generateCaches = !pkgs.stdenv.isDarwin;
         }
@@ -95,7 +101,10 @@ in {
       users.${username} = {
         home = {
           inherit username;
-          homeDirectory = defaultHomeDirectory;
+          homeDirectory =
+            if cfg.homeDirectory == null
+            then defaultHomeDirectory
+            else cfg.homeDirectory;
         };
       };
     };

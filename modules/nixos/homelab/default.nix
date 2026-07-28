@@ -9,13 +9,10 @@
 in {
   imports = [
     ./media.nix
-    ./deluge.nix
     ./vaultwarden.nix
-    ./headscale.nix
     ./gatus.nix
     ./filebrowser.nix
     ./syncthing.nix
-    ./uptime-kuma.nix
   ];
 
   options.modules.homelab = {
@@ -25,8 +22,6 @@ in {
       description = "Email address for SMTP notifications";
     };
 
-    deluge.enable = mkEnableOption "Deluge torrent client";
-    headscale.enable = mkEnableOption "Headscale self-hosted Tailscale coordination server";
     jellyfin = {
       enable = mkEnableOption "Jellyfin media server";
       host = mkOption {
@@ -36,7 +31,7 @@ in {
       };
       adminUsername = mkOption {
         type = str;
-        default = "juicy";
+        default = config.modules.profile.username;
         description = "Jellyfin admin username used by Jellyseerr setup.";
       };
     };
@@ -44,7 +39,6 @@ in {
     syncthing.enable = mkEnableOption "Syncthing file sync node";
     vaultwarden.enable = mkEnableOption "Vaultwarden self-hosted password manager";
     gatus.enable = mkEnableOption "Gatus declarative uptime monitor";
-    uptimeKuma.enable = mkEnableOption "Uptime Kuma service status monitor";
   };
 
   config = {

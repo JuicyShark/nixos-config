@@ -1,4 +1,3 @@
-# Zues services: backups, disk health, system tuning, journald, systemd units.
 {
   config,
   lib,
@@ -7,14 +6,24 @@
 }: let
   postgresqlDatabases = config.services.postgresql.ensureDatabases;
   postgresqlBackupUnits = map (db: "postgresqlBackup-${db}.service") postgresqlDatabases;
-  startUnit = unit: "systemctl start ${unit}";
+  startUnit = unit: "${pkgs.systemd}/bin/systemctl start ${unit}";
   sqliteBackup = source: target: ''
     if [ -f ${source} ]; then
-      install -d -m 0700 ${builtins.dirOf target}
+      ${pkgs.coreutils}/bin/install -d -m 0700 ${builtins.dirOf target}
       ${pkgs.sqlite}/bin/sqlite3 ${source} ".backup '${target}'"
     fi
   '';
+  retention = [
+    "--keep-daily 14"
+    "--keep-weekly 8"
+    "--keep-monthly 12"
+  ];
 in {
+  age.secrets.restic-repository-password = {
+    file = ../../secrets/restic-repository-password.age;
+    mode = "0400";
+  };
+
   services = {
     postgresqlBackup = lib.mkIf config.services.postgresql.enable {
       enable = true;
@@ -26,73 +35,77 @@ in {
     };
 
     restic.backups = {
-      services = {
+      zues-services = {
         initialize = true;
-        repository = "/srv/chonk/backups/restic-services";
-        passwordFile = "/var/lib/restic-services/password";
+        repository = "/mnt/smol/backups/zues-services";
+        passwordFile = config.age.secrets.restic-repository-password.path;
         paths = [
-          "/var/lib/vaultwarden"
-          "/var/lib/jellyfin"
-          "/var/lib/sonarr"
-          "/var/lib/radarr"
+          "/var/backup/postgresql"
+          "/var/backup/sqlite"
+          "/var/backup/vaultwarden"
           "/var/lib/lidarr"
           "/var/lib/prowlarr"
-          "/var/lib/headscale"
-          "/var/backup/gatus"
-          "/var/backup/grafana"
-          "/var/backup/headscale"
-          "/var/backup/postgresql"
-          "/var/backup/vaultwarden"
+          "/var/lib/qBittorrent"
+          "/var/lib/radarr"
+          "/var/lib/seerr"
+          "/var/lib/sonarr"
         ];
-        pruneOpts = [
-          "--keep-daily 7"
-          "--keep-weekly 4"
-          "--keep-monthly 3"
+        exclude = [
+          "*/logs/*"
+          "*/MediaCover/*"
+          "*/cache/*"
         ];
-        checkOpts = ["--with-cache"];
+        pruneOpts = retention;
+        checkOpts = ["--read-data-subset=5%"];
         timerConfig = {
-          OnCalendar = "daily";
-          RandomizedDelaySec = "2h";
+          OnCalendar = "*-*-* 03:00:00";
+          RandomizedDelaySec = "30m";
           Persistent = true;
         };
         backupPrepareCommand = ''
-          install -d -m 0700 /var/lib/restic-services
-          if [ ! -s /var/lib/restic-services/password ]; then
-            umask 0077
-            tr -dc 'A-Za-z0-9!@#$%^&*()-_=+[]{}' </dev/urandom | head -c 48 > /var/lib/restic-services/password
-          fi
-          ${sqliteBackup "/var/lib/gatus/data.db" "/var/backup/gatus/data.db"}
-          ${sqliteBackup "/var/lib/grafana/data/grafana.db" "/var/backup/grafana/grafana.db"}
-          ${sqliteBackup "/var/lib/headscale/db.sqlite" "/var/backup/headscale/db.sqlite"}
-          ${lib.optionalString (config.services.vaultwarden.enable && config.services.vaultwarden.backupDir != null) (startUnit "backup-vaultwarden.service")}
+          #!${pkgs.runtimeShell}
+          set -euo pipefail
+
+          ${pkgs.coreutils}/bin/install -d -m 0700 /mnt/smol/backups/zues-services
+          ${pkgs.coreutils}/bin/install -d -m 0700 /var/backup/sqlite
+          ${sqliteBackup "/var/lib/gatus/data.db" "/var/backup/sqlite/gatus.db"}
+          ${sqliteBackup "/var/lib/grafana/data/grafana.db" "/var/backup/sqlite/grafana.db"}
+          ${lib.optionalString config.services.vaultwarden.enable (startUnit "backup-vaultwarden.service")}
           ${lib.optionalString (config.services.postgresqlBackup.enable && postgresqlDatabases != []) (
             lib.concatStringsSep "\n" (map startUnit postgresqlBackupUnits)
           )}
+
+          if ${pkgs.systemd}/bin/systemctl is-active --quiet qbittorrent.service; then
+            ${pkgs.coreutils}/bin/touch /run/restic-backups-zues-services/qbittorrent-was-active
+            ${pkgs.systemd}/bin/systemctl stop qbittorrent.service
+          fi
+        '';
+        backupCleanupCommand = ''
+          #!${pkgs.runtimeShell}
+          set -euo pipefail
+
+          if [ -e /run/restic-backups-zues-services/qbittorrent-was-active ]; then
+            ${pkgs.systemd}/bin/systemctl start qbittorrent.service
+          fi
         '';
       };
 
-      family-share = {
+      zues-family = {
         initialize = true;
-        repository = "/srv/chonk/backups/restic-family";
-        passwordFile = "/var/lib/restic-family/password";
+        repository = "/mnt/smol/backups/zues-family";
+        passwordFile = config.age.secrets.restic-repository-password.path;
         paths = ["/srv/chonk/family"];
-        pruneOpts = [
-          "--keep-daily 7"
-          "--keep-weekly 4"
-          "--keep-monthly 6"
-        ];
-        checkOpts = ["--with-cache"];
+        pruneOpts = retention;
+        checkOpts = ["--read-data-subset=5%"];
         timerConfig = {
-          OnCalendar = "daily";
-          RandomizedDelaySec = "1h";
+          OnCalendar = "*-*-* 04:00:00";
+          RandomizedDelaySec = "30m";
           Persistent = true;
         };
         backupPrepareCommand = ''
-          install -d -m 0700 /var/lib/restic-family
-          if [ ! -s /var/lib/restic-family/password ]; then
-            umask 0077
-            tr -dc 'A-Za-z0-9!@#$%^&*()-_=+[]{}' </dev/urandom | head -c 48 > /var/lib/restic-family/password
-          fi
+          #!${pkgs.runtimeShell}
+          set -euo pipefail
+          ${pkgs.coreutils}/bin/install -d -m 0700 /mnt/smol/backups/zues-family
         '';
       };
     };
@@ -129,20 +142,20 @@ in {
   };
 
   systemd.services = {
-    nixos-upgrade.serviceConfig.RequiresMountsFor = [
-      "/srv"
-      "/mnt/chonk"
+    samba-smbd.unitConfig.RequiresMountsFor = ["/srv/chonk"];
+    restic-backups-zues-family.unitConfig.RequiresMountsFor = [
+      "/srv/chonk"
+      "/mnt/smol"
     ];
-    samba-smbd.serviceConfig.RequiresMountsFor = ["/srv/chonk"];
-    restic-backups-family-share.serviceConfig.RequiresMountsFor = ["/srv/chonk"];
-    restic-backups-services.serviceConfig.RequiresMountsFor = ["/srv/chonk"];
+    restic-backups-zues-services.unitConfig.RequiresMountsFor = [
+      "/srv"
+      "/mnt/smol"
+    ];
   };
 
   systemd.tmpfiles.rules = [
     "d /srv/chonk/backups 0750 media media -"
-    "d /srv/chonk/backups/restic-family 0750 media media -"
-    "d /srv/chonk/backups/restic-services 0750 root root -"
-    "d /var/lib/restic-family 0700 root root -"
-    "d /var/lib/restic-services 0700 root root -"
+    "d /srv/chonk/backups/leo-smol 0750 media media -"
+    "d /var/backup/sqlite 0700 root root -"
   ];
 }

@@ -8,10 +8,11 @@
     ./loki.nix
     ./grafana.nix
     ./prometheus.nix
+    ./alertmanager.nix
   ];
 
   options.modules.monitoring = {
-    enable = lib.mkEnableOption "monitoring stack (Prometheus, Grafana, Loki, Alertmanager)";
+    enable = lib.mkEnableOption "monitoring stack (Prometheus, Alertmanager, Grafana, Loki, and Alloy)";
     host.enable = lib.mkEnableOption "host-level monitoring (node exporter + alloy log shipping)";
     nas.enable = lib.mkEnableOption "NAS disk monitoring (smartctl exporter)";
   };

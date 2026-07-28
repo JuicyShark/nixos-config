@@ -4,7 +4,6 @@
 # binary caches, and experimental features.
 {
   pkgs,
-  lib,
   config,
   ...
 }: let
@@ -12,7 +11,9 @@
 in {
   config = {
     nix = {
-      package = pkgs.nixVersions.latest;
+      # Follow the NixOS-supported release instead of independently tracking
+      # the newest Nix CLI on every host.
+      package = pkgs.nixVersions.stable;
       gc.automatic = true;
       optimise.automatic = true;
 
@@ -27,12 +28,9 @@ in {
           "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
           "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
           "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-          "max-deploy:3kPzEf0z7cR3xHAgh2bsS0lp9GZGWzEKsw/ZuQc1z60="
         ];
 
-        auto-optimise-store = true;
         warn-dirty = true;
-        keep-going = lib.mkDefault true;
 
         experimental-features = [
           "nix-command"

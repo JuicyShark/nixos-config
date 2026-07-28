@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -12,14 +15,17 @@
       }
     ]
   },
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "links": [],
   "liveNow": false,
   "panels": [
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -64,17 +70,20 @@
       },
       "targets": [
         {
-          "expr": "sum(up{job=~\"node|blackbox_.*|deluge|vaultwarden|nginx|unbound\"})",
+          "expr": "sum(up == 1)",
           "instant": true,
-          "legendFormat": "targets up",
+          "legendFormat": "healthy",
           "refId": "A"
         }
       ],
-      "title": "Targets Up",
+      "title": "Healthy Targets",
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -136,7 +145,10 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -198,7 +210,10 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -250,17 +265,20 @@
       },
       "targets": [
         {
-          "expr": "100 * (1 - min(node_filesystem_avail_bytes{job=\"node\",fstype!~\"tmpfs|overlay|squashfs\"} / node_filesystem_size_bytes{job=\"node\",fstype!~\"tmpfs|overlay|squashfs\"}))",
+          "expr": "100 * max(1 - (node_filesystem_avail_bytes{job=\"node\",fstype!~\"tmpfs|overlay|squashfs|nsfs|ramfs\",mountpoint!~\"/nix/store|/run.*|/boot\"} / node_filesystem_size_bytes{job=\"node\",fstype!~\"tmpfs|overlay|squashfs|nsfs|ramfs\",mountpoint!~\"/nix/store|/run.*|/boot\"}))",
           "instant": true,
-          "legendFormat": "disk",
+          "legendFormat": "storage",
           "refId": "A"
         }
       ],
-      "title": "Disk Usage (Worst FS)",
+      "title": "Storage Used (Worst Real FS)",
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -303,7 +321,10 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -333,15 +354,18 @@
       "targets": [
         {
           "expr": "sum by (job) (up)",
-          "legendFormat": "{{job}}",
+          "legendFormat": "{{job}} up",
           "refId": "A"
         }
       ],
-      "title": "Targets by Job",
+      "title": "Target Health by Job",
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -370,12 +394,12 @@
       },
       "targets": [
         {
-          "expr": "sum by (alertname) (ALERTS{alertstate=\"firing\"})",
-          "legendFormat": "{{alertname}}",
+          "expr": "sum by (job) (ALERTS{alertstate=\"firing\"})",
+          "legendFormat": "{{job}}",
           "refId": "A"
         }
       ],
-      "title": "Firing Alerts",
+      "title": "Firing Alerts by Job",
       "type": "timeseries"
     }
   ],
@@ -391,7 +415,10 @@
       {
         "name": "job",
         "type": "query",
-        "datasource": "Prometheus",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "label_values(up, job)",
         "query": {
           "query": "label_values(up, job)",

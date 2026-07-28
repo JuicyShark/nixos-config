@@ -7,6 +7,7 @@
 }: let
   inherit (config.boot) isContainer;
   cfg = config.modules.desktop;
+  gamescopeEnabled = cfg.gaming.enable && cfg.gaming.gamescope.enable && !isContainer;
 
   gamingPackages = with pkgs; [
     heroic
@@ -31,14 +32,25 @@ in {
     programs = {
       cdemu.enable = cfg.virtual.enable;
       gamemode.enable = cfg.gaming.enable;
+      gamescope = {
+        enable = gamescopeEnabled;
+        enableWsi = gamescopeEnabled;
+        capSysNice = gamescopeEnabled;
+        # Let native Wayland games and Wine's Wayland driver run inside Gamescope.
+        args = lib.optionals gamescopeEnabled ["--expose-wayland"];
+      };
 
       steam = {
         enable = cfg.gaming.enable && !isContainer;
-        #extest.enable = true; # Steam Controller
         localNetworkGameTransfers.openFirewall = true;
         dedicatedServer.openFirewall = true;
         remotePlay.openFirewall = true;
         extraCompatPackages = with pkgs; [proton-ge-bin];
+        protontricks.enable = cfg.gaming.enable && !isContainer;
+        gamescopeSession = {
+          enable = gamescopeEnabled && cfg.gaming.gamescope.session.enable;
+          env.PROTON_ENABLE_WAYLAND = "1";
+        };
       };
     };
 

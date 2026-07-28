@@ -1,29 +1,10 @@
 {
   self,
   homeProfiles,
+  config,
   pkgs,
   ...
-}: let
-  audioOutputName = "Max Linux";
-  selectAudioOutput = pkgs.writeShellScript "select-max-linux-audio" ''
-    set -u
-
-    switch_audio="${pkgs.switchaudio-osx}/bin/SwitchAudioSource"
-    attempts=20
-
-    while [ "$attempts" -gt 0 ]; do
-      if "$switch_audio" -a -t output | /usr/bin/grep -Fxq ${pkgs.lib.escapeShellArg audioOutputName}; then
-        exec "$switch_audio" -s ${pkgs.lib.escapeShellArg audioOutputName} -t output
-      fi
-
-      attempts=$((attempts - 1))
-      /bin/sleep 1
-    done
-
-    echo "Audio output ${audioOutputName} was not available"
-    exit 0
-  '';
-in {
+}: {
   imports = with self.darwinModules; [
     system
     shell
@@ -35,12 +16,16 @@ in {
 
   modules = {
     emacs.enable = true;
+    shell.dev.enable = true;
     jellyfin.enable = true;
-    minecraft.server.enable = true;
+    minecraft.server = {
+      enable = true;
+      pack = "skyfactory5";
+    };
   };
 
   networking.hostName = "mac";
-  environment.variables.FLAKE = "/Users/juicy/nixos-config";
+  environment.variables.FLAKE = "/Users/${config.modules.profile.username}/nixos-config";
   home-manager.sharedModules = homeProfiles.darwin;
 
   # GNU userland parity with Linux hosts (prefixed as g* — gsed, gtar, gfind, etc.)
@@ -53,17 +38,6 @@ in {
     mas
     switchaudio-osx
   ];
-
-  launchd.user.agents.mac-audio-output = {
-    serviceConfig = {
-      ProgramArguments = ["${selectAudioOutput}"];
-      RunAtLoad = true;
-      ProcessType = "Interactive";
-      StandardOutPath = "/tmp/mac-audio-output.log";
-      StandardErrorPath = "/tmp/mac-audio-output.log";
-    };
-    managedBy = "hosts.mac.audio-output";
-  };
 
   launchd.user.agents.input-leap-client = {
     serviceConfig = {
@@ -83,8 +57,8 @@ in {
     managedBy = "hosts.mac.input-leap";
   };
 
-  # nix-darwin tailscale module only manages the daemon.
-  # After first login run:
-  #   tailscale up --login-server=https://ts.nixlab.au --accept-routes --accept-dns=false
-  services.tailscale.enable = true;
+  # Tailscale is installed and enrolled outside nix-darwin on this host.
+  # If moving daemon ownership into Nix later, enroll against the standard
+  # Tailscale control plane with: tailscale up --accept-routes --accept-dns=false
+  services.tailscale.enable = false;
 }

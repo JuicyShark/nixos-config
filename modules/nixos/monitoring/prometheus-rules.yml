@@ -44,28 +44,47 @@ groups:
           summary: "systemd unit failed on {{ $labels.instance }}"
           description: "Unit {{ $labels.name }} is in a failed state on {{ $labels.instance }}."
 
-  - name: probes
-    rules:
-      - record: probe_success:ratio_24h
-        expr: avg_over_time(probe_success[24h])
-
-      - alert: BlackboxProbeFailed
-        expr: probe_success == 0
+      - alert: FilesystemReadOnly
+        expr: node_filesystem_readonly{fstype!~"tmpfs|overlay|squashfs|devtmpfs"} == 1
         for: 5m
         labels:
-          severity: warning
+          severity: critical
         annotations:
-          summary: "Probe failed for {{ $labels.instance }}"
-          description: "{{ $labels.job }} probe to {{ $labels.instance }} has been failing for >5 minutes."
+          summary: "Filesystem is read-only on {{ $labels.instance }}"
+          description: "{{ $labels.mountpoint }} on {{ $labels.instance }} has become read-only."
 
-      - alert: ServiceSLOViolation24h
-        expr: probe_success:ratio_24h < 0.99
-        for: 0m
+      - alert: BackupTimerMissing
+        expr: |
+          absent(node_systemd_timer_last_trigger_seconds{instance="zues",name="restic-backups-zues-services.timer"})
+          or absent(node_systemd_timer_last_trigger_seconds{instance="zues",name="restic-backups-zues-family.timer"})
+          or absent(node_systemd_timer_last_trigger_seconds{instance="leo",name="restic-backups-leo-smol.timer"})
+        for: 30m
         labels:
           severity: warning
         annotations:
-          summary: "24h availability below 99% for {{ $labels.instance }}"
-          description: "Service {{ $labels.instance }} has {{ humanizePercentage $value }} availability over 24h."
+          summary: "Expected backup timer is missing"
+          description: "{{ $labels.name }} is not exposed by node_exporter on {{ $labels.instance }}."
+
+      - alert: BackupTimerStale
+        expr: |
+          time()
+          - node_systemd_timer_last_trigger_seconds{name=~"restic-backups-.*\\.timer"}
+          > 36 * 60 * 60
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup timer is stale on {{ $labels.instance }}"
+          description: "{{ $labels.name }} has not triggered for more than 36 hours."
+
+      - alert: PrometheusNotificationErrors
+        expr: sum(rate(prometheus_notifications_errors_total[10m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus cannot deliver alerts"
+          description: "Prometheus is recording notification delivery errors to Alertmanager."
 
   - name: disk
     rules:
@@ -88,7 +107,7 @@ groups:
           description: "NVMe {{ $labels.device }} reports critical warning {{ $value }}."
 
       - alert: DiskHighTemperature
-        expr: smartctl_device_temperature_celsius > 65
+        expr: smartctl_device_temperature > 65
         for: 10m
         labels:
           severity: warning
