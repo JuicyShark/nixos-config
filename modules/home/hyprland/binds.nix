@@ -183,6 +183,7 @@
     ++ [
       (submapEntry "${mod} + A" "apps" "Apps" {})
       (mbind "Space" "Launcher" (exec commands.launcher {}) {})
+      (mbind "C" "Clipboard history" (exec commands.clipboard {}) {})
       (mbind "SHIFT + slash" "Submap options" (dsp ''hl.dsp.submap("submap-options")'' {}) {})
       (mbind "SHIFT + Q" "Close" (dsp "hl.dsp.window.close()" {}) {})
       (submapEntry "${mod} + ALT + BackSpace" "state" "State" navCore)

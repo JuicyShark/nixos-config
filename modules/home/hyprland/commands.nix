@@ -44,6 +44,7 @@ in {
     volumeDown = noctaliaMsg "volume-down";
     volumeMute = noctaliaMsg "volume-mute";
     launcher = noctaliaMsg "panel-toggle launcher";
+    clipboard = noctaliaMsg "launcher clipboard";
     annotationToggle =
       if cfg.features.annotation
       then "${cfg.apps.pkill} -SIGUSR1 wayscriber"
