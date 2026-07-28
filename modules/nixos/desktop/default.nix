@@ -12,7 +12,6 @@
   cfg = config.modules.desktop;
 
   desktopBasePackages = with pkgs; [
-    pulsemixer
     rsync
     wl-clipboard-rs
     gparted
@@ -20,9 +19,7 @@
     pciutils
     # Wayland/Hyprland QoL
     wdisplays
-    hyprshot
     cliphist
-    wf-recorder
   ];
 in {
   imports = [

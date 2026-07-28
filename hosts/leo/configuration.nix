@@ -215,12 +215,6 @@ in {
       ];
     };
 
-    hardware.openrgb = {
-      enable = true;
-      motherboard = "intel";
-      package = pkgs.openrgb-with-all-plugins;
-    };
-
     sunshine = {
       enable = true;
       autoStart = true;

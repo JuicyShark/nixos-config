@@ -8,11 +8,7 @@
 in
   lib.mkIf (pkgs.stdenv.isLinux && (cfg.enable or false)) {
     home.packages =
-      [
-        # Keep the Bluetooth manager without the always-running tray applet.
-        pkgs.blueman
-      ]
-      ++ lib.optionals (cfg.applications.enable or false) [
+      lib.optionals (cfg.applications.enable or false) [
         # pkgs.bambu-studio
         pkgs.discord
         pkgs.localsend

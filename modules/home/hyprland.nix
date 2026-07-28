@@ -51,7 +51,6 @@ in {
 
     services = {
       hyprpolkitagent.enable = true;
-      elephant.enable = true;
 
       udiskie = {
         enable = true;
