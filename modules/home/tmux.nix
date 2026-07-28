@@ -4,7 +4,20 @@
   ...
 }: let
   cfg = config.modules.terminalMultiplexers.smartFocus;
-  c = config.lib.stylix.colors;
+  c =
+    config.lib.stylix.colors
+    or {
+      base00 = "1d2021";
+      base01 = "282828";
+      base02 = "3c3836";
+      base03 = "665c54";
+      base04 = "bdae93";
+      base05 = "d5c4a1";
+      base06 = "ebdbb2";
+      base0A = "d79921";
+      base0B = "98971a";
+      base0D = "458588";
+    };
 
   keyNames = {
     left = "Left";
@@ -25,30 +38,12 @@
     ALT = "M";
   };
 
-  zellijModNames = {
-    CTRL = "Ctrl";
-    ALT = "Alt";
-  };
-
   keyName = direction: keyNames.${cfg.keys.${direction}};
   tmuxChord = direction: "${tmuxModNames.${cfg.tmux.mod}}-${keyName direction}";
-  zellijChord = direction: "${zellijModNames.${cfg.zellij.mod}} ${keyName direction}";
 
   mkTmuxBind = direction: ''
     bind-key -n ${tmuxChord direction} select-pane -${directionActions.${direction}}
   '';
-  mkZellijBind = direction: {
-    bind = {
-      _args = [(zellijChord direction)];
-      MoveFocus = [keyNames.${direction}];
-    };
-  };
-  mkZellijTabBind = tab: {
-    bind = {
-      _args = ["${zellijModNames.${cfg.zellij.mod}} ${toString tab}"];
-      GoToTab = [tab];
-    };
-  };
 
   smartFocusBindingOptions = defaultMod: {
     mod = lib.mkOption {
@@ -83,7 +78,6 @@ in {
     };
 
     tmux = smartFocusBindingOptions "CTRL";
-    zellij = smartFocusBindingOptions "ALT";
   };
 
   config = {
@@ -91,7 +85,7 @@ in {
       enable = true;
       newSession = true;
       mouse = true;
-      keyMode = "vi";
+      keyMode = "emacs";
       terminal = "tmux-256color";
       shortcut = "a";
       escapeTime = 0;
@@ -126,119 +120,17 @@ in {
         bind-key | split-window -h -c "#{pane_current_path}"
         bind-key - split-window -v -c "#{pane_current_path}"
         bind-key c new-window -c "#{pane_current_path}"
-        bind-key h select-pane -L
-        bind-key j select-pane -D
-        bind-key k select-pane -U
-        bind-key l select-pane -R
-        bind-key H resize-pane -L 5
-        bind-key J resize-pane -D 3
-        bind-key K resize-pane -U 3
-        bind-key L resize-pane -R 5
+        bind-key Left select-pane -L
+        bind-key Down select-pane -D
+        bind-key Up select-pane -U
+        bind-key Right select-pane -R
+        bind-key -r S-Left resize-pane -L 5
+        bind-key -r S-Down resize-pane -D 3
+        bind-key -r S-Up resize-pane -U 3
+        bind-key -r S-Right resize-pane -R 5
 
         ${lib.concatMapStrings mkTmuxBind ["left" "down" "up" "right"]}
       '';
-    };
-
-    programs.zellij = {
-      enable = true;
-      enableZshIntegration = false;
-      attachExistingSession = false;
-      settings.keybinds.shared_except = {
-        _args = ["locked"];
-        _children = (map mkZellijBind ["left" "down" "up" "right"]) ++ (map mkZellijTabBind [1 2 3 4 5]);
-      };
-      layouts = {
-        dev = {
-          layout = {
-            _children = [
-              {
-                default_tab_template = {
-                  _children = [
-                    {
-                      pane = {
-                        borderless = true;
-                        plugin = {
-                          location = "zellij:tab-bar";
-                        };
-                        size = 1;
-                      };
-                    }
-                    {
-                      children = {};
-                    }
-                    {
-                      pane = {
-                        borderless = true;
-                        plugin = {
-                          location = "zellij:status-bar";
-                        };
-                        size = 2;
-                      };
-                    }
-                  ];
-                };
-              }
-              {
-                tab = {
-                  _children = [
-                    {
-                      pane = {
-                        command = "nvim";
-                      };
-                    }
-                  ];
-                  _props = {
-                    focus = true;
-                    name = "Project";
-                  };
-                };
-              }
-              {
-                tab = {
-                  _children = [
-                    {
-                      pane = {
-                        command = "lazygit";
-                      };
-                    }
-                  ];
-                  _props = {
-                    name = "Git";
-                  };
-                };
-              }
-              {
-                tab = {
-                  _children = [
-                    {
-                      pane = {
-                        command = "yazi";
-                      };
-                    }
-                  ];
-                  _props = {
-                    name = "Files";
-                  };
-                };
-              }
-              {
-                tab = {
-                  _children = [
-                    {
-                      pane = {
-                        command = "zsh";
-                      };
-                    }
-                  ];
-                  _props = {
-                    name = "Shell";
-                  };
-                };
-              }
-            ];
-          };
-        };
-      };
     };
   };
 }

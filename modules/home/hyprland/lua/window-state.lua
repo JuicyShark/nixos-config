@@ -31,19 +31,19 @@ return function(ctx)
 		}))
 	end
 
-	ctx.window = ctx.window or {}
-	ctx.window.toggleFakeFullscreen = function(internal, client)
+	local api = {}
+
+	function api.toggleFakeFullscreen()
 		hl.dispatch(hl.dsp.window.tag({ tag = "fake-fullscreen-borderless" }))
-		hl.dispatch(hl.dsp.window.fullscreen_state({ internal = internal, client = client, action = "toggle" }))
+		hl.dispatch(hl.dsp.window.fullscreen_state({ internal = 3, client = 0, action = "toggle" }))
 	end
 
-	ctx.window.togglePictureInPicture = function()
+	function api.togglePictureInPicture()
 		hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
-		hl.dispatch(hl.dsp.window.pin())
-		ctx.window.toggleFakeFullscreen(2, 0)
+		hl.dispatch(hl.dsp.window.pin({ action = "toggle" }))
 	end
 
-	ctx.window.markOrSwap = function()
+	function api.markOrSwap()
 		local active = hl.get_active_window and hl.get_active_window()
 		if not active then
 			return
@@ -80,4 +80,6 @@ return function(ctx)
 		mark.addr = nil
 		mark.selector = nil
 	end
+	_G.Juicy = _G.Juicy or {}
+	_G.Juicy.window = api
 end

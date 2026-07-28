@@ -1,8 +1,8 @@
 {
   programs.eza = {
     enable = true;
-    enableZshIntegration = true;
-    enableBashIntegration = true;
+    enableZshIntegration = false;
+    enableBashIntegration = false;
     icons = "auto";
 
     extraOptions = [

@@ -1,10 +1,13 @@
 {
+  config,
   osConfig,
   lib,
   inputs,
   pkgs,
   ...
 }: let
+  terminal = lib.getExe config.modules.terminal.package;
+  wallpaper = "${config.home.homeDirectory}/pictures/wallpaper/5120x2160-Monstera.png";
   noctaliaSettings = {
     appLauncher = {
       autoPasteClipboard = false;
@@ -30,7 +33,7 @@
       showCategories = true;
       showIconBackground = false;
       sortByMostUsed = true;
-      terminalCommand = "uwsm app -- kitty -e";
+      terminalCommand = "uwsm app -- ${terminal} -e";
       viewMode = "list";
     };
     audio = {
@@ -78,10 +81,8 @@
       showCapsule = false;
       showOnWorkspaceSwitch = true;
       showOutline = false;
-      useSeparateOpacity = false;
       widgetSpacing = 6;
       widgets = {
-        background_opacity = 0.5;
         border = "primary";
         center = ["audio_visualizer"];
         contact_shadow = true;
@@ -229,7 +230,6 @@
     dock = {
       animationSpeed = 1;
       colorizeIcons = false;
-      deadOpacity = 0.5;
       displayMode = "auto_hide";
       dockType = "floating";
       enabled = false;
@@ -240,7 +240,6 @@
       groupIndicatorStyle = "dots";
       inactiveIndicators = false;
       indicatorColor = "primary";
-      indicatorOpacity = 0.6;
       indicatorThickness = 3;
       launcherIcon = "";
       launcherIconColor = "none";
@@ -267,7 +266,6 @@
       clockFormat = "hh\nmm";
       clockStyle = "custom";
       compactLockScreen = false;
-      dimmerOpacity = 0.2;
       enableBlurBehind = true;
       enableLockScreenCountdown = true;
       enableLockScreenMediaControls = false;
@@ -365,9 +363,7 @@
           rotation = 0;
           settings = {
             background_color = "surface_variant";
-            background_opacity = 0.88;
             background_radius = 12;
-            input_opacity = 1;
             input_radius = 6;
             show_login_button = true;
           };
@@ -405,7 +401,6 @@
         "normal"
         "critical"
       ];
-      background_opacity = 0.9;
       layer = "overlay";
       offset_y = 16;
       position = "top_center";
@@ -442,7 +437,6 @@
     };
     osd = {
       autoHideMs = 2000;
-      background_opacity = 0.85;
       enabled = true;
       enabledTypes = [
         0
@@ -499,6 +493,9 @@
     };
     settingsVersion = 59;
     shell = {
+      screenshot = {
+        directory = "~/pictures/screenshots";
+      };
       panel = {
         launcher_compact = true;
         open_near_click_control_center = true;
@@ -536,17 +533,7 @@
       activeTemplates = [];
       enableUserTheming = false;
     };
-    theme = {
-      builtin = "Tokyo-Night";
-      community_palette = "One Dark Two";
-      mode = "dark";
-      source = "wallpaper";
-      templates = {
-        enable_builtin_templates = false;
-        enable_community_templates = false;
-      };
-      wallpaper_scheme = "vibrant";
-    };
+
     ui = {
       boxBorderEnabled = false;
       fontDefaultScale = 1.15;
@@ -561,9 +548,10 @@
     wallpaper = {
       automationEnabled = false;
       default = {
-        path = "/home/juicy/user-media/pictures/wallpaper/5120x2160-Monstera.png";
+        # Conflicts with Stylix's Noctalia wallpaper injection; force the live user path for now.
+        path = lib.mkForce wallpaper;
       };
-      directory = "~/user-media/pictures/wallpaper";
+      directory = "~/pictures/wallpaper";
       enableMultiMonitorDirectories = false;
       enabled = true;
       favorites = [];
@@ -572,7 +560,8 @@
       fill_mode = "center";
       hideWallpaperFilenames = false;
       last = {
-        path = "/home/juicy/user-media/pictures/wallpaper/5120x2160-Monstera.png";
+        # Keep in sync with the forced default path above until wallpaper ownership is revisited.
+        path = lib.mkForce wallpaper;
       };
       linkLightAndDarkWallpapers = true;
       monitor = {
@@ -583,7 +572,8 @@
       monitorDirectories = [];
       monitors = {
         DP-2 = {
-          path = "/home/juicy/user-media/pictures/wallpaper/5120x2160-Monstera.png";
+          # Keep the explicit monitor wallpaper on the same user-owned file as the default.
+          path = lib.mkForce wallpaper;
         };
       };
       overviewBlur = 0.4;
@@ -656,7 +646,6 @@
       };
       volume = {
         capsule = true;
-        capsule_opacity = 0.8;
         capsule_padding = 3;
         capsule_radius = 14;
         font_weight = 700;

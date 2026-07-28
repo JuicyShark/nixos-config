@@ -7,13 +7,14 @@
   system,
 }: let
   inherit (osConfig.modules) desktop;
-  hasBloat = desktop.bloat.enable or false;
-  hasVivaldi = hasBloat && (desktop.bloat.vivaldi.enable or false);
+  hasApplications = desktop.applications.enable or false;
+  hasVivaldi = hasApplications && (desktop.applications.vivaldi.enable or false);
   hasGaming = desktop.gaming.enable or false;
   hasAnnotation = desktop.annotation.enable or false;
   hasJellyfinMpvShim = desktop.media.jellyfinMpvShim.enable or false;
   hasZsa = osConfig.modules.system.keyboard.zsa or false;
   hasTmux = config.programs.tmux.enable or false;
+  terminalBackend = config.modules.terminal.backend;
   smartFocus =
     config.modules.terminalMultiplexers.smartFocus or {
       keys = {
@@ -23,30 +24,17 @@
         down = "down";
       };
       tmux.mod = "CTRL";
-      zellij.mod = "ALT";
     };
 
   hyprctl = "${osConfig.programs.hyprland.package}/bin/hyprctl";
   quickshell = lib.getExe pkgs.quickshell;
   uwsmAppPrefix = "${lib.getExe pkgs.uwsm} app --";
-  uwsmApp = command: "${uwsmAppPrefix} ${command}";
   noctalia = lib.getExe inputs.noctalia.packages.${system}.default;
-  screenshotPath = ''dir="''${XDG_SCREENSHOTS_DIR:-$HOME/media/pictures/screenshots}"; mkdir -p "$dir"; tmp="$(mktemp /tmp/screenshot-XXXXXX.png)"'';
-  screenshotFinish = ''if [ -s "$tmp" ]; then ${uwsmApp "${lib.getExe pkgs.satty} --filename \"$tmp\" --output-filename \"$dir/screenshot-$(date +%Y%m%d-%H%M%S).png\" --copy-command \"${pkgs.wl-clipboard-rs}/bin/wl-copy\""}; fi; rm -f "$tmp"'';
   submapCheatsheetStart = ''
     if [ -f "$HOME/projects/submap-cheatsheet/config/shell.qml" ]; then
-      ${quickshell} --path "$HOME/projects/submap-cheatsheet/config/shell.qml" --no-duplicate --daemonize
+      exec ${quickshell} --path "$HOME/projects/submap-cheatsheet/config/shell.qml" --no-duplicate
     elif [ -x "$HOME/projects/submap-cheatsheet/result/bin/submap-widget" ]; then
-      "$HOME/projects/submap-cheatsheet/result/bin/submap-widget" --no-duplicate --daemonize
-    fi
-  '';
-  submapCheatsheetCallScript = ''
-    ${submapCheatsheetStart}
-    sleep 0.15
-    if [ -f "$HOME/projects/submap-cheatsheet/config/shell.qml" ]; then
-      ${quickshell} --path "$HOME/projects/submap-cheatsheet/config/shell.qml" ipc call submapCheatsheet "$@"
-    else
-      ${quickshell} ipc --newest call submapCheatsheet "$@"
+      exec "$HOME/projects/submap-cheatsheet/result/bin/submap-widget" --no-duplicate
     fi
   '';
   hyprlandStatePublishScript = ''
@@ -55,29 +43,88 @@
       ha-presence-update "$state"
     fi
   '';
+  desktopPolicy = rec {
+    mod = "SUPER";
+    defaultProfile = "solo";
+    primary = {
+      output = "DP-2";
+      selector = "DP-2";
+      mode = "preferred";
+      position = "0x0";
+      scale = 1;
+      wideColor = true;
+    };
+    auxiliary = {
+      output = "HDMI-A-2";
+      selector = "HDMI-A-2";
+      mode = "preferred";
+      position = "auto-center-right";
+      scale = 1;
+    };
+    workspaceGroups = {
+      external = [
+        "6"
+        "7"
+        "8"
+        "9"
+        "10"
+      ];
+      auxiliary = [
+        "6"
+        "7"
+        "8"
+      ];
+      stream = [
+        "9"
+        "10"
+      ];
+    };
+    monitorWorkspace = {
+      enable = true;
+      target = "virtual-screen";
+      workspaces = workspaceGroups.external;
+    };
+    monitors = [
+      (builtins.removeAttrs primary ["selector" "wideColor"])
+      (builtins.removeAttrs auxiliary ["selector"])
+      {
+        output = "HDMI-A-1";
+        disabled = true;
+      }
+      {
+        output = "iPad";
+        mode = "2420x1668@60";
+        position = "auto";
+        scale = 2;
+      }
+    ];
+  };
   generatedScripts = {
     submapCheatsheet = pkgs.writeShellScript "submap-cheatsheet-start" submapCheatsheetStart;
-    submapCheatsheetCall = pkgs.writeShellScript "submap-cheatsheet-call" submapCheatsheetCallScript;
     hyprlandStatePublish = pkgs.writeShellScript "hyprland-state-publish" hyprlandStatePublishScript;
   };
 in {
-  inherit uwsmAppPrefix;
+  inherit terminalBackend uwsmAppPrefix;
+  desktop = desktopPolicy;
 
   apps = {
-    terminal = lib.getExe pkgs.kitty;
-    nvim = lib.getExe pkgs.neovim;
+    terminal = lib.getExe config.modules.terminal.package;
+    kitty = lib.getExe pkgs.kitty;
+    jq = lib.getExe pkgs.jq;
+    nvim = lib.getExe (
+      if config.programs.nixvim.enable or false
+      then config.programs.nixvim.build.package
+      else pkgs.neovim
+    );
     tmux = lib.getExe pkgs.tmux;
-    zellij = lib.getExe pkgs.zellij;
     playerctl = lib.getExe pkgs.playerctl;
     pkill = "${pkgs.procps}/bin/pkill";
-    systemctl = "${pkgs.systemd}/bin/systemctl";
     timeout = "${pkgs.coreutils}/bin/timeout";
     yazi = lib.getExe pkgs.yazi;
     emacsclient = lib.getExe' osConfig.modules.emacs.package "emacsclient";
     thunar = lib.getExe pkgs.thunar;
-    elephant = lib.getExe' inputs.elephant.packages.${system}.default "elephant";
-    walker = lib.getExe inputs.walker.packages.${system}.default;
     inherit noctalia;
+    browser = lib.getExe pkgs.chromium;
     qutebrowser = lib.getExe pkgs.qutebrowser;
     vivaldi =
       if hasVivaldi
@@ -93,25 +140,39 @@ in {
       if hasJellyfinMpvShim
       then lib.getExe pkgs.jellyfin-mpv-shim
       else null;
+    steam =
+      if hasGaming
+      then lib.getExe pkgs.steam
+      else null;
+    discord =
+      if hasApplications
+      then lib.getExe pkgs.discord
+      else null;
+    music =
+      if hasApplications
+      then lib.getExe pkgs.tidal-hifi
+      else null;
+    keymapp =
+      if hasZsa
+      then lib.getExe' pkgs.keymapp "keymapp"
+      else null;
   };
 
   inherit hyprctl;
   scripts = {
-    submapCheatsheet = toString generatedScripts.submapCheatsheet;
-    submapCheatsheetCall = toString generatedScripts.submapCheatsheetCall;
+    submapCheatsheetStart = toString generatedScripts.submapCheatsheet;
     hyprlandStatePublish = toString generatedScripts.hyprlandStatePublish;
   };
 
   screenshot = {
     fullscreen = "${noctalia} msg screenshot-fullscreen";
     region = "${noctalia} msg screenshot-region";
-    window = ''sh -c '${screenshotPath}; win="$(${hyprctl} activewindow -j)"; x="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".at[0]")"; y="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".at[1]")"; w="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".size[0]")"; h="$(printf "%s" "$win" | ${lib.getExe pkgs.jq} -r ".size[1]")"; ${lib.getExe pkgs.grim} -g "$x,$y ''${w}x$h" "$tmp"; ${screenshotFinish}' '';
   };
 
   sunshine = {
     enable = osConfig.services.sunshine.enable or false;
     stream = {
-      monitor = "virtual-screen";
+      monitor = desktopPolicy.monitorWorkspace.target;
       position = "0x1440";
       width = 2560;
       height = 1440;
@@ -122,7 +183,7 @@ in {
 
   features = {
     gaming = hasGaming;
-    bloat = hasBloat;
+    applications = hasApplications;
     annotation = hasAnnotation;
     jellyfinMpvShim = hasJellyfinMpvShim;
     zsa = hasZsa;
@@ -136,9 +197,6 @@ in {
     multiplexers = {
       tmux = {
         mod = smartFocus.tmux.mod;
-      };
-      zellij = {
-        mod = smartFocus.zellij.mod;
       };
     };
   };

@@ -15,9 +15,11 @@ in {
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
-    enableBashIntegration = false;
+    enableBashIntegration = true;
 
     colors = lib.mkForce {};
+    historyWidget.zsh.command = "";
+    historyWidget.bash.command = "";
 
     defaultOptions = [
       "--height 40%"

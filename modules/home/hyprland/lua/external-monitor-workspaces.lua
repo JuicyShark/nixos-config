@@ -1,41 +1,45 @@
--- ============================================================
--- EXTERNAL MONITOR WORKSPACES
--- ============================================================
-return function(ctx)
+return function(ctx, opts)
 	local hl = ctx.hl
-	local desktop = ctx.desktop
+	local desktop = (opts or {}).desktop or {}
 	local monitorWorkspace = desktop.monitorWorkspace or {}
 
 	if not monitorWorkspace.enable then
 		return
 	end
 
-	local targetMonitor = monitorWorkspace.target
-	local primaryMonitor = desktop.primary.selector
+	local primary = desktop.primary.selector
 	local workspaces = monitorWorkspace.workspaces or {}
-	local lastMonitor = nil
 
-	local function set_owner(monitor)
-		monitor = monitor or primaryMonitor
-		if monitor == lastMonitor then
-			return
+	local function assign(workspace, monitor)
+		hl.workspace_rule({
+			workspace = workspace,
+			monitor = monitor,
+			persistent = true,
+		})
+	end
+
+	local function apply(assignments)
+		local assigned = {}
+
+		for _, assignment in ipairs(assignments or {}) do
+			for _, workspace in ipairs(assignment.workspaces or {}) do
+				assign(workspace, assignment.monitor)
+				assigned[workspace] = true
+			end
 		end
-		lastMonitor = monitor
 
 		for _, workspace in ipairs(workspaces) do
-			hl.workspace_rule({ workspace = workspace, monitor = monitor, persistent = true })
-			hl.dispatch(hl.dsp.workspace.move({ workspace = workspace, monitor = monitor }))
+			if not assigned[workspace] then
+				assign(workspace, primary)
+			end
 		end
+
+		-- Workspace-rule refresh moves persistent workspaces to their declared
+		-- monitors. Force it now so monitor teardown cannot race placement.
+		hl.exec_scheduled_prop_refresh_immediately()
 	end
 
 	ctx.monitorWorkspace = {
-		primary = primaryMonitor,
-		target = targetMonitor,
-		workspaces = workspaces,
-		setOwner = set_owner,
+		apply = apply,
 	}
-
-	hl.on("hyprland.start", function()
-		set_owner(primaryMonitor)
-	end)
 end

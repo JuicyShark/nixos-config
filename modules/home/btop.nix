@@ -2,7 +2,8 @@ _: {
   programs.btop = {
     enable = true;
     settings = {
-      vim_keys = true;
+      # The Moonlander Nav layer already provides a physical arrow diamond.
+      vim_keys = false;
       rounded_corners = true;
       update_ms = 1000;
       proc_tree = false;

@@ -90,12 +90,11 @@
   discoverBin = "${ha-presence-discover}/bin/ha-presence-discover";
   hyprctl = "${osConfig.programs.hyprland.package}/bin/hyprctl";
   uwsm = lib.getExe pkgs.uwsm;
-  hyprState = name: enabled:
-    "${uwsm} app -- ${hyprctl} eval 'Juicy.state.set(\"${name}\", ${
-      if enabled
-      then "true"
-      else "false"
-    })'";
+  hyprState = name: enabled: "${uwsm} app -- ${hyprctl} eval 'Juicy.state.set(\"${name}\", ${
+    if enabled
+    then "true"
+    else "false"
+  })'";
 in {
   config = lib.mkIf enabled {
     home.packages = [ha-presence-update ha-presence-discover mqttPub];

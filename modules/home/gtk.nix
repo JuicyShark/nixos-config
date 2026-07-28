@@ -6,6 +6,8 @@
 }:
 lib.mkIf (pkgs.stdenv.isLinux && (osConfig.modules.desktop.enable or false)) {
   home.packages = with pkgs; [gsettings-desktop-schemas];
+  home.pointerCursor.enable = true;
+
   gtk = {
     enable = true;
 

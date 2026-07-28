@@ -17,20 +17,32 @@ _: {
 
       keybinding = {
         universal = {
-          # Arrow-key navigation consistent with neovim bindings
+          # The Moonlander Nav layer supplies arrows, Home, End, PageUp and
+          # PageDown. Keep movement on those physical controls and leave the
+          # Colemak letters available for Lazygit's actual commands.
           prevItem = "<up>";
           nextItem = "<down>";
           prevBlock = "<left>";
           nextBlock = "<right>";
-          # vim-style hjkl alternatives
-          prevItem-alt = "k";
-          nextItem-alt = "j";
-          prevBlock-alt = "h";
-          nextBlock-alt = "l";
+          prevItem-alt = "<disabled>";
+          nextItem-alt = "<disabled>";
+          prevBlock-alt = "<disabled>";
+          nextBlock-alt = "<disabled>";
+          scrollLeft = "<shift+left>";
+          scrollRight = "<shift+right>";
+          scrollUpMain-alt1 = "<disabled>";
+          scrollDownMain-alt1 = "<disabled>";
+          scrollUpMain-alt2 = "<disabled>";
+          scrollDownMain-alt2 = "<disabled>";
         };
         commits = {
-          # Open interactive rebase at selected commit (consistent with neovim workflow)
+          moveDownCommit = "<alt+down>";
+          moveUpCommit = "<alt+up>";
           interactiveRebase = "i";
+        };
+        main = {
+          prevHunk = "<left>";
+          nextHunk = "<right>";
         };
       };
     };

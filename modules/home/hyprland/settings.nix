@@ -5,36 +5,12 @@
   colors = config.lib.stylix.colors;
   rgb = color: "rgb(${color})";
 in {
-  monitor = [
-    {
-      output = "DP-2";
-      mode = "preferred";
-      position = "0x0";
-      scale = 1;
-    }
-    {
-      output = "HDMI-A-2";
-      mode = "preferred";
-      position = "auto-center-right";
-      scale = 1;
-    }
-    {
-      output = "HDMI-A-1";
-      disabled = true;
-    }
-    {
-      output = "iPad";
-      mode = "2420x1668@60";
-      position = "auto";
-      scale = 2;
-    }
-  ];
+  monitor = cfg.desktop.monitors;
 
   config = {
     cursor = {
-      default_monitor = "DP-2";
+      default_monitor = cfg.desktop.primary.output;
       inactive_timeout = 10;
-      enable_hyprcursor = true;
       no_hardware_cursors = false;
       no_break_fs_vrr = 2;
     };
@@ -44,18 +20,12 @@ in {
       gaps_out = 24;
       border_size = 4;
       col = {
-        active_border = {
-          colors = [
-            (rgb colors.base0D)
-            (rgb colors.base0E)
-          ];
-          angle = 45;
-        };
+        active_border = rgb colors.base0B;
         inactive_border = rgb colors.base02;
       };
       resize_on_border = true;
       extend_border_grab_area = 3;
-      layout = "hy3";
+      layout = "scrolling";
       allow_tearing = true;
       snap = {
         enabled = true;
@@ -69,7 +39,6 @@ in {
     decoration = {
       rounding = 25;
       rounding_power = 1.0;
-      dim_inactive = false;
       dim_strength = 0.18;
       dim_special = 0.25;
       shadow = {
@@ -90,49 +59,36 @@ in {
       merge_groups_on_groupbar = true;
       drag_into_group = 2;
       col = {
-        border_active = {
-          colors = [
-            (rgb colors.base0C)
-            (rgb colors.base0E)
-          ];
-          angle = 45;
-        };
+        border_active = rgb colors.base0B;
         border_inactive = rgb colors.base01;
       };
       groupbar = {
         enabled = true;
         indicator_height = 0;
-        font_size = 17;
-        font_weight_active = "heavy";
-        height = 32;
+        disable_when_only = true;
+        font_size = 14;
+        font_weight_active = "bold";
+        font_weight_inactive = "book";
+        height = 24;
         text_offset = -3;
         text_padding = 3;
         text_color = "0xFF${colors.base07}";
-        text_color_inactive = "0xFF${colors.base04}";
+        text_color_inactive = "0xFF${colors.base05}";
         col = {
-          active = {
-            colors = [
-              (rgb colors.base0C)
-              (rgb colors.base02)
-            ];
-            angle = 45;
-          };
-          inactive = rgb colors.base01;
+          active = rgb colors.base02;
+          inactive = rgb colors.base02;
         };
         rounding_power = 1.0;
-        gradients = true;
+        rounding = 16;
         gradient_rounding = 16;
         gaps_out = 0;
-        gaps_in = 4;
+        gaps_in = 0;
         keep_upper_gap = false;
-        blur = false;
       };
     };
 
     xwayland = {
-      enabled = true;
       create_abstract_socket = true;
-      force_zero_scaling = true;
     };
     render = {
       direct_scanout = 2;
@@ -149,9 +105,7 @@ in {
     master = {
       mfact = 0.45;
       special_scale_factor = 0.8;
-      allow_small_split = false;
       new_status = "slave";
-      new_on_top = false;
       orientation = "center";
       center_ignores_reserved = true;
       slave_count_for_center_master = 0;
@@ -160,61 +114,17 @@ in {
     };
 
     scrolling = {
-      fullscreen_on_one_column = true;
-      column_width = 0.5;
+      fullscreen_on_one_column = false;
+      column_width = 0.35;
       focus_fit_method = 1;
-      follow_focus = true;
-      follow_min_visible = 0.4;
-      explicit_column_widths = "0.333, 0.5, 0.667, 1.0";
+      follow_min_visible = 0.9;
+      explicit_column_widths = "0.15, 0.3,  0.5, 0.65625, 1.0";
       direction = "right";
     };
 
-    plugin.hy3 = {
-      node_collapse_policy = 2;
-      group_inset = 0;
-      tab_first_window = false;
-      autotile = {
-        enable = true;
-        ephemeral_groups = false;
-        trigger_width = 600;
-        trigger_height = 481;
-      };
-      tabs = {
-        height = 28;
-        padding = 6;
-        from_top = false;
-        radius = 14;
-        border_width = 2;
-        render_text = true;
-        text_center = false;
-        text_font = "IosevkaTerm Nerd Font";
-        text_height = 12;
-        text_padding = 9;
-        blur = false;
-        opacity = 1.0;
-        colors = {
-          active = "rgba(${colors.base0C}cc)";
-          active_border = "rgba(${colors.base0D}ff)";
-          active_text = "rgba(${colors.base07}ff)";
-          focused = "rgba(${colors.base02}cc)";
-          focused_border = "rgba(${colors.base0C}ff)";
-          focused_text = "rgba(${colors.base05}ff)";
-          inactive = "rgba(${colors.base01}cc)";
-          inactive_border = "rgba(${colors.base03}dd)";
-          inactive_text = "rgba(${colors.base04}ff)";
-          urgent = "rgba(${colors.base08}cc)";
-          urgent_border = "rgba(${colors.base08}ff)";
-          urgent_text = "rgba(${colors.base07}ff)";
-          locked = "rgba(${colors.base0A}cc)";
-          locked_border = "rgba(${colors.base0A}ff)";
-          locked_text = "rgba(${colors.base00}ff)";
-        };
-      };
-    };
-
     binds = {
-      allow_workspace_cycles = false;
-      workspace_back_and_forth = false;
+      pass_mouse_when_bound = false;
+      scroll_event_delay = 0;
     };
 
     misc = {
@@ -223,13 +133,12 @@ in {
       animate_manual_resizes = true;
       animate_mouse_windowdragging = true;
       disable_autoreload = true;
-      initial_workspace_tracking = 0;
       font_family = "IosevkaTerm Nerd Font";
       enable_swallow = true;
       swallow_regex = "^(com.mitchellh.ghostty|kitty)$";
       session_lock_xray = true;
       vrr = 1;
-      size_limits_tiled = true;
+      size_limits_tiled = false; # Enabling ruins scrolling layout -- https://github.com/hyprwm/Hyprland/pull/13445
       mouse_move_enables_dpms = false;
     };
 
@@ -256,43 +165,9 @@ in {
       workspace_swipe_distance = 650;
       workspace_swipe_cancel_ratio = 0.4;
     };
-
-    plugin.hyprbars = {
-      enabled = true;
-      bar_height = 28;
-      bar_color = "rgba(${colors.base01}ee)";
-      col.text = rgb colors.base05;
-      bar_text_font = "IosevkaTerm Nerd Font";
-      bar_text_size = 14;
-      bar_text_align = "center";
-      bar_buttons_alignment = "right";
-      bar_padding = 9;
-      bar_button_padding = 6;
-      bar_part_of_window = true;
-      bar_precedence_over_border = true;
-      on_double_click = "${cfg.hyprctl} dispatch fullscreen 1";
-    };
   };
 
   curve = [
-    {
-      _args = [
-        "ease_snap"
-        {
-          type = "bezier";
-          points = [
-            [
-              0.05
-              0.9
-            ]
-            [
-              0.1
-              1.0
-            ]
-          ];
-        }
-      ];
-    }
     {
       _args = [
         "ease_quick"
@@ -313,12 +188,30 @@ in {
     }
     {
       _args = [
+        "ease_overshoot"
+        {
+          type = "bezier";
+          points = [
+            [
+              0.05
+              0.9
+            ]
+            [
+              0.1
+              1.12
+            ]
+          ];
+        }
+      ];
+    }
+    {
+      _args = [
         "spring_snappy"
         {
           type = "spring";
           mass = 1;
-          stiffness = 125;
-          dampening = 18;
+          stiffness = 150;
+          dampening = 16;
         }
       ];
     }
@@ -328,8 +221,8 @@ in {
         {
           type = "spring";
           mass = 1;
-          stiffness = 95;
-          dampening = 15;
+          stiffness = 105;
+          dampening = 12;
         }
       ];
     }
@@ -339,8 +232,8 @@ in {
         {
           type = "spring";
           mass = 1;
-          stiffness = 80;
-          dampening = 18;
+          stiffness = 95;
+          dampening = 14;
         }
       ];
     }
@@ -350,8 +243,8 @@ in {
         {
           type = "spring";
           mass = 1;
-          stiffness = 90;
-          dampening = 13;
+          stiffness = 110;
+          dampening = 12;
         }
       ];
     }
@@ -361,88 +254,81 @@ in {
     {
       leaf = "windows";
       enabled = true;
-      speed = 5;
+      speed = 6;
       spring = "spring_window";
       style = "slide";
     }
     {
       leaf = "windowsIn";
       enabled = true;
-      speed = 5;
+      speed = 6;
       spring = "spring_window";
-      style = "popin 88%";
+      style = "popin 74%";
     }
     {
       leaf = "windowsMove";
       enabled = true;
-      speed = 4;
+      speed = 5;
       spring = "spring_snappy";
     }
     {
       leaf = "windowsOut";
       enabled = true;
       speed = 4;
-      bezier = "ease_quick";
-      style = "popin 82%";
+      bezier = "ease_overshoot";
+      style = "popin 70%";
     }
     {
       leaf = "layersIn";
       enabled = true;
-      speed = 5;
+      speed = 6;
       spring = "spring_drawer";
-      style = "slide";
+      style = "slide top";
     }
     {
       leaf = "layersOut";
       enabled = true;
       speed = 4;
       bezier = "ease_quick";
-      style = "slide";
-    }
-    {
-      leaf = "border";
-      enabled = true;
-      speed = 8;
-      bezier = "ease_snap";
-    }
-    {
-      leaf = "borderangle";
-      enabled = true;
-      speed = 25;
-      bezier = "ease_snap";
-      style = "once";
+      style = "slide top";
     }
     {
       leaf = "fade";
       enabled = true;
-      speed = 4;
+      speed = 5;
+      bezier = "ease_quick";
+    }
+    {
+      leaf = "fadeSwitch";
+      enabled = true;
+      speed = 5;
       bezier = "ease_quick";
     }
     {
       leaf = "fadePopups";
       enabled = true;
-      speed = 3;
+      speed = 4;
       bezier = "ease_quick";
     }
     {
       leaf = "fadeLayers";
       enabled = true;
-      speed = 3;
+      speed = 4;
       bezier = "ease_quick";
     }
     {
       leaf = "workspaces";
       enabled = true;
-      speed = 6;
+      speed = 7;
       spring = "spring_workspace";
-      style = "slidefade 18%";
+      style = "slidefadevert 28%";
     }
     {
       leaf = "specialWorkspace";
       enabled = true;
-      speed = 5;
+      speed = 6;
       spring = "spring_drawer";
-      style = "slidefadevert 22%";
+      style = "slidefadevert 32%";
     }
   ];
 
@@ -479,19 +365,13 @@ in {
       };
       border_size = 12;
       rounding = 0;
-      border_color = "${rgb colors.base09} ${rgb colors.base09}";
+      border_color = rgb colors.base0B;
     }
     {
       match = {
         pin = true;
       };
-      border_color = {
-        colors = [
-          (rgb colors.base09)
-          (rgb colors.base0A)
-        ];
-        angle = 45;
-      };
+      border_color = rgb colors.base0B;
     }
   ];
 }

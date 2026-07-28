@@ -9,11 +9,11 @@ _: {
       command_timeout = 800;
 
       format = ''
-        $hostname$directory$git_branch$fill$git_status$git_metrics$git_state$nodejs$python$rust$golang$lua$package$jobs
+        $os$username$hostname$sudo$directory$git_branch$fill$git_status$git_metrics$git_state$nix_shell$direnv$nodejs$python$rust$golang$lua$package$jobs
         $character
       '';
 
-      right_format = "$cmd_duration$status";
+      right_format = "$cmd_duration$status$time";
 
       fill = {
         symbol = " ";

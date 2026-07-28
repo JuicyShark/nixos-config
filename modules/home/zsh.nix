@@ -11,11 +11,8 @@
   shellAliases =
     {
       ytmp3 = "${getExe pkgs.yt-dlp} -x --continue --add-metadata --embed-thumbnail --audio-format mp3 --audio-quality 0 --metadata-from-title=\"%(artist)s - %(title)s\" --prefer-ffmpeg -o \"%(title)s.%(ext)s\"";
-      cat = "${getExe pkgs.bat} --number --color=always --paging=never --tabs=2 --wrap=never";
-      ls = "eza";
-      grep = getExe pkgs.ripgrep;
-      find = "fd";
       fm = "y";
+      eza = "eza --icons auto --group-directories-first --no-quotes --git-ignore";
 
       cleanup = "sudo nix-collect-garbage --delete-older-than 1d";
       nixremove = "nix-store --gc";
@@ -33,7 +30,7 @@
       commit = "git commit";
       push = "git push";
       pull = "git pull";
-      diff = "git diff --staged";
+      gdiff = "git diff --staged";
       gcld = "git clone --depth 1";
       gco = "git checkout";
       gitgrep = "git ls-files | rg";
@@ -43,17 +40,11 @@
 
       l = "eza -lF --time-style=long-iso --icons";
       ll = "eza -h --git --icons --color=auto --group-directories-first -s extension";
-      tree = "eza --tree --icons --tree";
-      nocorrect = "unsetopt correct";
-      correct = "setopt correct";
-
-      sf = "fzf-edit";
-      sg = "rg-edit";
+      tree = "eza --tree --icons";
     }
     // lib.optionalAttrs stdenv.isLinux {
-      vpn = "mullvad";
       listgen = "sudo nix-env -p /nix/var/nix/profiles/system --list-generations";
-      bloat = "nix path-info -Sh /run/current-system";
+      closure-size = "nix path-info -Sh /run/current-system";
       trimall = "sudo fstrim -va";
       os-build = "nix run ${flake}#os-build --";
       os-switch = "nix run ${flake}#os-switch --";
@@ -66,11 +57,13 @@
       zues-test = "nix run ${flake}#zues-test --";
       zues-build = "nix run ${flake}#zues-switch --";
     };
+  zshOnlyAliases = {
+    nocorrect = "unsetopt correct";
+    correct = "setopt correct";
+  };
 in {
   home.sessionVariables = {
     CARAPACE_BRIDGES = "carapace,zsh,bash";
-    NIXPKGS_ALLOW_UNFREE = "1";
-    NIXPKGS_ALLOW_INSECURE = "1";
   };
 
   programs = {
@@ -95,7 +88,7 @@ in {
         share = true;
         expireDuplicatesFirst = true;
       };
-      inherit shellAliases;
+      shellAliases = shellAliases // zshOnlyAliases;
     };
 
     bash = {

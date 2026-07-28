@@ -1,36 +1,19 @@
 -- ============================================================
 -- RUNTIME STATE
 -- ============================================================
-return function(ctx)
-	local states = {
-		gaming = false,
-		idle = false,
-		locked = false,
-		streaming = false,
-		["remote-streaming"] = false,
-		double = false,
-		["screen-recording"] = false,
-		["do-not-disturb"] = false,
-		passthrough = false,
-	}
+return function(ctx, opts)
+	opts = opts or {}
+	local states = {}
 	local manual = {}
 	local sources = {}
+	local clearUserStates = opts.clearUser or {}
 
-	for name, enabled in pairs(states) do
-		manual[name] = enabled
+	for _, name in ipairs(opts.states or {}) do
+		states[name] = false
+		manual[name] = false
 	end
 
-	local priority = {
-		"locked",
-		"remote-streaming",
-		"streaming",
-		"double",
-		"screen-recording",
-		"gaming",
-		"do-not-disturb",
-		"idle",
-		"passthrough",
-	}
+	local priority = opts.priority or {}
 
 	local listeners = {}
 	local lastPrimary = nil
@@ -71,7 +54,7 @@ return function(ctx)
 
 		if currentPrimary ~= lastPrimary then
 			lastPrimary = currentPrimary
-			local publisher = ctx.cfg.scripts and ctx.cfg.scripts.hyprlandStatePublish
+			local publisher = opts.publisher
 			if publisher then
 				ctx.hl.exec_cmd(publisher .. " " .. currentPrimary)
 			end
@@ -161,7 +144,7 @@ return function(ctx)
 	end
 
 	function api.clearUser()
-		for _, name in ipairs({ "streaming", "remote-streaming", "double", "screen-recording", "do-not-disturb", "passthrough" }) do
+		for _, name in ipairs(clearUserStates) do
 			api.set(name, false)
 		end
 		return primary()
