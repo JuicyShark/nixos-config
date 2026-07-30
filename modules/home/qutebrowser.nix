@@ -7,7 +7,7 @@
   ...
 }: let
   c = config.lib.stylix.colors;
-  terminal = lib.getExe config.modules.terminal.package;
+  terminal = config.modules.terminal.command;
   homelabConfig = self.nixosConfigurations.zues.config;
   endpoints = self.lib.services.mkHomelabEndpoints {
     config = homelabConfig;
@@ -26,7 +26,7 @@
     '';
   };
 in
-  lib.mkIf (osConfig.modules.desktop.enable or false) {
+  lib.mkIf ((osConfig.modules.desktop.enable or false) && !pkgs.stdenv.hostPlatform.isDarwin) {
     xdg.dataFile."qutebrowser/userscripts/qute-mpv" = {
       source = "${mpvUserscript}/bin/qute-mpv";
       executable = true;

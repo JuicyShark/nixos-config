@@ -65,6 +65,14 @@ in
           "image/png" = "imv.desktop";
           "image/jpeg" = "imv.desktop";
           "image/gif" = "imv.desktop";
+          "audio/flac" = "mpv.desktop";
+          "audio/mpeg" = "mpv.desktop";
+          "audio/mp4" = "mpv.desktop";
+          "audio/ogg" = "mpv.desktop";
+          "audio/opus" = "mpv.desktop";
+          "video/mp4" = "mpv.desktop";
+          "video/webm" = "mpv.desktop";
+          "video/x-matroska" = "mpv.desktop";
         };
     };
   }

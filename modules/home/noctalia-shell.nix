@@ -6,7 +6,7 @@
   pkgs,
   ...
 }: let
-  terminal = lib.getExe config.modules.terminal.package;
+  terminal = config.modules.terminal.command;
   wallpaper = "${config.home.homeDirectory}/pictures/wallpaper/5120x2160-Monstera.png";
   noctaliaSettings = {
     appLauncher = {

@@ -91,7 +91,11 @@ in {
     end, 500, Header.LEFT)
   '';
 
-  home.packages = with pkgs; [poppler];
+  # Yazi does not detect Ghostty's image protocol in this runtime, so use its
+  # Wayland overlay backend for reliable image previews.
+  home.packages = with pkgs;
+    [poppler]
+    ++ lib.optionals pkgs.stdenv.isLinux [ueberzugpp];
 
   programs.yazi = {
     enable = true;

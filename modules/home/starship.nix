@@ -1,19 +1,22 @@
-_: {
-  programs.starship = {
-    enable = true;
-    enableZshIntegration = true;
-    enableBashIntegration = true;
-    settings = {
+{lib, ...}: {
+  programs = {
+    starship = {
+      enable = true;
+      # Starship can wedge while probing the Darwin host over SSH, leaving
+      # zsh without a prompt. Initialise it only for local interactive zsh.
+      enableZshIntegration = false;
+      enableBashIntegration = true;
+      settings = {
       add_newline = true;
       scan_timeout = 10;
       command_timeout = 800;
 
       format = ''
-        $os$username$hostname$sudo$directory$git_branch$fill$git_status$git_metrics$git_state$nix_shell$direnv$nodejs$python$rust$golang$lua$package$jobs
+        $os$username$hostname$sudo$directory$git_branch$fill$nix_shell$nodejs$python$rust$golang$lua$package$jobs
         $character
       '';
 
-      right_format = "$cmd_duration$status$time";
+      right_format = "$git_status$git_metrics$git_state$status";
 
       fill = {
         symbol = " ";
@@ -220,6 +223,13 @@ _: {
         style = "fg:base09 bold";
         format = "[ 󰔟 $duration ]($style)";
       };
+      };
     };
+
+    zsh.initContent = lib.mkAfter ''
+      if [[ $TERM != "dumb" && -z ''${SSH_CONNECTION-} ]]; then
+        eval "$(starship init zsh)"
+      fi
+    '';
   };
 }
