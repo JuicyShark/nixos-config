@@ -8,7 +8,8 @@
   inherit (inputs.home-manager.nixosModules) home-manager;
   inherit (lib) mkIf optionals;
   cfg = config.modules.system;
-  username = config.modules.profile.username;
+  profile = config.modules.profile;
+  inherit (profile) username;
 in {
   imports = [
     home-manager
@@ -35,7 +36,10 @@ in {
       secrets =
         {juicy-password.file = ../../secrets/juicy-password.age;}
         // lib.optionalAttrs config.modules.haPresence.enable {
-          ha-mqtt-pass.file = ../../secrets/ha-mqtt-pass.age;
+          ha-mqtt-pass = {
+            file = ../../secrets/ha-mqtt-pass.age;
+            owner = username;
+          };
         };
     };
 
@@ -59,6 +63,10 @@ in {
         enable = true;
         enableExcludeWrapper = false;
       };
+    };
+
+    programs.nh = lib.mkIf (profile.flakePath != null) {
+      flake = profile.flakePath;
     };
   };
 }

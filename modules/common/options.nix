@@ -13,6 +13,12 @@
         description = "Primary user's home directory; defaults by platform when unset.";
       };
 
+      flakePath = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Local checkout used by FLAKE and nh; leave unset when no checkout lives on the host.";
+      };
+
       homeStateVersion = lib.mkOption {
         type = lib.types.str;
         default = "25.11";

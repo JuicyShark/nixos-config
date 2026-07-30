@@ -9,7 +9,6 @@
   domain = "nixlab.au";
   turnHost = "turn.nixlab.au";
   leoBuilderKey = lib.removeSuffix "\n" (builtins.readFile ../leo/id_ed25519.pub);
-  homeDirectory = "/home/${config.modules.profile.username}";
 in {
   imports = with self.nixosModules; [
     system
@@ -21,8 +20,6 @@ in {
     iperf3
   ];
 
-  environment.variables.FLAKE = "${homeDirectory}/nixos-config";
-  programs.nh.flake = "${homeDirectory}/nixos-config";
   home-manager.sharedModules = homeProfiles.cli;
 
   age.secrets = {
@@ -35,7 +32,10 @@ in {
   };
 
   modules = {
-    profile.hashedPasswordFile = config.age.secrets.juicy-password.path;
+    profile = {
+      flakePath = "/home/${config.modules.profile.username}/nixos-config";
+      hashedPasswordFile = config.age.secrets.juicy-password.path;
+    };
     monitoring.host.enable = true; # ship logs to zues Loki + expose node metrics
   };
   nix = {

@@ -6,17 +6,24 @@
 {
   inputs,
   pkgs,
+  config,
+  lib,
   ...
 }: let
   inherit (inputs.agenix.packages.${pkgs.stdenv.hostPlatform.system}) agenix;
+  profile = config.modules.profile;
 in {
   config = {
     environment = {
       systemPackages = [agenix];
-      variables = {
-        EDITOR = "nvim";
-        VISUAL = "nvim"; # emacs.nix overrides this to "emacs" when enabled
-      };
+      variables =
+        {
+          EDITOR = "nvim";
+          VISUAL = "nvim"; # emacs.nix overrides this to "emacs" when enabled
+        }
+        // lib.optionalAttrs (profile.flakePath != null) {
+          FLAKE = profile.flakePath;
+        };
     };
   };
 }

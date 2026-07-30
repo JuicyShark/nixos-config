@@ -30,6 +30,10 @@ in {
       stateVersion = 6;
       primaryUser = username;
       defaults = {
+        NSGlobalDomain = {
+          KeyRepeat = 2;
+          InitialKeyRepeat = 15;
+        };
         screensaver = {
           askForPassword = true;
           askForPasswordDelay = 0; # require password immediately on wake
@@ -46,8 +50,9 @@ in {
       allowSigned = true;
     };
 
-    # Power management — "never" disables auto-sleep
+    # Keep the server available without keeping an attached display awake.
+    # Display sleep does not suspend launchd daemons such as Jellyfin or Ollama.
     power.sleep.computer = "never";
-    power.sleep.display = "never";
+    power.sleep.display = 1;
   };
 }

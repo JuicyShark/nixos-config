@@ -8,12 +8,54 @@
 }: let
   hostKeys = {
     fallarbor = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHPsx9Mg7qBNYwHsyECMf1h6xFRxcrxBLuS0GSPxmk8A";
+    mac = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGRb3ffUy38yem/rXxEn1cLHDGajmU7roZ5V3Uv3QaT4";
     zues = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOQOb2XaMyLNZNRKvrfcwxVgeIF3rqsSNyY3Kldv735z";
   };
 
   inputLeapPort = 24800;
   username = config.modules.profile.username;
   homeDirectory = "/home/${username}";
+  deskflowServerConfig = pkgs.writeText "deskflow-server.conf" ''
+    section: screens
+      leo:
+      mac:
+    end
+
+    section: aliases
+    end
+
+    section: links
+      leo:
+        right = mac
+      mac:
+        left = leo
+    end
+
+    section: options
+      protocol = synergy
+      clipboardSharing = true
+      clipboardSharingSize = 20480
+    end
+  '';
+  deskflowSettings = pkgs.writeText "Deskflow.conf" ''
+    [core]
+    computerName=leo
+    coreMode=2
+    interface=192.168.1.54
+    port=${toString inputLeapPort}
+    processMode=1
+    wlClipboard=true
+
+    [security]
+    certificate=${homeDirectory}/.config/Deskflow/tls/deskflow.pem
+    checkPeerFingerprints=true
+    keySize=2048
+    tlsEnabled=true
+
+    [server]
+    externalConfig=true
+    externalConfigFile=${deskflowServerConfig}
+  '';
 in {
   imports =
     (with self.nixosModules; [
@@ -31,6 +73,7 @@ in {
       monitoring
       nfs
       ios
+      local-models
     ])
     ++ [./backups.nix];
 
@@ -43,22 +86,9 @@ in {
       radeontop
       vulkan-tools
       mesa-demos
-      input-leap
+      deskflow
+      wl-clipboard
     ];
-    variables.FLAKE = "/mnt/smol/nixos-config";
-    etc."input-leap.conf".text = ''
-      section: screens
-        leo:
-        mac:
-      end
-
-      section: links
-        leo:
-          right = mac
-        mac:
-          left = leo
-      end
-    '';
   };
   programs = {
     ssh.knownHosts = {
@@ -70,6 +100,13 @@ in {
         ];
         publicKey = hostKeys.zues;
       };
+      mac = {
+        hostNames = [
+          "imac-machop"
+          "192.168.1.52"
+        ];
+        publicKey = hostKeys.mac;
+      };
       fallarbor = {
         hostNames = [
           "fallarbor"
@@ -78,8 +115,6 @@ in {
         publicKey = hostKeys.fallarbor;
       };
     };
-
-    nh.flake = "/mnt/smol/nixos-config";
 
     gamemode.settings = {
       general = {
@@ -123,6 +158,13 @@ in {
   networking = {
     hostName = "leo";
     domain = "home.arpa";
+    # A WAN/DNS outage must not leave interactive recovery commands waiting on
+    # glibc's default multi-second resolver retries. Keep the router as the
+    # DNS authority for home.arpa, but fail unavailable lookups promptly.
+    resolvconf.extraOptions = [
+      "timeout:1"
+      "attempts:1"
+    ];
     firewall.interfaces.enp7s0.allowedTCPPorts = [
       config.modules.ports.alloy
       config.modules.ports.exporters.node
@@ -135,27 +177,33 @@ in {
   home-manager.sharedModules = homeProfiles.desktop;
 
   boot = {
-    kernelPackages = pkgs.linuxKernel.packages.linux_xanmod_stable;
-    binfmt.emulatedSystems = ["aarch64-linux"];
+    kernelPackages = pkgs.linuxPackages_latest;
+    kernelParams = ["pcie_aspm=off"];
+    #binfmt.emulatedSystems = ["aarch64-linux"];
   };
 
   services.lact.enable = true;
 
-  systemd.user.services.input-leap-server = {
-    description = "Share Leo keyboard and mouse with Mac";
+  # Keep the headless server layout declarative; the GUI cannot safely manage
+  # settings while this service owns the core process.
+  systemd.user.services.deskflow-server = {
+    description = "Share Leo keyboard and mouse with Mac via Deskflow";
     wantedBy = ["graphical-session.target"];
     partOf = ["graphical-session.target"];
     after = ["graphical-session.target"];
     unitConfig.ConditionUser = username;
     serviceConfig = {
-      ExecStart = "${pkgs.input-leap}/bin/input-leaps --no-daemon --name leo --config /etc/input-leap.conf --use-ei";
+      ExecStart = "${pkgs.deskflow}/bin/deskflow-core server --settings ${deskflowSettings}";
       Restart = "on-failure";
       RestartSec = 3;
     };
   };
 
   modules = {
-    profile.hashedPasswordFile = config.age.secrets.juicy-password.path;
+    profile = {
+      flakePath = "/mnt/smol/nixos-config";
+      hashedPasswordFile = config.age.secrets.juicy-password.path;
+    };
     system = {
       keyboard.zsa = true;
       highMemory.enable = true;
@@ -176,8 +224,20 @@ in {
     gitServer.enable = true;
     recomp.enable = true;
     glance.enable = true;
-    monitoring.host.enable = true;
+    monitoring = {
+      host.enable = true;
+      diagnostics = {
+        enable = true;
+        smtpEmail = "maxwellb9879@gmail.com";
+      };
+      writablePaths = ["/mnt/chonk/backups"];
+    };
     ios.enable = true;
+    localModels = {
+      enable = true;
+      endpoint = "http://192.168.1.52:11434";
+      defaultModel = "qwen3.5:9b";
+    };
     haPresence = {
       enable = true;
       deviceId = "leo_presence";

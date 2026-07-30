@@ -23,8 +23,6 @@ in {
     hostName = "zues";
     domain = "home.arpa";
   };
-  environment.variables.FLAKE = "/mnt/smol/nixos-config";
-  programs.nh.flake = "/mnt/smol/nixos-config";
   home-manager.sharedModules = homeProfiles.cli;
 
   # Keep the shared palette and console target without enabling desktop theme
@@ -35,13 +33,30 @@ in {
   # remote deployment from Leo instead of a router-side unattended switch.
   system.autoUpgrade.enable = false;
 
+  # Zues is a deployment target, not a development machine. Development shells
+  # and their nix-direnv GC roots belong on Leo.
+  modules.shell.dev.enable = lib.mkForce false;
+
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 7d";
+  };
+
+  boot.loader.systemd-boot.configurationLimit = lib.mkForce 2;
+
   modules = {
-    profile.hashedPasswordFile = config.age.secrets.juicy-password.path;
+    profile = {
+      flakePath = "/mnt/smol/nixos-config";
+      hashedPasswordFile = config.age.secrets.juicy-password.path;
+    };
     homelab = {
       smtpEmail = "maxwellb9879@gmail.com";
       filebrowser.enable = true;
       jellyfin.enable = true;
+      mediaVote.enable = true;
       media.enable = true;
+      swiparr.enable = true;
       syncthing.enable = false;
       gatus.enable = true;
       vaultwarden.enable = true;
@@ -50,6 +65,11 @@ in {
       enable = true;
       host.enable = true;
       nas.enable = true;
+      writablePaths = ["/mnt/smol/backups"];
+      vpnGuard = {
+        service = "qbittorrent.service";
+        namespace = "wg";
+      };
     };
     system.media.enable = true;
     shell.admin.enable = true;
@@ -84,7 +104,21 @@ in {
     extraUpFlags = [
       "--accept-dns=false"
       "--advertise-routes=192.168.1.0/24"
+      "--operator=juicy"
     ];
+  };
+
+  # Tailscale recommends these offload settings for Linux subnet routers.
+  # ethtool settings are not persistent, so apply them after every boot.
+  systemd.services.tailscale-udp-gro-forwarding = {
+    description = "Optimize UDP forwarding for Tailscale";
+    wantedBy = ["multi-user.target"];
+    before = ["tailscaled.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.ethtool}/bin/ethtool -K enp1s0 rx-udp-gro-forwarding on rx-gro-list off";
+      RemainAfterExit = true;
+    };
   };
 
   nix.sshServe = {
