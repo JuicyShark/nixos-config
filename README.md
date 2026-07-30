@@ -15,6 +15,14 @@ lib/            Pure helper functions used by modules and checks.
 secrets/        agenix-encrypted secrets.
 ```
 
+## Design
+
+`flake.nix` is deliberately the one top-level map: package policy, module
+catalog, Home Manager profiles, host constructors, local apps, dev shells, and
+checks are labeled sections in that file. Host files compose named modules and
+set machine facts; feature modules own the behavior. This keeps the route from
+a host to its configuration visible without a second layer of flake imports.
+
 ## Common Commands
 
 ```bash

@@ -9,6 +9,8 @@
 in {
   imports = [
     ./media.nix
+    ./media-vote.nix
+    ./swiparr.nix
     ./vaultwarden.nix
     ./gatus.nix
     ./filebrowser.nix

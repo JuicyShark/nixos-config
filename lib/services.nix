@@ -114,6 +114,30 @@
         enabled = config.nixflix.seerr.enable or config.services.seerr.enable or false;
       };
 
+      media-vote = mkLocalApp {
+        portName = "mediaVote";
+        homeName = "media-vote";
+        icon = "si:jellyfin";
+        enabled = config.modules.homelab.mediaVote.enable or false;
+        statusPath = "/health";
+      };
+
+      swiparr = {
+        enabled = config.modules.homelab.swiparr.enable or false;
+        icon = "si:jellyfin";
+        homeName = "swiparr";
+        url = home "swiparr";
+        checkUrl = "${local "swiparr"}/api/health";
+        upstream = local "swiparr";
+        statusUrl = "${local "swiparr"}/api/health";
+        public = {
+          domain = "swiparr.${publicDomain}";
+          upstream = local "swiparr";
+          checkUrl = "${public "swiparr.${publicDomain}"}/api/health";
+          statusUrl = "${public "swiparr.${publicDomain}"}/api/health";
+        };
+      };
+
       sonarr = mkLocalApp {
         portName = "sonarr";
         icon = "di:sonarr";
@@ -195,6 +219,7 @@
         icon = "di:qbittorrent";
         homeName = "torrent";
         url = home "torrent";
+        statusUrl = home "torrent";
         altStatusCodes = [401];
       };
 
@@ -264,6 +289,8 @@
       ];
       media = [
         "jellyfin"
+        "media-vote"
+        "swiparr"
         "jellyseerr"
         "sonarr"
         "radarr"
@@ -325,13 +352,20 @@
       name = svc.title;
       url = svc.statusUrl;
       interval = svc.statusInterval or "1m";
-      conditions = svc.statusConditions or ["[STATUS] == 200"];
+      conditions =
+        (svc.statusConditions or ["[STATUS] == 200"])
+        ++ ["[RESPONSE_TIME] < 5000"];
     };
-    mkPublicStatusPageEndpoint = svc: {
-      name = "${svc.title} (public)";
+    mkPublicStatusPageEndpoint = svc: let
       url = svc.public.statusUrl or (svc.public.checkUrl or (public svc.public.domain));
+    in {
+      name = "${svc.title} (public)";
+      inherit url;
       interval = svc.public.statusInterval or "5m";
-      conditions = svc.public.statusConditions or ["[STATUS] == 200"];
+      conditions =
+        (svc.public.statusConditions or ["[STATUS] == 200"])
+        ++ ["[RESPONSE_TIME] < 10000"]
+        ++ lib.optional (lib.hasPrefix "https://" url) "[CERTIFICATE_EXPIRATION] > 336h";
     };
 
     mkGlanceSite = svc:

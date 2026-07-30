@@ -1,12 +1,63 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }: let
   inherit (lib) mkForce mkIf;
   inherit (config.modules) ports;
 
   apiSecret = name: config.age.secrets.${name}.path;
+  qbitConfigFile = "${config.services.qbittorrent.profileDir}/qBittorrent/config/qBittorrent.conf";
+  prepareQbitPassword = pkgs.writeScript "qbittorrent-prepare-password" ''
+    #!${pkgs.python3}/bin/python3
+    import base64
+    import hashlib
+    import os
+    from pathlib import Path
+    import sys
+    import tempfile
+
+    password_file = Path(sys.argv[1])
+    config_file = Path(sys.argv[2])
+    password = password_file.read_bytes().rstrip(b"\r\n")
+    if not password:
+        raise SystemExit("qBittorrent password secret is empty")
+
+    salt = os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha512", password, salt, 100_000)
+    encoded = (
+        "@ByteArray("
+        + base64.b64encode(salt).decode("ascii")
+        + ":"
+        + base64.b64encode(digest).decode("ascii")
+        + ")"
+    )
+    replacement = rf'WebUI\Password_PBKDF2="{encoded}"'
+
+    original = config_file.read_text()
+    lines = original.splitlines()
+    for index, line in enumerate(lines):
+        if line.startswith(r"WebUI\Password_PBKDF2="):
+            lines[index] = replacement
+            break
+    else:
+        raise SystemExit("qBittorrent WebUI password setting is missing")
+
+    stat = config_file.stat()
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        dir=config_file.parent,
+        prefix=".qBittorrent.conf.",
+        delete=False,
+    ) as output:
+        output.write("\n".join(lines) + "\n")
+        temporary = Path(output.name)
+
+    os.chmod(temporary, stat.st_mode)
+    os.chown(temporary, stat.st_uid, stat.st_gid)
+    os.replace(temporary, config_file)
+  '';
 
   radarrUhdProfile = "64fb5f9858489bdac2af690e27c8f42f"; # UHD Bluray + WEB
   web1080p = "9d142234e45d6143785ac55f5a9e8dc9"; # WEB-1080p (Alternative)
@@ -77,7 +128,7 @@ in {
     nixflix = mkIf config.modules.homelab.media.enable {
       enable = true;
       mediaDir = "/mnt/chonk/media";
-      downloadsDir = "/mnt/chonk/media/torrent/data";
+      downloadsDir = "/mnt/chonk/torrent";
       stateDir = "/var/lib";
       mediaUsers = [username];
       serviceDependencies = ["mnt-chonk.mount"];
@@ -135,11 +186,14 @@ in {
                 trash_id = radarrUhdProfile;
                 reset_unmatched_scores.enabled = true;
                 min_format_score = 0;
-                min_upgrade_format_score = 1;
+                # UHD is the baseline. Do not churn through marginal codec/release
+                # differences: replacements need to add a meaningful HDR, audio, or
+                # expanded-frame benefit.
+                min_upgrade_format_score = 3000;
                 upgrade = {
                   allowed = true;
                   until_quality = "Bluray-2160p";
-                  until_score = 10000;
+                  until_score = 6000;
                 };
               }
             ];
@@ -148,11 +202,65 @@ in {
                 trash_ids = [
                   "eecf3a857724171f968a66cb5719e152" # IMAX
                   "9f6cbff8cfe4ebbc1bde14c7b7bec0de" # IMAX Enhanced
+                  "09d9dd29a0fc958f9796e65c2a8864b4" # Open Matte
                 ];
                 assign_scores_to = [
                   {
                     trash_id = radarrUhdProfile;
-                    score = 5000;
+                    score = 1000;
+                  }
+                ];
+              }
+              {
+                # HDR is the most important enhancement once a movie is UHD.
+                trash_ids = [
+                  "493b6d1dbec3c3364c59d7607f7e3405" # HDR
+                  "b337d6812e06c200ec9a2d3cfa9d20a7" # DV Boost
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = radarrUhdProfile;
+                    score = 2500;
+                  }
+                ];
+              }
+              {
+                # Prefer immersive/lossless surround mixes, then conventional
+                # surround. Together with HDR these clear the upgrade threshold.
+                trash_ids = [
+                  "496f355514737f7d83bf7aa4d24f8169" # TrueHD ATMOS
+                  "2f22d89048b01681dde8afe203bf2e95" # DTS X
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = radarrUhdProfile;
+                    score = 2500;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "417804f7f2c4308c1f4c5d380d4c4475" # ATMOS (undefined)
+                  "1af239278386be2919e1bcee0bde047e" # DD+ ATMOS
+                  "3cafb66171b47f226146a0770576870f" # TrueHD
+                  "dcf3ec6938fa32445f590a4da84256cd" # DTS-HD MA
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = radarrUhdProfile;
+                    score = 1500;
+                  }
+                ];
+              }
+              {
+                trash_ids = [
+                  "e77382bcfeba57cb83744c9c5449b401" # 7.1 Surround
+                  "77ff61788dfe1097194fd8743d7b4524" # 5.1 Surround
+                ];
+                assign_scores_to = [
+                  {
+                    trash_id = radarrUhdProfile;
+                    score = 750;
                   }
                 ];
               }
@@ -671,16 +779,28 @@ in {
     };
 
     users.groups.media.gid = lib.mkOverride 10 2000;
+
+    # Keep qBittorrent and Downloadarr on the same age-managed credential.
+    # nixpkgs installs the static INI first; this final pre-start step derives
+    # qBittorrent's salted PBKDF2 representation without exposing plaintext in
+    # the Nix store or a process argument.
     users.groups.media.members = [username];
 
-    systemd.services = mkIf (!config.nixflix.jellyfin.enable) {
-      seerr-setup.enable = mkForce false;
-      seerr-user-settings.enable = mkForce false;
-      seerr-jellyfin.enable = mkForce false;
-      seerr-libraries.enable = mkForce false;
-      seerr-radarr.enable = mkForce false;
-      seerr-sonarr.enable = mkForce false;
-    };
+    systemd.services = lib.mkMerge [
+      {
+        qbittorrent.serviceConfig.ExecStartPre = lib.mkAfter [
+          "+${prepareQbitPassword} ${apiSecret "qbit"} ${qbitConfigFile}"
+        ];
+      }
+      (mkIf (!config.nixflix.jellyfin.enable) {
+        seerr-setup.enable = mkForce false;
+        seerr-user-settings.enable = mkForce false;
+        seerr-jellyfin.enable = mkForce false;
+        seerr-libraries.enable = mkForce false;
+        seerr-radarr.enable = mkForce false;
+        seerr-sonarr.enable = mkForce false;
+      })
+    ];
 
     services = {
       transmission.enable = mkForce false;

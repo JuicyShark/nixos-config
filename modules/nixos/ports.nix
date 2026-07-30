@@ -16,6 +16,8 @@ in {
     loki = mkPortOption 3100 "Loki log aggregation";
     alloy = mkPortOption 9080 "Grafana Alloy agent";
     jellyfin = mkPortOption 8096 "Jellyfin media server";
+    mediaVote = mkPortOption 8787 "Jellyfin media voting companion";
+    swiparr = mkPortOption 4321 "Swiparr collaborative media discovery";
     jellyseerr = mkPortOption 5055 "Jellyseerr request management";
     prowlarr = mkPortOption 9696 "Prowlarr indexer manager";
     sonarr = mkPortOption 8989 "Sonarr TV show management";
