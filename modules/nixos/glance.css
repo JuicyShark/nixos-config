@@ -1,0 +1,386 @@
+:root {
+  --widget-gap: 18px;
+  --widget-content-vertical-padding: 13px;
+  --widget-content-horizontal-padding: 15px;
+  --border-radius: 3px;
+
+  --nixlab-bg: #1d2021;
+  --nixlab-surface: #282828;
+  --nixlab-surface-raised: #32302f;
+  --nixlab-border: #504945;
+  --nixlab-border-muted: #3c3836;
+  --nixlab-amber: #fabd2f;
+  --nixlab-green: #b8bb26;
+  --nixlab-red: #fb4934;
+  --nixlab-aqua: #8ec07c;
+
+  --color-primary: var(--nixlab-amber);
+  --color-positive: var(--nixlab-green);
+  --color-negative: var(--nixlab-red);
+  --color-background: var(--nixlab-bg);
+  --color-widget-background: var(--nixlab-surface);
+  --color-widget-background-highlight: var(--nixlab-surface-raised);
+  --color-widget-content-border: var(--nixlab-border);
+  --color-separator: var(--nixlab-border-muted);
+  --color-popover-background: var(--nixlab-surface-raised);
+  --color-popover-border: var(--nixlab-border);
+  --color-progress-border: var(--nixlab-border);
+  --color-progress-value: var(--nixlab-green);
+  --color-vertical-progress-value: var(--nixlab-green);
+  --color-graph-gridlines: var(--nixlab-border-muted);
+  --color-text-highlight: #fbf1c7;
+  --color-text-paragraph: #ebdbb2;
+  --color-text-base: #d5c4a1;
+  --color-text-base-muted: #bdae93;
+  --color-text-subdue: #928374;
+}
+
+body {
+  background-color: var(--nixlab-bg);
+  background-image:
+    linear-gradient(rgba(80, 73, 69, 0.11) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 73, 69, 0.11) 1px, transparent 1px);
+  background-attachment: fixed;
+  background-size: 24px 24px;
+}
+
+::selection {
+  color: var(--nixlab-bg);
+  background: var(--nixlab-amber);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--nixlab-border);
+}
+
+*:focus-visible {
+  outline-color: var(--nixlab-amber);
+}
+
+.header-container {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  margin-top: 0;
+  padding-top: calc(var(--widget-gap) / 2);
+  background: linear-gradient(
+    to bottom,
+    rgba(29, 32, 33, 0.98) 75%,
+    rgba(29, 32, 33, 0)
+  );
+}
+
+.header {
+  border-color: var(--nixlab-border);
+  background: rgba(40, 40, 40, 0.96);
+  box-shadow:
+    0 2px 0 var(--nixlab-bg),
+    inset 0 1px 0 rgba(251, 241, 199, 0.04);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  color: var(--nixlab-amber);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 14px rgba(250, 189, 47, 0.22);
+}
+
+.logo::after {
+  content: "IXLAB";
+  color: var(--color-text-base);
+  font-size: 1.2rem;
+  letter-spacing: 0.12em;
+}
+
+.nav-item {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nav-item.nav-item-current {
+  color: var(--nixlab-amber);
+  border-bottom-color: var(--nixlab-amber);
+}
+
+.nav-item:not(.nav-item-current):hover {
+  color: var(--color-text-highlight);
+  border-bottom-color: var(--nixlab-green);
+}
+
+.widget-content:not(.widget-content-frameless),
+.widget-content-frame {
+  border-color: var(--nixlab-border);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(60, 56, 54, 0.42),
+      rgba(40, 40, 40, 0.9) 22%
+    ),
+    var(--nixlab-surface);
+  box-shadow:
+    0 2px 0 var(--nixlab-bg),
+    inset 0 1px 0 rgba(251, 241, 199, 0.035);
+}
+
+.widget-header {
+  color: var(--color-text-base-muted);
+  letter-spacing: 0.09em;
+}
+
+.widget > .widget-header h2::before {
+  content: "// ";
+  color: var(--nixlab-green);
+}
+
+.widget-group-header .widget-header {
+  gap: 1.6rem;
+}
+
+.widget-group-title {
+  padding-inline: 0.2rem;
+  border-bottom-style: solid;
+  letter-spacing: 0.07em;
+}
+
+.widget-group-title:hover:not(.widget-group-title-current) {
+  color: var(--nixlab-aqua);
+  border-bottom-color: var(--nixlab-border);
+}
+
+.widget-group-title-current {
+  color: var(--nixlab-amber);
+  border-bottom-color: var(--nixlab-amber);
+}
+
+.nixlab-search .search {
+  border-color: var(--nixlab-amber);
+  box-shadow:
+    0 2px 0 var(--nixlab-bg),
+    inset 3px 0 0 var(--nixlab-amber);
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease;
+}
+
+.nixlab-search .search::before {
+  content: "$";
+  color: var(--nixlab-green);
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.nixlab-search .search:focus-within {
+  border-color: var(--nixlab-green);
+  background: var(--nixlab-surface-raised);
+  box-shadow:
+    0 2px 0 var(--nixlab-bg),
+    inset 3px 0 0 var(--nixlab-green),
+    0 0 0 1px rgba(184, 187, 38, 0.18);
+}
+
+.nixlab-search .search-input {
+  font-size: 1.4rem;
+}
+
+.nixlab-search kbd {
+  color: var(--nixlab-amber);
+  border-color: var(--nixlab-border);
+  box-shadow: 0 2px 0 var(--nixlab-border-muted);
+}
+
+.nixlab-status-overview
+  .widget-type-monitor
+  .dynamic-columns
+  > div,
+.nixlab-monitor .monitor-site {
+  margin: -0.35rem;
+  padding: 0.35rem;
+  border-radius: var(--border-radius);
+  transition:
+    background-color 130ms ease,
+    transform 130ms ease;
+}
+
+.nixlab-status-overview
+  .widget-type-monitor
+  .dynamic-columns
+  > div:hover,
+.nixlab-monitor .monitor-site:hover {
+  background: rgba(80, 73, 69, 0.32);
+  transform: translateX(2px);
+}
+
+.nixlab-status-overview
+  .widget-type-monitor
+  .dynamic-columns
+  > div:has(svg[fill="var(--color-negative)"]),
+.nixlab-monitor
+  .monitor-site:has(svg[fill="var(--color-negative)"]) {
+  background: rgba(251, 73, 52, 0.07);
+  box-shadow: inset 2px 0 0 var(--nixlab-red);
+}
+
+.monitor-site-status-icon,
+.monitor-site-status-icon-compact {
+  filter: drop-shadow(0 0 5px rgba(184, 187, 38, 0.16));
+}
+
+.nixlab-bookmarks .bookmarks-group + .bookmarks-group,
+.nixlab-operations .bookmarks-group + .bookmarks-group {
+  margin-top: 1.3rem;
+  padding-top: 1.3rem;
+  border-top: 1px dashed var(--nixlab-border);
+}
+
+.bookmarks-group-title {
+  letter-spacing: 0.04em;
+}
+
+.bookmarks-icon-container {
+  border: 1px solid transparent;
+  transition:
+    opacity 130ms ease,
+    border-color 130ms ease,
+    background-color 130ms ease;
+}
+
+.bookmarks-group li:hover .bookmarks-icon-container {
+  opacity: 1;
+  border-color: var(--nixlab-border);
+  background: var(--nixlab-surface-raised);
+}
+
+.bookmarks-link {
+  transition: color 130ms ease;
+}
+
+.bookmarks-link:hover {
+  color: var(--color-text-highlight);
+}
+
+.nixlab-todo .widget-content {
+  box-shadow:
+    0 2px 0 var(--nixlab-bg),
+    inset 2px 0 0 var(--nixlab-aqua);
+}
+
+.nixlab-server-stats .progress-bar {
+  border-radius: 1px;
+  background: var(--nixlab-bg);
+}
+
+.nixlab-server-stats .progress-value {
+  background: var(--nixlab-green);
+  box-shadow: 0 0 8px rgba(184, 187, 38, 0.2);
+}
+
+.nixlab-server-stats .progress-value-notice {
+  background: linear-gradient(
+    to right,
+    var(--nixlab-amber) 55%,
+    var(--nixlab-red)
+  );
+}
+
+.nixlab-operations .widget-content {
+  box-shadow:
+    0 2px 0 var(--nixlab-bg),
+    inset 2px 0 0 var(--nixlab-green);
+}
+
+.nixlab-releases .widget-content {
+  box-shadow:
+    0 2px 0 var(--nixlab-bg),
+    inset 2px 0 0 var(--nixlab-amber);
+}
+
+.nixlab-briefing .widget-group-content .list > li,
+.nixlab-feeds .widget-group-content .list > li {
+  transition:
+    background-color 130ms ease,
+    transform 130ms ease;
+}
+
+.nixlab-briefing .widget-group-content .list > li:hover,
+.nixlab-feeds .widget-group-content .list > li:hover {
+  background: rgba(80, 73, 69, 0.22);
+  transform: translateX(2px);
+}
+
+.nixlab-videos .card,
+.nixlab-feeds .card {
+  border-color: var(--nixlab-border);
+  transition:
+    border-color 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.nixlab-videos .card:hover,
+.nixlab-feeds .card:hover {
+  border-color: var(--nixlab-amber);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 0 var(--nixlab-bg),
+    0 0 0 1px rgba(250, 189, 47, 0.12);
+}
+
+.expand-toggle-button {
+  color: var(--nixlab-aqua);
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 1190px) {
+  :root {
+    --widget-gap: 16px;
+  }
+
+  .header-container {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  body {
+    background-size: 20px 20px;
+  }
+
+  .mobile-navigation {
+    border-top: 1px solid var(--nixlab-border);
+    background: rgba(29, 32, 33, 0.98);
+  }
+
+  .mobile-navigation-pill {
+    background: var(--nixlab-border);
+  }
+
+  .mobile-navigation-input:checked + .mobile-navigation-pill {
+    background: var(--nixlab-amber);
+  }
+
+  .mobile-reachability-header {
+    padding: 6vh 1rem;
+    color: var(--nixlab-amber);
+    font-size: 2.4rem;
+    letter-spacing: 0.05em;
+  }
+
+  .widget-content:not(.widget-content-frameless),
+  .widget-content-frame {
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
