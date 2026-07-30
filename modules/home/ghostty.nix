@@ -56,7 +56,7 @@ in {
 
     programs.ghostty = {
       enable = true;
-      package = cfg.package;
+      inherit (cfg) package;
       settings = {
         # Hyprland owns tiling, groups, and new-window placement. Ghostty is
         # deliberately a single-surface terminal rather than a second layout

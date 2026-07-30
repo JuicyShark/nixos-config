@@ -99,54 +99,56 @@ in {
       group = "media-vote";
     };
 
-    systemd.services.media-vote = {
-      description = "Jellyfin media voting companion";
-      wantedBy = ["multi-user.target"];
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
+    systemd = {
+      services.media-vote = {
+        description = "Jellyfin media voting companion";
+        wantedBy = ["multi-user.target"];
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
 
-      environment = commonEnvironment;
+        environment = commonEnvironment;
 
-      serviceConfig =
-        commonServiceConfig
-        // {
-          Type = "simple";
-          ExecStart = ''
-            ${python}/bin/gunicorn \
-              --bind 127.0.0.1:${toString ports.mediaVote} \
-              --workers 1 \
-              --threads 8 \
-              --timeout 120 \
-              --access-logfile - \
-              app:app
-          '';
-          Restart = "on-failure";
-          RestartSec = "3s";
+        serviceConfig =
+          commonServiceConfig
+          // {
+            Type = "simple";
+            ExecStart = ''
+              ${python}/bin/gunicorn \
+                --bind 127.0.0.1:${toString ports.mediaVote} \
+                --workers 1 \
+                --threads 8 \
+                --timeout 120 \
+                --access-logfile - \
+                app:app
+            '';
+            Restart = "on-failure";
+            RestartSec = "3s";
+          };
+      };
+
+      services.media-vote-sync = {
+        description = "Synchronize the Media Vote Jellyfin catalog";
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
+        environment = commonEnvironment;
+        serviceConfig =
+          commonServiceConfig
+          // {
+            Type = "oneshot";
+            ExecStart = "${python}/bin/python3 ${source}/share/media-vote/app.py sync";
+          };
+      };
+
+      timers.media-vote-sync = {
+        description = "Periodically synchronize the Media Vote catalog";
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          OnBootSec = "2m";
+          OnUnitActiveSec = "6h";
+          RandomizedDelaySec = "5m";
+          Persistent = true;
+          Unit = "media-vote-sync.service";
         };
-    };
-
-    systemd.services.media-vote-sync = {
-      description = "Synchronize the Media Vote Jellyfin catalog";
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
-      environment = commonEnvironment;
-      serviceConfig =
-        commonServiceConfig
-        // {
-          Type = "oneshot";
-          ExecStart = "${python}/bin/python3 ${source}/share/media-vote/app.py sync";
-        };
-    };
-
-    systemd.timers.media-vote-sync = {
-      description = "Periodically synchronize the Media Vote catalog";
-      wantedBy = ["timers.target"];
-      timerConfig = {
-        OnBootSec = "2m";
-        OnUnitActiveSec = "6h";
-        RandomizedDelaySec = "5m";
-        Persistent = true;
-        Unit = "media-vote-sync.service";
       };
     };
 

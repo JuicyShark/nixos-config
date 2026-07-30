@@ -200,49 +200,51 @@ in {
 
     services.nginx.statusPage = lib.mkIf config.services.prometheus.exporters.nginx.enable true;
 
-    systemd.tmpfiles.rules = lib.mkIf homelabHostMonitoring [
-      "d ${textfileDirectory} 0755 root root -"
-    ];
+    systemd = {
+      tmpfiles.rules = lib.mkIf homelabHostMonitoring [
+        "d ${textfileDirectory} 0755 root root -"
+      ];
 
-    systemd.services.homelab-health-metrics = lib.mkIf (homelabHostMonitoring && (btrfsMounts != [] || writablePaths != [] || vpnGuard.service != "")) {
-      description = "Export host health metrics for node_exporter";
-      environment = {
-        HOMELAB_BTRFS_MOUNTS = lib.concatStringsSep ":" btrfsMounts;
-        HOMELAB_METRICS_OUTPUT_DIR = textfileDirectory;
-        HOMELAB_WRITABLE_PATHS = lib.concatStringsSep ":" writablePaths;
-        HOMELAB_VPN_NAMESPACE = vpnGuard.namespace;
-        HOMELAB_VPN_SERVICE = vpnGuard.service;
+      services.homelab-health-metrics = lib.mkIf (homelabHostMonitoring && (btrfsMounts != [] || writablePaths != [] || vpnGuard.service != "")) {
+        description = "Export host health metrics for node_exporter";
+        environment = {
+          HOMELAB_BTRFS_MOUNTS = lib.concatStringsSep ":" btrfsMounts;
+          HOMELAB_METRICS_OUTPUT_DIR = textfileDirectory;
+          HOMELAB_WRITABLE_PATHS = lib.concatStringsSep ":" writablePaths;
+          HOMELAB_VPN_NAMESPACE = vpnGuard.namespace;
+          HOMELAB_VPN_SERVICE = vpnGuard.service;
+        };
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = lib.getExe homelabHealthMetrics;
+          UMask = "0022";
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          ProtectHome = true;
+          ProtectSystem = "strict";
+          ReadWritePaths = [textfileDirectory];
+        };
       };
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = lib.getExe homelabHealthMetrics;
-        UMask = "0022";
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectHome = true;
-        ProtectSystem = "strict";
-        ReadWritePaths = [textfileDirectory];
-      };
-    };
 
-    systemd.timers.homelab-health-metrics = lib.mkIf (homelabHostMonitoring && (btrfsMounts != [] || writablePaths != [] || vpnGuard.service != "")) {
-      wantedBy = ["timers.target"];
-      timerConfig = {
-        OnBootSec = "5m";
-        OnUnitActiveSec = "15m";
-        RandomizedDelaySec = "2m";
-        Persistent = true;
+      timers.homelab-health-metrics = lib.mkIf (homelabHostMonitoring && (btrfsMounts != [] || writablePaths != [] || vpnGuard.service != "")) {
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          OnBootSec = "5m";
+          OnUnitActiveSec = "15m";
+          RandomizedDelaySec = "2m";
+          Persistent = true;
+        };
       };
-    };
 
-    # Render immediately before every exporter start. A stale or partially
-    # written config can no longer survive a successful renderer run.
-    systemd.services.prometheus-json-exporter = lib.mkIf config.services.prometheus.exporters.json.enable {
-      restartTriggers = [config.age.secrets.jellyfin-api.file];
-      serviceConfig = {
-        StateDirectory = "json-exporter";
-        StateDirectoryMode = "0750";
-        ExecStartPre = [renderJellyfinExporterConfig];
+      # Render immediately before every exporter start. A stale or partially
+      # written config can no longer survive a successful renderer run.
+      services.prometheus-json-exporter = lib.mkIf config.services.prometheus.exporters.json.enable {
+        restartTriggers = [config.age.secrets.jellyfin-api.file];
+        serviceConfig = {
+          StateDirectory = "json-exporter";
+          StateDirectoryMode = "0750";
+          ExecStartPre = [renderJellyfinExporterConfig];
+        };
       };
     };
   };

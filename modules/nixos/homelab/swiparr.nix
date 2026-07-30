@@ -48,7 +48,7 @@ in {
       oci-containers = {
         backend = "podman";
         containers.swiparr = {
-          image = cfg.image;
+          inherit (cfg) image;
           pull = "newer";
           environment = {
             ADMIN_USERNAME = cfg.adminUsername;
