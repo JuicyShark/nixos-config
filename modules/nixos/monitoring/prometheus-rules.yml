@@ -2,7 +2,9 @@ groups:
   - name: baseline
     rules:
       - alert: InstanceDown
-        expr: up == 0
+        # Gatus owns Jellyfin availability. The session exporter is optional
+        # telemetry and must not turn an expired API key into an outage page.
+        expr: up{availability!="best-effort",job!="jellyfin_sessions"} == 0
         for: 5m
         labels:
           severity: critical
@@ -14,9 +16,15 @@ groups:
         expr: |
           (
             node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs"}
-            - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs"}
+            - node_filesystem_avail_bytes{
+                fstype!~"tmpfs|overlay|squashfs|devtmpfs",
+                mountpoint!~"/nix/store|/run(/.*)?|/boot"
+              }
           )
-          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs"} > 0.85
+          / node_filesystem_size_bytes{
+              fstype!~"tmpfs|overlay|squashfs|devtmpfs",
+              mountpoint!~"/nix/store|/run(/.*)?|/boot"
+            } > 0.85
         for: 10m
         labels:
           severity: warning
@@ -45,7 +53,11 @@ groups:
           description: "Unit {{ $labels.name }} is in a failed state on {{ $labels.instance }}."
 
       - alert: FilesystemReadOnly
-        expr: node_filesystem_readonly{fstype!~"tmpfs|overlay|squashfs|devtmpfs"} == 1
+        expr: |
+          node_filesystem_readonly{
+            fstype!~"tmpfs|overlay|squashfs|devtmpfs",
+            mountpoint!~"/nix/store|/run(/.*)?|/boot"
+          } == 1
         for: 5m
         labels:
           severity: critical
@@ -77,6 +89,28 @@ groups:
           summary: "Backup timer is stale on {{ $labels.instance }}"
           description: "{{ $labels.name }} has not triggered for more than 36 hours."
 
+      - alert: BackupSuccessMetricMissing
+        expr: |
+          absent(homelab_backup_last_success_timestamp_seconds{backup="zues-services"})
+          or absent(homelab_backup_last_success_timestamp_seconds{backup="zues-family"})
+          or absent(homelab_backup_last_success_timestamp_seconds{backup="leo-smol"})
+        for: 36h
+        labels:
+          severity: warning
+        annotations:
+          summary: "A backup has no recorded successful completion"
+          description: "At least one expected backup has not completed successfully since success metrics were deployed."
+
+      - alert: BackupLastSuccessStale
+        expr: |
+          time() - homelab_backup_last_success_timestamp_seconds > 36 * 60 * 60
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup success is stale for {{ $labels.backup }}"
+          description: "{{ $labels.backup }} has not completed its backup and repository check successfully for more than 36 hours."
+
       - alert: PrometheusNotificationErrors
         expr: sum(rate(prometheus_notifications_errors_total[10m])) > 0
         for: 5m
@@ -85,6 +119,215 @@ groups:
         annotations:
           summary: "Prometheus cannot deliver alerts"
           description: "Prometheus is recording notification delivery errors to Alertmanager."
+
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alertmanager is down"
+          description: "Prometheus cannot reach Alertmanager. Leo's independent diagnostic mailer remains the fallback path."
+
+      - alert: BackupServiceFailed
+        expr: node_systemd_unit_state{name=~"restic-backups-.*\\.service",state="failed"} == 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup failed on {{ $labels.instance }}"
+          description: "{{ $labels.name }} is failed; a timer trigger alone does not prove a successful backup."
+
+      - alert: BtrfsScrubTimerStale
+        expr: |
+          time()
+          - node_systemd_timer_last_trigger_seconds{name=~"btrfs-scrub-.*\\.timer"}
+          > 40 * 24 * 60 * 60
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Btrfs scrub is stale on {{ $labels.instance }}"
+          description: "{{ $labels.name }} has not triggered for more than 40 days."
+
+      - alert: BtrfsScrubFailed
+        expr: node_systemd_unit_state{name=~"btrfs-scrub-.*\\.service",state="failed"} == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Btrfs scrub failed on {{ $labels.instance }}"
+          description: "{{ $labels.name }} is failed; inspect its scrub result before clearing the unit."
+
+      - alert: DiagnosticWatcherFailed
+        expr: node_systemd_unit_state{name=~"homelab-diagnostics(-digest)?\\.service",state="failed"} == 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Independent diagnostic watcher failed"
+          description: "{{ $labels.name }} is failed on {{ $labels.instance }}."
+
+  - name: service-health
+    rules:
+      - alert: GatusEndpointDown
+        expr: gatus_results_endpoint_success == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Gatus endpoint {{ $labels.name }} is unhealthy"
+          description: "{{ $labels.name }} in {{ $labels.group }} has failed its synthetic health conditions for more than five minutes."
+
+      - alert: GatusCertificateExpiring
+        expr: |
+          gatus_results_certificate_expiration_seconds > 0
+          and gatus_results_certificate_expiration_seconds < 14 * 24 * 60 * 60
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Certificate for {{ $labels.name }} expires soon"
+          description: "Gatus reports less than 14 days of certificate validity for {{ $labels.name }}."
+
+      - alert: UnboundUnavailable
+        expr: unbound_up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Unbound is not answering exporter checks"
+          description: "The exporter is reachable, but its query to Unbound is failing."
+
+      - alert: ArrHealthIssue
+        expr: |
+          {
+            __name__=~"(sonarr|radarr|lidarr|prowlarr)_system_health_issues",
+            source!="UpdateCheck"
+          } > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} reports {{ $labels.source }}"
+          description: "{{ $labels.message }}"
+
+      - alert: ArrQueueBlocked
+        expr: |
+          {
+            __name__=~"(sonarr|radarr|lidarr)_queue_total",
+            status=~"downloadClientUnavailable|failed|warning"
+          } > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} queue is blocked"
+          description: "{{ $value }} queued items have status {{ $labels.status }}."
+
+  - name: host-health
+    rules:
+      - alert: CriticalPathNotWritable
+        expr: homelab_path_writable == 0
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical path is not writable on {{ $labels.instance }}"
+          description: "{{ $labels.path }} is missing, read-only, or rejects the host's mapped backup identity."
+
+      - alert: VpnGuardNamespaceMismatch
+        expr: |
+          homelab_vpn_guard_service_active == 1
+          and on(instance, service, namespace)
+          homelab_vpn_guard_namespace_match == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }} escaped its VPN namespace"
+          description: "The active service process is not inside the expected {{ $labels.namespace }} network namespace."
+
+      - alert: TimeUnsynchronized
+        expr: node_timex_sync_status == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Clock is unsynchronized on {{ $labels.instance }}"
+          description: "The kernel time discipline has reported an unsynchronized clock for more than ten minutes."
+
+      - alert: SustainedIOStall
+        expr: rate(node_pressure_io_stalled_seconds_total[15m]) > 0.10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sustained I/O stalls on {{ $labels.instance }}"
+          description: "Tasks have been fully stalled on I/O for more than 10% of the last 15 minutes."
+
+      - alert: OOMKill
+        expr: increase(node_vmstat_oom_kill[15m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "OOM kill detected on {{ $labels.instance }}"
+          description: "The kernel killed at least one process because memory was exhausted."
+
+      - alert: SystemdSystemDegraded
+        expr: node_systemd_system_running == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "systemd reports a degraded host"
+          description: "systemd is not in the fully running state on {{ $labels.instance }}."
+
+  - name: btrfs
+    rules:
+      - alert: BtrfsHealthProbeFailed
+        expr: homelab_btrfs_probe_success == 0
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Btrfs health probe failed on {{ $labels.instance }}"
+          description: "The collector could not inspect {{ $labels.mountpoint }}."
+
+      - alert: BtrfsDataUsageHigh
+        expr: homelab_btrfs_data_used_ratio > 0.95
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Btrfs data chunks are nearly full"
+          description: "{{ $labels.mountpoint }} on {{ $labels.instance }} has {{ humanizePercentage $value }} of allocated data chunks used."
+
+      - alert: BtrfsMetadataUsageHigh
+        expr: homelab_btrfs_metadata_used_ratio > 0.85
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Btrfs metadata chunks are nearly full"
+          description: "{{ $labels.mountpoint }} on {{ $labels.instance }} has {{ humanizePercentage $value }} of allocated metadata chunks used."
+
+      - alert: BtrfsDeviceErrors
+        expr: homelab_btrfs_device_errors_total > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Btrfs has persistent device errors on {{ $labels.instance }}"
+          description: "{{ $labels.device }} has {{ $value }} recorded {{ $labels.type }} errors for {{ $labels.mountpoint }}."
+
+      - alert: BtrfsDeviceErrorsIncreasing
+        expr: increase(homelab_btrfs_device_errors_total[30m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "New Btrfs device errors on {{ $labels.instance }}"
+          description: "{{ $labels.device }} recorded new {{ $labels.type }} errors for {{ $labels.mountpoint }}."
 
   - name: disk
     rules:

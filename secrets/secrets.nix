@@ -14,6 +14,7 @@ let
   ];
 in {
   "juicy-password.age".publicKeys = users ++ systems;
+  "homelab-key.age".publicKeys = users ++ systems;
   "initrd-recovery-password.age".publicKeys = users;
   "restic-repository-password.age".publicKeys =
     users

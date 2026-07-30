@@ -36,6 +36,7 @@
         {
           targets = ["100.112.235.76:${toString ports.alloy}"];
           labels = {
+            availability = "best-effort";
             instance = "fallarbor";
             host = "fallarbor";
           };
@@ -83,6 +84,7 @@ in {
           ++ mkOptionalLocalScrape config.services.prometheus.enable "prometheus" ports.prometheus
           ++ mkOptionalLocalScrape config.services.prometheus.alertmanager.enable "alertmanager" ports.alertmanager
           ++ mkOptionalLocalScrape config.services.grafana.enable "grafana" ports.grafana
+          ++ mkOptionalLocalScrape config.services.gatus.enable "gatus" ports.gatus
           ++ mkOptionalLocalScrape config.services.loki.enable "loki" ports.loki
           ++ mkAlloyScrape
           ++ mkExporterScrape "lidarr" promCfg.exportarr-lidarr
@@ -111,7 +113,10 @@ in {
                 }
                 {
                   targets = ["100.112.235.76:${toString exporterPorts.node}"];
-                  labels.instance = "fallarbor";
+                  labels = {
+                    availability = "best-effort";
+                    instance = "fallarbor";
+                  };
                 }
                 {
                   targets = ["192.168.1.54:${toString exporterPorts.node}"];

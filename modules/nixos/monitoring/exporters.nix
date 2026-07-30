@@ -1,5 +1,5 @@
 # Prometheus exporters — one per monitored service.
-# Secrets and the jellyfin-exporter config service live here too.
+# Host-health textfiles, secrets, and Jellyfin exporter config rendering live here too.
 {
   config,
   lib,
@@ -10,8 +10,26 @@
   homelabHostMonitoring = config.modules.monitoring.host.enable;
   homelabNas = config.modules.monitoring.nas.enable;
   homelabJellyfin = config.modules.homelab.jellyfin.enable or false;
+  btrfsMounts = config.services.btrfs.autoScrub.fileSystems or [];
+  writablePaths = config.modules.monitoring.writablePaths;
+  vpnGuard = config.modules.monitoring.vpnGuard;
   inherit (config.modules) ports;
   exporterPorts = config.modules.ports.exporters;
+  textfileDirectory = "/var/lib/node-exporter-textfiles";
+
+  homelabHealthMetrics = pkgs.writeShellApplication {
+    name = "homelab-health-metrics";
+    runtimeInputs = with pkgs; [
+      btrfs-progs
+      coreutils
+      gawk
+      gnugrep
+      iproute2
+      systemd
+      util-linux
+    ];
+    text = builtins.readFile ./homelab-health-metrics.sh;
+  };
 
   mkNixflixService = service: port:
     lib.attrByPath ["nixflix" service] {
@@ -27,6 +45,45 @@
       file = ../../../secrets/${secretName}.age;
       inherit owner;
     };
+
+  renderJellyfinExporterConfig = pkgs.writeShellScript "render-jellyfin-exporter-config" ''
+    set -euo pipefail
+
+    TOKEN="$(${pkgs.coreutils}/bin/cat ${config.age.secrets.jellyfin-api.path})"
+    umask 077
+    ${pkgs.coreutils}/bin/cat > /var/lib/json-exporter/config.yml <<'YAML'
+    modules:
+      jellyfin:
+        headers:
+          Authorization: MediaBrowser Token="__TOKEN__", Client="prometheus-json-exporter", Device="zues", DeviceId="zues-jellyfin-exporter", Version="1.0.0"
+          X-Emby-Token: __TOKEN__
+          Content-Type: application/json
+          accept: application/json
+        metrics:
+          - name: jellyfin
+            type: object
+            help: User playback metrics from Jellyfin Sessions
+            path: "{[?(@.NowPlayingItem)]}"
+            labels:
+              user_name: "{ .UserName }"
+              item_type: "{ .NowPlayingItem.Type }"
+              item_name: "{ .NowPlayingItem.Name }"
+              item_path: "{ .NowPlayingItem.Path }"
+              series_name: "{ .NowPlayingItem.SeriesName }"
+              episode_index: "e{ .NowPlayingItem.IndexNumber }"
+              season_index: "s{ .NowPlayingItem.ParentIndexNumber }"
+              client_name: "{ .Client }"
+              device_name: "{ .DeviceName }"
+              session_id: "{ .Id }"
+            values:
+              active: 1
+              is_paused: "{ .PlayState.IsPaused }"
+    YAML
+    ${pkgs.gnused}/bin/sed -i \
+      "s/__TOKEN__/$(printf '%s' "$TOKEN" | ${pkgs.gnused}/bin/sed 's/[\/&]/\\&/g')/" \
+      /var/lib/json-exporter/config.yml
+    ${pkgs.coreutils}/bin/chmod 0600 /var/lib/json-exporter/config.yml
+  '';
 in {
   config = {
     users.groups.${config.services.prometheus.exporters.json.group} = {};
@@ -106,13 +163,21 @@ in {
         port = exporterPorts.jellyfin;
         openFirewall = false;
         configFile = "/var/lib/json-exporter/config.yml";
+        # json_exporter logs its fully rendered config at info level, including
+        # request headers. Keep the runtime-injected Jellyfin key out of the
+        # journal.
+        extraFlags = ["--log.level=warn"];
       };
 
       node = {
         enable = homelabHostMonitoring;
-        enabledCollectors = ["systemd"];
+        enabledCollectors = [
+          "systemd"
+          "textfile"
+        ];
         openFirewall = false;
         extraFlags = [
+          "--collector.textfile.directory=${textfileDirectory}"
           "--collector.ethtool"
           "--collector.softirqs"
           "--collector.tcpstat"
@@ -135,58 +200,50 @@ in {
 
     services.nginx.statusPage = lib.mkIf config.services.prometheus.exporters.nginx.enable true;
 
-    # Renders the json_exporter config with the Jellyfin API token injected at runtime
-    systemd.services.jellyfin-exporter-config =
-      lib.mkIf config.services.prometheus.exporters.json.enable
-      {
-        description = "Render json_exporter config from Jellyfin API secret";
-        wantedBy = ["multi-user.target"];
-        before = ["prometheus-json-exporter.service"];
-        path = [pkgs.coreutils pkgs.gnused];
-        script = ''
-              set -euo pipefail
-              TOKEN="$(cat ${config.age.secrets.jellyfin-api.path})"
-              umask 077
-              cat > "./config.yml" <<'YAML'
-          modules:
-            jellyfin:
-              headers:
-                Authorization: MediaBrowser Token="__TOKEN__", Client="prometheus-json-exporter", Device="zues", DeviceId="zues-jellyfin-exporter", Version="1.0.0"
-                X-Emby-Token: __TOKEN__
-                Content-Type: application/json
-                accept: application/json
-              metrics:
-                - name: jellyfin
-                  type: object
-                  help: User playback metrics from Jellyfin Sessions
-                  path: "{[?(@.NowPlayingItem)]}"
-                  labels:
-                    user_name: "{ .UserName }"
-                    item_type: "{ .NowPlayingItem.Type }"
-                    item_name: "{ .NowPlayingItem.Name }"
-                    item_path: "{ .NowPlayingItem.Path }"
-                    series_name: "{ .NowPlayingItem.SeriesName }"
-                    episode_index: "e{ .NowPlayingItem.IndexNumber }"
-                    season_index: "s{ .NowPlayingItem.ParentIndexNumber }"
-                    client_name: "{ .Client }"
-                    device_name: "{ .DeviceName }"
-                    session_id: "{ .Id }"
-                  values:
-                    active: 1
-                    is_paused: "{ .PlayState.IsPaused }"
-          YAML
-              # Substitute token safely (escape / and &)
-              sed -i "s/__TOKEN__/$(printf '%s' "$TOKEN" | sed 's/[\/&]/\\&/g')/" "./config.yml"
-              chmod 0600 "./config.yml"
-        '';
-        serviceConfig = {
-          Type = "oneshot";
-          User = config.services.prometheus.exporters.json.user;
-          StateDirectory = "json-exporter";
-          StateDirectoryMode = "0750";
-          UMask = "0066";
-          WorkingDirectory = "%S/json-exporter";
-        };
+    systemd.tmpfiles.rules = lib.mkIf homelabHostMonitoring [
+      "d ${textfileDirectory} 0755 root root -"
+    ];
+
+    systemd.services.homelab-health-metrics = lib.mkIf (homelabHostMonitoring && (btrfsMounts != [] || writablePaths != [] || vpnGuard.service != "")) {
+      description = "Export host health metrics for node_exporter";
+      environment = {
+        HOMELAB_BTRFS_MOUNTS = lib.concatStringsSep ":" btrfsMounts;
+        HOMELAB_METRICS_OUTPUT_DIR = textfileDirectory;
+        HOMELAB_WRITABLE_PATHS = lib.concatStringsSep ":" writablePaths;
+        HOMELAB_VPN_NAMESPACE = vpnGuard.namespace;
+        HOMELAB_VPN_SERVICE = vpnGuard.service;
       };
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe homelabHealthMetrics;
+        UMask = "0022";
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectHome = true;
+        ProtectSystem = "strict";
+        ReadWritePaths = [textfileDirectory];
+      };
+    };
+
+    systemd.timers.homelab-health-metrics = lib.mkIf (homelabHostMonitoring && (btrfsMounts != [] || writablePaths != [] || vpnGuard.service != "")) {
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        OnBootSec = "5m";
+        OnUnitActiveSec = "15m";
+        RandomizedDelaySec = "2m";
+        Persistent = true;
+      };
+    };
+
+    # Render immediately before every exporter start. A stale or partially
+    # written config can no longer survive a successful renderer run.
+    systemd.services.prometheus-json-exporter = lib.mkIf config.services.prometheus.exporters.json.enable {
+      restartTriggers = [config.age.secrets.jellyfin-api.file];
+      serviceConfig = {
+        StateDirectory = "json-exporter";
+        StateDirectoryMode = "0750";
+        ExecStartPre = [renderJellyfinExporterConfig];
+      };
+    };
   };
 }

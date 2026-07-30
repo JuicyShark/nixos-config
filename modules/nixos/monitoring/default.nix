@@ -9,12 +9,30 @@
     ./grafana.nix
     ./prometheus.nix
     ./alertmanager.nix
+    ./diagnostics.nix
   ];
 
   options.modules.monitoring = {
     enable = lib.mkEnableOption "monitoring stack (Prometheus, Alertmanager, Grafana, Loki, and Alloy)";
     host.enable = lib.mkEnableOption "host-level monitoring (node exporter + alloy log shipping)";
     nas.enable = lib.mkEnableOption "NAS disk monitoring (smartctl exporter)";
+    writablePaths = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = "Critical backup or shared paths tested for write access by the host health collector.";
+    };
+    vpnGuard = {
+      service = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "Service whose process must remain inside the expected network namespace.";
+      };
+      namespace = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "Expected network namespace for the guarded service.";
+      };
+    };
   };
 
   config.assertions = [
