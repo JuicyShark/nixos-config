@@ -16,5 +16,11 @@ in {
     enable = true;
     port = exporterPorts.unbound;
     openFirewall = false;
+    unbound = {
+      host = "unix://${config.services.unbound.localControlSocketPath}";
+      ca = null;
+      certificate = null;
+      key = null;
+    };
   };
 }

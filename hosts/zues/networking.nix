@@ -22,10 +22,14 @@ in {
         5353
       ];
     };
-    tailscale0.allowedTCPPorts = [
-      80
-      config.modules.ports.loki
-    ];
+    tailscale0 = {
+      allowedTCPPorts = [
+        53
+        80
+        config.modules.ports.loki
+      ];
+      allowedUDPPorts = [53];
+    };
   };
 
   age.secrets = {
@@ -110,9 +114,13 @@ in {
         ];
         localise-queries = true;
 
-        interface = ["br0"];
+        interface = [
+          "br0"
+          "tailscale0"
+        ];
         except-interface = "enp1s0";
-        bind-interfaces = true;
+        # tailscale0 is created dynamically by tailscaled.
+        bind-dynamic = true;
         expand-hosts = true;
 
         dhcp-ignore-names = true;

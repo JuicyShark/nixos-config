@@ -46,6 +46,13 @@ in {
       nfs.settings.nfsd = {
         vers3 = false;
         vers4 = true;
+        # macOS's `nfsvers=4` defaults to minor version 0, whereas Linux
+        # clients generally negotiate the newest minor version. Keep every
+        # NFSv4 minor version explicitly available so Darwin mounts remain
+        # compatible across client and kernel upgrades.
+        "vers4.0" = true;
+        "vers4.1" = true;
+        "vers4.2" = true;
       };
       nfs.server = {
         enable = true;
