@@ -4,14 +4,13 @@ local function smart_focus_report()
 	local sockets = {}
 	local ok, smart_focus = pcall(require, "juicy.smart_focus")
 	if ok then
-		sockets = smart_focus.socket_candidates(vim.env.XDG_RUNTIME_DIR, vim.env.KITTY_WINDOW_ID, vim.fn.getpid())
+		sockets = smart_focus.socket_candidates(vim.env.XDG_RUNTIME_DIR, vim.fn.getpid())
 	end
 
 	local lines = {
 		"# Smart Focus",
 		"",
 		"Active server: " .. tostring(vim.g.smart_focus_server or "not started"),
-		"KITTY_WINDOW_ID: " .. tostring(vim.env.KITTY_WINDOW_ID or "unset"),
 		"XDG_RUNTIME_DIR: " .. tostring(vim.env.XDG_RUNTIME_DIR or "unset"),
 		"",
 		"## Candidate Sockets",

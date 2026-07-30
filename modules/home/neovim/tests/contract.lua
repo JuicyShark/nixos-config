@@ -10,9 +10,11 @@ local ok_focus, smart_focus = pcall(require, "juicy.smart_focus")
 expect("juicy.smart_focus load", ok_focus)
 
 if ok_focus then
-	local sockets = smart_focus.socket_candidates("/run/user/1000", "123", 456)
-	expect("kitty window socket first", sockets[1] == "/run/user/1000/nvim-smart-focus-kitty-window-123.sock")
-	expect("pid socket second", sockets[2] == "/run/user/1000/nvim-smart-focus-456.sock")
+	local ghostty_sockets = smart_focus.socket_candidates("/run/user/1000", 789)
+	expect(
+		"Ghostty uses pid socket",
+		#ghostty_sockets == 1 and ghostty_sockets[1] == "/run/user/1000/nvim-smart-focus-789.sock"
+	)
 
 	if #vim.api.nvim_tabpage_list_wins(0) > 1 then
 		vim.cmd("only")
@@ -72,6 +74,10 @@ expect("nvim-ufo removed", not pcall(require, "ufo"))
 expect("compiler.nvim removed", vim.fn.exists(":CompilerOpen") == 0)
 expect("Overseer task command", vim.fn.exists(":OverseerRun") == 2)
 expect("word-level inline diff", vim.list_contains(vim.opt.diffopt:get(), "inline:word"))
+
+local command_line_map = vim.fn.maparg(";", "n", false, true)
+expect("semicolon enters command-line mode", command_line_map.rhs == ":")
+expect("colon keeps its built-in command-line behavior", vim.fn.maparg(":", "n") == "")
 
 local code_map = vim.fn.maparg("<leader>cd", "n", false, true)
 expect("Doom-style code prefix", code_map.desc == "Definitions")

@@ -1,6 +1,12 @@
 _: {
   programs.nixvim.keymaps = [
     {
+      mode = "n";
+      key = ";";
+      action = ":";
+      options.desc = "Enter command-line mode";
+    }
+    {
       mode = ["n" "v"];
       key = "gx";
       action.__raw = "function() open_hyperlink_under_cursor() end";

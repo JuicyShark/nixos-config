@@ -4,7 +4,10 @@
   pkgs,
   ...
 }: let
-  qutebrowser = lib.getExe pkgs.qutebrowser;
+  linkOpener =
+    if pkgs.stdenv.hostPlatform.isDarwin
+    then "/usr/bin/open"
+    else lib.getExe pkgs.qutebrowser;
   linksModule = ./lua/juicy/links.lua;
   notesModule = ./lua/juicy/notes.lua;
   smartFocusModule = ./lua/juicy/smart_focus.lua;
@@ -49,7 +52,7 @@ in {
       package.preload["juicy.notes"] = assert(loadfile("${notesModule}"))
       package.preload["juicy.smart_focus"] = assert(loadfile("${smartFocusModule}"))
 
-      require("juicy.links").setup("${qutebrowser}")
+      require("juicy.links").setup("${linkOpener}")
       require("juicy.notes").setup()
       require("juicy.smart_focus").start()
     end

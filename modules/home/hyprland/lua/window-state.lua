@@ -33,11 +33,6 @@ return function(ctx)
 
 	local api = {}
 
-	function api.toggleFakeFullscreen()
-		hl.dispatch(hl.dsp.window.tag({ tag = "fake-fullscreen-borderless" }))
-		hl.dispatch(hl.dsp.window.fullscreen_state({ internal = 3, client = 0, action = "toggle" }))
-	end
-
 	function api.togglePictureInPicture()
 		hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
 		hl.dispatch(hl.dsp.window.pin({ action = "toggle" }))

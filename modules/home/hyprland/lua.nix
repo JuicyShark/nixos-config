@@ -58,7 +58,10 @@
         gaps_out = 0;
         gaps_in = 0;
       };
-      decoration.rounding = 0;
+      decoration = {
+        rounding = 0;
+        shadow.enabled = false;
+      };
       group.groupbar = {
         rounding = 0;
         gradient_rounding = 0;
@@ -70,6 +73,7 @@
       };
       decoration = {
         inherit (settings.decoration) rounding;
+        shadow.enabled = settings.decoration.shadow.enabled;
       };
       group.groupbar = {
         inherit (settings.group.groupbar) rounding gradient_rounding;
@@ -91,10 +95,13 @@
       (luaModuleWithArgs "next-window" {
         timeoutMs = 5 * 60 * 1000;
       })
+      (luaModuleWithArgs "cwd" {
+        pgrep = commands.pgrepBin;
+        readlink = commands.readlinkBin;
+      })
       (luaModuleWithArgs "terminal" {
-        terminal = commands.terminalBin;
         fallback = commands.terminal;
-        remoteControl = cfg.terminalBackend == "kitty";
+        workingDirectoryFlag = "--working-directory";
       })
       (luaModuleWithArgs "window-state" {})
       (luaModuleWithArgs "monitor-policy" {
@@ -109,8 +116,7 @@
           inherit (cfg.features) emacs neovim;
         };
         apps = {
-          kitty = commands.kittyBin;
-          jq = commands.jqBin;
+          terminal = commands.terminalBin;
           nvim = commands.nvimBin;
           emacsclient = commands.emacsclientBin;
           timeout = commands.timeoutBin;

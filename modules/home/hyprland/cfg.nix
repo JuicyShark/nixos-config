@@ -14,7 +14,6 @@
   hasJellyfinMpvShim = desktop.media.jellyfinMpvShim.enable or false;
   hasZsa = osConfig.modules.system.keyboard.zsa or false;
   hasTmux = config.programs.tmux.enable or false;
-  terminalBackend = config.modules.terminal.backend;
   smartFocus =
     config.modules.terminalMultiplexers.smartFocus or {
       keys = {
@@ -104,13 +103,11 @@
     hyprlandStatePublish = pkgs.writeShellScript "hyprland-state-publish" hyprlandStatePublishScript;
   };
 in {
-  inherit terminalBackend uwsmAppPrefix;
+  inherit uwsmAppPrefix;
   desktop = desktopPolicy;
 
   apps = {
-    terminal = lib.getExe config.modules.terminal.package;
-    kitty = lib.getExe pkgs.kitty;
-    jq = lib.getExe pkgs.jq;
+    terminal = config.modules.terminal.command;
     nvim = lib.getExe (
       if config.programs.nixvim.enable or false
       then config.programs.nixvim.build.package
@@ -119,6 +116,8 @@ in {
     tmux = lib.getExe pkgs.tmux;
     playerctl = lib.getExe pkgs.playerctl;
     pkill = "${pkgs.procps}/bin/pkill";
+    pgrep = "${pkgs.procps}/bin/pgrep";
+    readlink = "${pkgs.coreutils}/bin/readlink";
     timeout = "${pkgs.coreutils}/bin/timeout";
     yazi = lib.getExe pkgs.yazi;
     emacsclient = lib.getExe' osConfig.modules.emacs.package "emacsclient";

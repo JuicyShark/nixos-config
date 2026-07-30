@@ -1,7 +1,7 @@
 -- Directional focus router. Decides per-keypress whether a SUPER+arrow
 -- should move focus inside emacs (window-in-direction), inside direct
--- terminal neovim, inside tmux, inside Kitty's own window grid, or to
--- the next Hyprland window. Exported as ctx.smartFocus.
+-- terminal neovim, inside tmux, or to the next Hyprland window. Exported as
+-- ctx.smartFocus.
 --
 -- Behaviour:
 --   1. If active window is emacs-class, or a terminal with an emacs
@@ -12,9 +12,7 @@
 --   3. Else if active is a terminal with tmux in its process tree, preflight
 --      tmux pane-edge state and send the configured shortcut only when a pane
 --      exists in that direction.
---   4. Else if active is Kitty, focus Kitty's neighboring window when one
---      exists in that direction.
---   5. Else move Hyprland focus.
+--   4. Else move Hyprland focus.
 
 return function(ctx, opts)
 	local hl = ctx.hl
@@ -27,21 +25,7 @@ return function(ctx, opts)
 	local smartFocusMultiplexers = smartFocusConfig.multiplexers or {}
 
 	local terminal_classes = {
-		kitty = true,
-		dropdown = true,
-		pinned = true,
-		["floating-editor"] = true,
 		["com.mitchellh.ghostty"] = true,
-		["org.wezfurlong.wezterm"] = true,
-		["org.alacritty"] = true,
-		foot = true,
-	}
-
-	local kitty_classes = {
-		kitty = true,
-		dropdown = true,
-		pinned = true,
-		["floating-editor"] = true,
 	}
 
 	local emacs_classes = {
@@ -52,28 +36,24 @@ return function(ctx, opts)
 	local DIRS = {
 		left = {
 			emacs = "left",
-			kitty = "left",
 			key = smartFocusKeys.left or "left",
 			hypr = "left",
 			tmux_edge = "pane_at_left",
 		},
 		right = {
 			emacs = "right",
-			kitty = "right",
 			key = smartFocusKeys.right or "right",
 			hypr = "right",
 			tmux_edge = "pane_at_right",
 		},
 		up = {
 			emacs = "above",
-			kitty = "top",
 			key = smartFocusKeys.up or "up",
 			hypr = "up",
 			tmux_edge = "pane_at_top",
 		},
 		down = {
 			emacs = "below",
-			kitty = "bottom",
 			key = smartFocusKeys.down or "down",
 			hypr = "down",
 			tmux_edge = "pane_at_bottom",
@@ -158,22 +138,6 @@ return function(ctx, opts)
 			return nil
 		end
 		return rt .. "/nvim-smart-focus-" .. tostring(pid) .. ".sock"
-	end
-
-	local function nvim_kitty_window_socket(window_id)
-		local rt = os.getenv("XDG_RUNTIME_DIR")
-		if not rt or not window_id then
-			return nil
-		end
-		return rt .. "/nvim-smart-focus-kitty-window-" .. tostring(window_id) .. ".sock"
-	end
-
-	local function kitty_socket(pid)
-		local rt = os.getenv("XDG_RUNTIME_DIR")
-		if not rt or not pid then
-			return nil
-		end
-		return "unix:" .. rt .. "/kitty-" .. tostring(pid)
 	end
 
 	-- TTL cache for descendant scans. A held SUPER+arrow repeats ~50/sec;
@@ -268,49 +232,6 @@ return function(ctx, opts)
 			return nil
 		end
 		return shell_quote(apps.timeout) .. " 0.12s " .. shell_quote(apps.tmux) .. " " .. action .. " 2>/dev/null"
-	end
-
-	local function kitty_cmd(pid, action)
-		if not apps.kitty or not apps.timeout then
-			return nil
-		end
-		local socket = kitty_socket(pid)
-		if not socket then
-			return nil
-		end
-		return shell_quote(apps.timeout)
-			.. " 0.12s "
-			.. shell_quote(apps.kitty)
-			.. " @ --to "
-			.. shell_quote(socket)
-			.. " "
-			.. action
-			.. " 2>/dev/null"
-	end
-
-	local function kitty_active_context(pid)
-		if not apps.jq then
-			return nil, nil
-		end
-		local cmd = kitty_cmd(
-			pid,
-			"ls | "
-				.. shell_quote(apps.jq)
-				.. " -r "
-				.. shell_quote(
-					"[.[] | select(.is_active)][0].tabs"
-						.. " | [.[] | select(.is_active)][0].windows"
-						.. " | [.[] | select(.is_active)][0]"
-						.. " | [.env.KITTY_WINDOW_ID, (.foreground_processes[0].pid // .pid // empty)]"
-						.. " | @tsv"
-				)
-		)
-		local context = trim_output(read_command(cmd))
-		if not context or context == "" then
-			return nil, nil
-		end
-		local window_id, foreground_pid = context:match("^([^\t]+)\t(%d+)$")
-		return window_id, tonumber(foreground_pid)
 	end
 
 	-- Cheap precheck: does the emacs daemon socket exist? Avoids paying the
@@ -438,17 +359,6 @@ return function(ctx, opts)
 		return nil
 	end
 
-	local function try_kitty(pid, d)
-		if not d.kitty then
-			return false
-		end
-		local cmd = kitty_cmd(pid, "focus-window --match neighbor:" .. d.kitty)
-		if not cmd then
-			return false
-		end
-		return read_command(cmd) ~= nil
-	end
-
 	local function send_terminal_shortcut(mods, d)
 		-- send_shortcut inherits the current bind press state; from SUPER+arrow
 		-- key-down it can leave the injected shortcut pressed in the newly
@@ -462,7 +372,7 @@ return function(ctx, opts)
 	end
 
 	local function open_nvim_window()
-		if not hasNeovim or not apps.kitty then
+		if not hasNeovim or not apps.terminal or not apps.nvim then
 			return false
 		end
 
@@ -472,21 +382,17 @@ return function(ctx, opts)
 		end
 
 		local class = w.class or ""
-		local pid = tonumber(w.pid) or 0
-		if kitty_classes[class] ~= true or pid <= 0 then
+		-- Ghostty keeps one terminal surface per Hyprland window. Read the
+		-- focused terminal descendant's cwd before opening the next window.
+		if terminal_classes[class] ~= true then
 			return false
 		end
-
-		-- Kitty already knows the cwd of the focused terminal window. Asking it
-		-- to launch with --cwd=current avoids depending on Neovim RPC state (or
-		-- on the shell being a direct child of Kitty).
-		hl.exec_cmd(
-			apps.kitty
-				.. " @ --to "
-				.. shell_quote(kitty_socket(pid))
-				.. " launch --type=os-window --cwd=current "
-				.. shell_quote(apps.nvim)
-		)
+		local cwd = ctx.cwd and ctx.cwd.forWindow(w)
+		local command = shell_quote(apps.terminal)
+		if cwd then
+			command = command .. " --working-directory=" .. shell_quote(cwd)
+		end
+		hl.exec_cmd(command .. " -e " .. shell_quote(apps.nvim))
 		return true
 	end
 
@@ -507,10 +413,6 @@ return function(ctx, opts)
 
 		local is_emacs_class = emacs_classes[class] == true
 		local is_terminal = terminal_classes[class] == true
-		local kitty_window_id, kitty_foreground_pid = nil, nil
-		if kitty_classes[class] == true and pid > 0 then
-			kitty_window_id, kitty_foreground_pid = kitty_active_context(pid)
-		end
 
 		-- Pure emacs window: skip the descendant scan entirely.
 		if hasEmacs and is_emacs_class then
@@ -522,9 +424,8 @@ return function(ctx, opts)
 		end
 
 		local has_tmux, has_emacs_proc, has_nvim_proc, nvim_pid = false, false, false, nil
-		local scan_pid = kitty_foreground_pid or (kitty_classes[class] ~= true and pid or nil)
-		if is_terminal and scan_pid and scan_pid > 0 then
-			has_tmux, has_emacs_proc, has_nvim_proc, nvim_pid = scan_descendants(scan_pid)
+		if is_terminal and pid > 0 then
+			has_tmux, has_emacs_proc, has_nvim_proc, nvim_pid = scan_descendants(pid)
 		end
 
 		if hasEmacs and has_emacs_proc then
@@ -534,13 +435,7 @@ return function(ctx, opts)
 		end
 
 		if is_terminal and hasNeovim and not has_tmux then
-			if kitty_classes[class] == true then
-				local result = try_nvim(nvim_kitty_window_socket(kitty_window_id), d)
-				if result == true then
-					return
-				end
-			end
-			if kitty_classes[class] ~= true and try_nvim(nvim_socket(nvim_pid), d) then
+			if try_nvim(nvim_socket(nvim_pid), d) then
 				return
 			end
 		end
@@ -549,12 +444,6 @@ return function(ctx, opts)
 			local has_tmux_pane = tmux_has_pane_in_direction(d)
 			if has_tmux_pane == true then
 				send_terminal_shortcut(multiplexer_mod("tmux", "CTRL"), d)
-				return
-			end
-		end
-
-		if kitty_classes[class] == true and pid > 0 then
-			if try_kitty(pid, d) then
 				return
 			end
 		end

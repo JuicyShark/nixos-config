@@ -23,22 +23,17 @@ function M.move(direction)
 	return 1
 end
 
-function M.socket_candidates(runtime_dir, kitty_window_id, nvim_pid)
+function M.socket_candidates(runtime_dir, nvim_pid)
 	if not runtime_dir or runtime_dir == "" then
 		return {}
 	end
 
-	local sockets = {}
-	if kitty_window_id and kitty_window_id ~= "" then
-		table.insert(sockets, runtime_dir .. "/nvim-smart-focus-kitty-window-" .. tostring(kitty_window_id) .. ".sock")
-	end
-	table.insert(sockets, runtime_dir .. "/nvim-smart-focus-" .. tostring(nvim_pid) .. ".sock")
-	return sockets
+	return { runtime_dir .. "/nvim-smart-focus-" .. tostring(nvim_pid) .. ".sock" }
 end
 
 function M.start()
 	local rt = vim.env.XDG_RUNTIME_DIR
-	local sockets = M.socket_candidates(rt, vim.env.KITTY_WINDOW_ID, vim.fn.getpid())
+	local sockets = M.socket_candidates(rt, vim.fn.getpid())
 	if #sockets == 0 then
 		return {}
 	end

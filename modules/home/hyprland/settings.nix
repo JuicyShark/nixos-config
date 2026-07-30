@@ -3,7 +3,10 @@
   config,
 }: let
   colors = config.lib.stylix.colors;
+  normalAccent = "3f4b2b";
+  groupAccent = "5c6e3b";
   rgb = color: "rgb(${color})";
+  rgba = alpha: color: "rgba(${color}${alpha})";
 in {
   monitor = cfg.desktop.monitors;
 
@@ -20,7 +23,7 @@ in {
       gaps_out = 24;
       border_size = 4;
       col = {
-        active_border = rgb colors.base0B;
+        active_border = rgb normalAccent;
         inactive_border = rgb colors.base02;
       };
       resize_on_border = true;
@@ -43,9 +46,10 @@ in {
       dim_special = 0.25;
       shadow = {
         enabled = true;
-        range = 30;
-        render_power = 3;
-        color = "rgba(0A1F0E88)";
+        range = 20;
+        render_power = 2;
+        color = rgba "55" groupAccent;
+        color_inactive = rgba "10" colors.base02;
       };
       blur = {
         enabled = true;
@@ -59,28 +63,35 @@ in {
       merge_groups_on_groupbar = true;
       drag_into_group = 2;
       col = {
-        border_active = rgb colors.base0B;
+        # Normal-window borders remain under general.col; groups and locked
+        # groups each get a distinct state colour here.
+        border_active = rgb groupAccent;
         border_inactive = rgb colors.base01;
+        border_locked_active = rgb colors.base0A;
+        border_locked_inactive = rgb colors.base03;
       };
       groupbar = {
         enabled = true;
+        gradients = true;
         indicator_height = 0;
         disable_when_only = true;
         font_size = 14;
         font_weight_active = "bold";
         font_weight_inactive = "book";
-        height = 24;
-        text_offset = -3;
-        text_padding = 3;
+        height = 28;
+        text_offset = 0;
+        text_padding = 0;
         text_color = "0xFF${colors.base07}";
         text_color_inactive = "0xFF${colors.base05}";
         col = {
-          active = rgb colors.base02;
-          inactive = rgb colors.base02;
+          active = rgba "cc" groupAccent;
+          inactive = rgba "cc" colors.base02;
+          locked_active = rgba "66" colors.base0A;
+          locked_inactive = rgba "cc" colors.base03;
         };
         rounding_power = 1.0;
-        rounding = 16;
-        gradient_rounding = 16;
+        rounding = 0;
+        gradient_rounding = 0;
         gaps_out = 0;
         gaps_in = 0;
         keep_upper_gap = false;
@@ -114,11 +125,20 @@ in {
     };
 
     scrolling = {
+      # Keep a lone terminal or file manager as a column rather than silently
+      # turning it into a fullscreen workspace on the 32:9 panel.
       fullscreen_on_one_column = false;
+      # The fallback is deliberately a comfortable general-purpose column.
+      # App rules below specialize from this ladder where their content needs
+      # either a denser or wider working surface.
       column_width = 0.35;
       focus_fit_method = 1;
+      follow_focus = true;
       follow_min_visible = 0.9;
-      explicit_column_widths = "0.15, 0.3,  0.5, 0.65625, 1.0";
+      # These are the useful 5120x1440 working widths for colresize +/-conf:
+      # tiny, compact terminal/utility, general, editor, browser, video,
+      # ultrawide, full.
+      explicit_column_widths = "0.2, 0.3, 0.35, 0.4, 0.45, 0.5, 0.65625, 1.0";
       direction = "right";
     };
 
@@ -135,7 +155,7 @@ in {
       disable_autoreload = true;
       font_family = "IosevkaTerm Nerd Font";
       enable_swallow = true;
-      swallow_regex = "^(com.mitchellh.ghostty|kitty)$";
+      swallow_regex = "^com.mitchellh.ghostty$";
       session_lock_xray = true;
       vrr = 1;
       size_limits_tiled = false; # Enabling ruins scrolling layout -- https://github.com/hyprwm/Hyprland/pull/13445

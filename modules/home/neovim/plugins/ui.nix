@@ -369,7 +369,7 @@
               enabled = true;
               format = "lsp_progress";
               formatDone = "lsp_progress";
-              throttle = 1000 / 30;
+              throttle = 33;
               view = "mini";
             };
             message = {

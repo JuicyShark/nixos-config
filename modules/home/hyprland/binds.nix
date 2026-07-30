@@ -210,7 +210,7 @@
       (mbind "Home" "Previous workspace" (dsp ''hl.dsp.focus({ workspace = "previous_per_monitor" })'' navCore) navCore)
       (mbind "Return" "Terminal" (luaAction "Juicy.terminal.open()" {}) {})
       (mbind "CONTROL + Return" "Neovim project window" (luaAction "Juicy.openNvimWindow()" {}) {})
-      (mbind "CONTROL + Space" "Consume next window" (layout ''{ scrolling = function() Juicy.nextWindow.toggleConsume() end }'' {}) {})
+      (mbind "D" "Arm next-window consume" (luaAction "Juicy.nextWindow.toggleConsume()" {}) {})
     ]
     ++ workspaceBinds
     ++ [
@@ -341,6 +341,8 @@
         [
           (bind "left" "Group previous" (dsp "hl.dsp.group.prev()" {repeating = true;}) {repeating = true;})
           (bind "right" "Group next" (dsp "hl.dsp.group.next()" {repeating = true;}) {repeating = true;})
+          (bind "SHIFT + left" "Group into left" (dsp ''hl.dsp.window.move({ into_or_create_group = "l" })'' {}) {})
+          (bind "SHIFT + right" "Group into right" (dsp ''hl.dsp.window.move({ into_or_create_group = "r" })'' {}) {})
           (bind "R" "Group previous" (dsp "hl.dsp.group.prev()" {
               repeating = true;
               hidden = true;
@@ -359,7 +361,10 @@
           (bind "L" "Lock group" (dsp ''hl.dsp.group.lock_active({ action = "toggle" })'' {}) {})
           (bind "U" "Ungroup active" (dsp "hl.dsp.window.move({ out_of_group = true })" {}) {})
         ]
-        ++ map (tab: bind (toString tab) "Focus group ${toString tab}" (dsp "hl.dsp.group.active({ index = ${toString tab} })" {}) {}) [1 2 3 4 5 6 7 8 9]
+        ++ map (tab:
+          bind (toString tab) "Focus group ${toString tab}" (dsp "hl.dsp.group.active({ index = ${toString tab} })" {}) {
+            hidden = tab > 3;
+          }) [1 2 3 4 5 6 7 8 9]
       );
 
       layout = withReset [
@@ -457,9 +462,9 @@
       ];
 
       window = withReset [
-        (bind "M" "Fake fullscreen over maximize" (luaAction "Juicy.window.toggleFakeFullscreen(0, 2)" {}) {})
+        (bind "M" "Fake fullscreen over maximize" (dsp ''hl.dsp.window.fullscreen_state({ internal = 0, client = 2, action = "toggle" })'' {}) {})
         (submapEntry "R" "windowResize" "Resize window" {})
-        (bind "CONTROL + M" "Toggle fullscreen" (dsp ''hl.dsp.window.fullscreen({ mode = "fullscreen" })'' {}) {})
+        (bind "CONTROL + M" "Toggle fullscreen" (dsp ''hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" })'' {}) {})
         (bind "F" "Toggle floating" (dsp ''hl.dsp.window.float({ action = "toggle" })'' {}) {})
         (bind "P" "Picture in picture" (luaAction "Juicy.window.togglePictureInPicture()" {}) {})
         (bind "S" "Swap split" (dsp ''hl.dsp.layout("swapsplit")'' {}) {})
@@ -526,9 +531,9 @@
     }
     // lib.optionalAttrs cfg.features.tmux {
       tmux = withReset [
-        (bind "S" "Tmux new session" (exec "${commands.terminal} -- ${commands.tmuxNewSession}" {}) {})
-        (bind "L" "Tmux list sessions" (exec "${commands.terminal} -- ${commands.tmuxListSessions}" {}) {})
-        (bind "A" "Tmux attach" (exec "${commands.terminal} -- ${commands.tmuxAttachSession}" {}) {})
+        (bind "S" "Tmux new session" (exec (commands.terminalExec commands.tmuxNewSession) {}) {})
+        (bind "L" "Tmux list sessions" (exec (commands.terminalExec commands.tmuxListSessions) {}) {})
+        (bind "A" "Tmux attach" (exec (commands.terminalExec commands.tmuxAttachSession) {}) {})
         (bind "D" "Tmux detach" (exec commands.tmuxDetach {}) {})
         (bind "R" "Tmux reload" (exec commands.tmuxReload {}) {})
       ];

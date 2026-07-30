@@ -24,9 +24,8 @@
   stateTopic = "${topicBase}/state";
   configTopic = "${topicBase}/config";
 
-  # mosquitto_pub args common to every publish. Password read from file via -P
-  # would leak in argv; mosquitto_pub supports --pw-file via env, but the
-  # cleanest portable form is reading into a variable in the wrapper script.
+  # mosquitto_pub arguments common to every publish. Authentication is loaded
+  # from a private options file so the password never appears in argv.
   mqttPub = pkgs.writeShellApplication {
     name = "ha-presence-mqtt-pub";
     runtimeInputs = [pkgs.mosquitto];
@@ -34,24 +33,31 @@
       topic="''${1:?usage: ha-presence-mqtt-pub <topic> <payload>}"
       payload="''${2:?usage: ha-presence-mqtt-pub <topic> <payload>}"
       pass_file="${passPath}"
+      auth_file="$(mktemp)"
+      trap 'rm -f "$auth_file"' EXIT
       if [ ! -r "$pass_file" ]; then
         echo "ha-presence: cannot read $pass_file" >&2
         exit 1
       fi
-      pass=$(cat "$pass_file")
-      # Password ends up in argv briefly. Acceptable on single-user desktop
-      # (proc cmdline is mode 0400 to the owning user); mosquitto_pub has no
-      # password-file flag.
+
+      # mosquitto 2.1 supports authentication options in a private config file,
+      # keeping the password out of the process command line.
+      {
+        printf '%s %s\n' '-u' "${cfg.username or ""}"
+        printf '%s ' '-P'
+        cat "$pass_file"
+        printf '\n'
+      } >"$auth_file"
+
       mosquitto_pub \
+        -o "$auth_file" \
         -h "${cfg.brokerHost or ""}" \
         -p "${toString (cfg.brokerPort or 1883)}" \
-        -u "${cfg.username or ""}" \
-        -P "$pass" \
         -t "$topic" \
         -m "$payload" \
         -r \
         -q 1 \
-        --keepalive 10 || true
+        --keepalive 10
     '';
   };
 
@@ -97,6 +103,17 @@
   })'";
 in {
   config = lib.mkIf enabled {
+    assertions = [
+      {
+        assertion = cfg.brokerHost != "";
+        message = "modules.haPresence.brokerHost must be set when presence publishing is enabled";
+      }
+      {
+        assertion = cfg.username != "";
+        message = "modules.haPresence.username must be set when presence publishing is enabled";
+      }
+    ];
+
     home.packages = [ha-presence-update ha-presence-discover mqttPub];
 
     programs.noctalia.settings.hooks = {

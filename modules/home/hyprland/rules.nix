@@ -120,17 +120,32 @@ in {
         suppress_event = "maximize";
       }
       {
-        match.class = "(kitty|com.mitchellh.ghostty)";
-        scrolling_width = 0.2;
+        match.class = "com.mitchellh.ghostty";
+        scrolling_width = 0.3;
       }
       {
         match.class = "(org.qutebrowser.qutebrowser|chromium-browser|Chromium|google-chrome|Google-chrome|chrome|vivaldi-stable|Vivaldi-stable|firefox|firefox-esr|librewolf|brave-browser|Brave-browser|microsoft-edge|Microsoft-edge)";
-        scrolling_width = 0.25;
+        # Just under 16:9 at the usable height of the ultrawide.
+        scrolling_width = 0.45;
         suppress_event = "fullscreen fullscreenoutput maximize";
       }
       {
         match.class = "emacs";
-        scrolling_width = 0.25;
+        scrolling_width = 0.4;
+      }
+      {
+        # Narrow, navigation-heavy apps work well as a companion column.
+        match.class = "(thunar|org.gnome.Nautilus|dolphin|pcmanfm|org.keepassxc.KeePassXC|bitwarden)";
+        scrolling_width = 0.3;
+      }
+      {
+        # Notes and IDEs need enough line length without claiming the panel.
+        match.class = "(obsidian|logseq|Code|code|codium|VSCodium|jetbrains-.+)";
+        scrolling_width = 0.4;
+      }
+      {
+        match.class = "(com.obsproject.Studio|tidal-hifi)";
+        scrolling_width = 0.5;
       }
       {
         match.class = "mpv";
@@ -360,8 +375,9 @@ in {
         match.tag = "low-latency";
         immediate = true;
       }
+      # Client fullscreen owns the border so it returns automatically on exit.
       {
-        match.tag = "fake-fullscreen-borderless";
+        match.fullscreen_state_client = 2;
         border_size = 0;
       }
       {

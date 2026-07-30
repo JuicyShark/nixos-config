@@ -3,11 +3,13 @@ return function(ctx, opts)
 	opts = opts or {}
 
 	local armed = false
+	local consumeTarget = nil
 	local timeoutToken = 0
 	local timeoutMs = opts.timeoutMs or (5 * 60 * 1000)
 
 	local function disarm()
 		armed = false
+		consumeTarget = nil
 	end
 
 	local function isOrdinaryTiledWindow(window)
@@ -23,6 +25,11 @@ return function(ctx, opts)
 	local function toggleConsume()
 		if armed then
 			disarm()
+			return
+		end
+
+		consumeTarget = hl.get_active_window()
+		if not consumeTarget then
 			return
 		end
 
@@ -45,8 +52,6 @@ return function(ctx, opts)
 			return
 		end
 
-		disarm()
-
 		local active = hl.get_active_window()
 		if
 			not isOrdinaryTiledWindow(window)
@@ -56,7 +61,11 @@ return function(ctx, opts)
 			return
 		end
 
+		local target = consumeTarget
+		disarm()
+		hl.dispatch(hl.dsp.focus({ window = target }))
 		hl.dispatch(hl.dsp.layout("consume"))
+		hl.dispatch(hl.dsp.layout("focus u"))
 	end)
 
 	local api = {

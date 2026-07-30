@@ -4,17 +4,21 @@
   pkgs,
 }: let
   app = command: "${cfg.uwsmAppPrefix} ${command}";
+  terminalExec = command: app "${cfg.apps.terminal} -e ${command}";
+  terminalExecWithTitle = title: command: app "${cfg.apps.terminal} --title=${title} -e ${command}";
   noctaliaMsg = command: "${cfg.apps.noctalia} msg ${command}";
   emacs = command: app "${cfg.apps.emacsclient} ${command}";
   emacsEval = expr: emacs "-c --eval ${lib.escapeShellArg expr}";
 in {
   commands = rec {
-    terminal = app "${cfg.apps.terminal} --title terminal";
+    # The Linux launcher calls `ghostty +new-window` through D-Bus, avoiding
+    # a full GTK startup for every Hyprland launch.
+    terminal = app cfg.apps.terminal;
     browser = app cfg.apps.browser;
     privateBrowser = app "${cfg.apps.browser} --incognito";
     qutebrowser = app cfg.apps.qutebrowser;
     thunar = app cfg.apps.thunar;
-    yazi = app "${cfg.apps.terminal} --title yazi -e ${cfg.apps.yazi}";
+    yazi = terminalExecWithTitle "yazi" cfg.apps.yazi;
     volumeMixer = app cfg.apps.pwvucontrol;
     colorPicker = app "${cfg.apps.hyprpicker} -a";
 
@@ -73,8 +77,9 @@ in {
     statePublish = cfg.scripts.hyprlandStatePublish;
 
     terminalBin = cfg.apps.terminal;
-    kittyBin = cfg.apps.kitty;
-    jqBin = cfg.apps.jq;
+    inherit terminalExec;
+    pgrepBin = cfg.apps.pgrep;
+    readlinkBin = cfg.apps.readlink;
     nvimBin = cfg.apps.nvim;
     emacsclientBin = cfg.apps.emacsclient;
     timeoutBin = cfg.apps.timeout;
