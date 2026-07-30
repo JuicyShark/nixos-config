@@ -5,35 +5,29 @@
   ...
 }: let
   inherit (lib) mkEnableOption mkIf mkOption;
-  inherit (lib.types) enum;
+  inherit (lib.types) bool enum ints path port str;
 
   cfg = config.modules.minecraft.server;
 
-  user = "minecraft";
-  userId = 503;
+  inherit (cfg) user;
   loginUser = config.modules.profile.username;
-  serviceHome = "/var/${user}";
+  serviceHome = cfg.homeDir;
   isSkyFactory5 = cfg.pack == "skyfactory5";
-  levelName =
-    if isSkyFactory5
-    then "world"
-    else "world";
+  levelName = "world";
   dataDir =
     if isSkyFactory5
     then "${serviceHome}/skyfactory5"
     else "${serviceHome}/data";
   logDir = "${serviceHome}/logs";
   launchdLog = "${logDir}/launchd.log";
-  stableStartLazymc = "/Library/PrivilegedHelperTools/org.nixos.lazymc.start";
 
   javaPackage =
     if isSkyFactory5
     then pkgs.jdk17_headless
     else pkgs.jdk25_headless;
-  jvmOpts = "-Xms1G -Xmx12G";
-  serverPort = 25566;
+  jvmOpts = "-Xms${cfg.jvmMinMemory} -Xmx${cfg.jvmMaxMemory}";
+  inherit (cfg) serverPort rconPort;
   serverAddress = "127.0.0.1:${toString serverPort}";
-  rconPort = 25575;
   rconPasswordFile = config.age.secrets.minecraft-rcon-password.path;
   serverProperties = {
     "level-name" = levelName;
@@ -80,29 +74,17 @@
     )
   );
 
+  syncSkyFactoryPackProgram = ./minecraft-sync-pack.py;
+
   syncSkyFactoryPack = pkgs.writeShellScript "sync-skyfactory5-pack" ''
     set -eu
 
     pack=${lib.escapeShellArg pkgs.skyfactory5-server-pack}
     target=${lib.escapeShellArg dataDir}
+    marker="$target/.nix-pack-source"
 
     ${pkgs.coreutils}/bin/install -d -m 0750 "$target"
-    ${pkgs.coreutils}/bin/chmod -R u+rwX "$target"
-
-    # Keep world state mutable and persistent; refresh pack-owned files only.
-    for entry in "$pack"/* "$pack"/.[!.]* "$pack"/..?*; do
-      [ -e "$entry" ] || continue
-      name="$(${pkgs.coreutils}/bin/basename "$entry")"
-
-      case "$name" in
-        world|eula.txt|server.properties|lazymc.toml|logs)
-          continue
-          ;;
-      esac
-
-      ${pkgs.coreutils}/bin/rm -rf "$target/$name"
-      ${pkgs.coreutils}/bin/cp -R "$entry" "$target/$name"
-    done
+    ${pkgs.python3}/bin/python3 ${syncSkyFactoryPackProgram} "$pack" "$target" "$marker"
 
     ${pkgs.coreutils}/bin/chmod -R u+rwX,g+rX "$target"
 
@@ -117,13 +99,13 @@
     fi
     if [ -f "$target/settings.sh" ]; then
       ${pkgs.gnused}/bin/sed -i \
-        -e 's|^export MIN_RAM=.*|export MIN_RAM="1024M"|' \
-        -e 's|^MAX_RAM=.*|MAX_RAM=8192M|' \
-        -e 's|^export MAX_RAM=.*|export MAX_RAM="8192M"|' \
+        -e 's|^export MIN_RAM=.*|export MIN_RAM="${cfg.jvmMinMemory}"|' \
+        -e 's|^MAX_RAM=.*|MAX_RAM=${cfg.jvmMaxMemory}|' \
+        -e 's|^export MAX_RAM=.*|export MAX_RAM="${cfg.jvmMaxMemory}"|' \
         "$target/settings.sh"
     fi
     if [ -f "$target/user_jvm_args.txt" ]; then
-      ${pkgs.coreutils}/bin/printf '%s\n' '-Xms1G' '-Xmx12G' > "$target/user_jvm_args.txt"
+      ${pkgs.coreutils}/bin/printf '%s\n' '-Xms${cfg.jvmMinMemory}' '-Xmx${cfg.jvmMaxMemory}' > "$target/user_jvm_args.txt"
     fi
   '';
 
@@ -163,7 +145,7 @@
 
   lazymcConfigTemplate = (pkgs.formats.toml {}).generate "lazymc.toml" {
     public = {
-      address = "192.168.1.52:25565";
+      address = cfg.publicAddress;
       version =
         if isSkyFactory5
         then "1.20.1"
@@ -232,6 +214,8 @@
     lazymc_template, secret_path, data_dir = sys.argv[1:]
     data_dir = pathlib.Path(data_dir)
     rcon_password = pathlib.Path(secret_path).read_text().replace("\r", "").replace("\n", "")
+    if not rcon_password:
+        raise SystemExit("Minecraft RCON password is empty")
 
     lazymc = pathlib.Path(lazymc_template).read_text()
     (data_dir / "lazymc.toml").write_text(
@@ -258,6 +242,30 @@ in {
   options.modules.minecraft.server = {
     enable = mkEnableOption "hibernating Minecraft server for darwin";
 
+    user = mkOption {
+      type = str;
+      default = "minecraft";
+      description = "Dedicated account used by the Minecraft daemon.";
+    };
+
+    uid = mkOption {
+      type = ints.positive;
+      default = 503;
+      description = "Darwin UID reserved for the Minecraft account.";
+    };
+
+    gid = mkOption {
+      type = ints.positive;
+      default = 503;
+      description = "Darwin GID reserved for the Minecraft group.";
+    };
+
+    homeDir = mkOption {
+      type = path;
+      default = "/var/minecraft";
+      description = "Persistent Minecraft service home.";
+    };
+
     pack = mkOption {
       type = enum [
         "vanilla"
@@ -266,63 +274,136 @@ in {
       default = "vanilla";
       description = "Minecraft server pack to run behind lazymc.";
     };
-  };
 
-  config = mkIf cfg.enable {
-    age.secrets.minecraft-rcon-password = {
-      file = ../../secrets/minecraft-rcon-password.age;
-      owner = user;
-      mode = "0400";
+    publicAddress = mkOption {
+      type = str;
+      default = "192.168.1.52:25565";
+      description = "Address exposed by LazyMC to Minecraft clients.";
     };
 
-    users = {
-      knownGroups = [user];
-      knownUsers = [user];
-
-      groups.${user} = {
-        gid = userId;
-        description = "Minecraft service";
-        members = [
-          user
-          loginUser
-        ];
-      };
-
-      users.${user} = {
-        uid = userId;
-        gid = userId;
-        description = "Minecraft service";
-        home = serviceHome;
-        createHome = false;
-        isHidden = true;
-      };
+    serverPort = mkOption {
+      type = port;
+      default = 25566;
+      description = "Loopback port used by the real Minecraft server.";
     };
 
-    # `etc` runs after nix-darwin creates managed users and before launchd reloads.
-    system.activationScripts.etc.text = lib.mkAfter ''
-      echo "securing Minecraft service home..." >&2
-      ${pkgs.coreutils}/bin/install -d -m 0750 -o ${lib.escapeShellArg user} -g ${lib.escapeShellArg user} ${lib.escapeShellArg serviceHome}
-      ${pkgs.coreutils}/bin/install -d -m 0750 -o ${lib.escapeShellArg user} -g ${lib.escapeShellArg user} ${lib.escapeShellArg dataDir}
-      ${pkgs.coreutils}/bin/install -d -m 0750 -o ${lib.escapeShellArg user} -g ${lib.escapeShellArg user} ${lib.escapeShellArg logDir}
-      /usr/bin/install -d -o root -g wheel -m 0755 /Library/PrivilegedHelperTools
-      /usr/bin/install -o root -g wheel -m 0755 ${lib.escapeShellArg startLazymc} ${lib.escapeShellArg stableStartLazymc}
-      /usr/bin/touch ${lib.escapeShellArg launchdLog}
-      /usr/sbin/chown ${lib.escapeShellArg user}:${lib.escapeShellArg user} ${lib.escapeShellArg launchdLog}
-      /bin/chmod 0644 ${lib.escapeShellArg launchdLog}
-    '';
+    rconPort = mkOption {
+      type = port;
+      default = 25575;
+      description = "RCON port managed by LazyMC.";
+    };
 
-    launchd.daemons.lazymc = {
-      serviceConfig = {
-        ProgramArguments = [stableStartLazymc];
-        KeepAlive = true;
-        RunAtLoad = true;
-        UserName = user;
-        GroupName = user;
-        EnvironmentVariables.HOME = serviceHome;
-        StandardOutPath = launchdLog;
-        StandardErrorPath = launchdLog;
-        ThrottleInterval = 30;
-      };
+    jvmMinMemory = mkOption {
+      type = str;
+      default = "1G";
+      description = "Minimum Java heap, using a Java size such as 1G or 1024M.";
+    };
+
+    jvmMaxMemory = mkOption {
+      type = str;
+      default = "12G";
+      description = "Maximum Java heap, using a Java size such as 12G or 12288M.";
+    };
+
+    openFirewall = mkOption {
+      type = bool;
+      default = true;
+      description = "Register LazyMC with the macOS application firewall.";
     };
   };
+
+  config = lib.mkMerge [
+    (mkIf (!cfg.enable) {
+      # Remove the unmanaged helper used by older generations even when the
+      # service remains disabled.
+      system.activationScripts.etc.text = lib.mkAfter ''
+        /bin/rm -f /Library/PrivilegedHelperTools/org.nixos.lazymc.start
+      '';
+    })
+
+    (mkIf cfg.enable {
+      assertions = [
+        {
+          assertion = cfg.user != loginUser;
+          message = "Minecraft must run under a dedicated account, not the primary login user.";
+        }
+        {
+          assertion = builtins.match "^[0-9]+[MG]$" cfg.jvmMinMemory != null;
+          message = "modules.minecraft.server.jvmMinMemory must look like 1G or 1024M.";
+        }
+        {
+          assertion = builtins.match "^[0-9]+[MG]$" cfg.jvmMaxMemory != null;
+          message = "modules.minecraft.server.jvmMaxMemory must look like 12G or 12288M.";
+        }
+        {
+          assertion = cfg.serverPort != cfg.rconPort;
+          message = "Minecraft serverPort and rconPort must be different.";
+        }
+      ];
+
+      age.secrets.minecraft-rcon-password = {
+        file = ../../secrets/minecraft-rcon-password.age;
+        owner = user;
+        mode = "0400";
+      };
+
+      users = {
+        knownGroups = [user];
+        knownUsers = [user];
+
+        groups.${user} = {
+          inherit (cfg) gid;
+          description = "Minecraft service";
+          members = [
+            user
+            loginUser
+          ];
+        };
+
+        users.${user} = {
+          inherit (cfg) uid gid;
+          description = "Minecraft service";
+          home = serviceHome;
+          createHome = false;
+          isHidden = true;
+        };
+      };
+
+      # `etc` runs after nix-darwin creates managed users and before launchd reloads.
+      system.activationScripts.etc.text = lib.mkAfter ''
+        echo "securing Minecraft service home..." >&2
+        ${pkgs.coreutils}/bin/install -d -m 0750 -o ${lib.escapeShellArg user} -g ${lib.escapeShellArg user} ${lib.escapeShellArg serviceHome}
+        ${pkgs.coreutils}/bin/install -d -m 0750 -o ${lib.escapeShellArg user} -g ${lib.escapeShellArg user} ${lib.escapeShellArg dataDir}
+        ${pkgs.coreutils}/bin/install -d -m 0750 -o ${lib.escapeShellArg user} -g ${lib.escapeShellArg user} ${lib.escapeShellArg logDir}
+        /bin/rm -f /Library/PrivilegedHelperTools/org.nixos.lazymc.start
+        /usr/bin/touch ${lib.escapeShellArg launchdLog}
+        /usr/sbin/chown ${lib.escapeShellArg user}:${lib.escapeShellArg user} ${lib.escapeShellArg launchdLog}
+        /bin/chmod 0640 ${lib.escapeShellArg launchdLog}
+
+        ${lib.optionalString cfg.openFirewall ''
+          echo "allowing LazyMC through the macOS application firewall..." >&2
+          /usr/libexec/ApplicationFirewall/socketfilterfw --add ${lib.escapeShellArg "${pkgs.lazymc}/bin/lazymc"}
+          /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp ${lib.escapeShellArg "${pkgs.lazymc}/bin/lazymc"}
+        ''}
+      '';
+
+      launchd.daemons.lazymc = {
+        serviceConfig = {
+          ProgramArguments = ["${startLazymc}"];
+          WorkingDirectory = dataDir;
+          KeepAlive.SuccessfulExit = false;
+          RunAtLoad = true;
+          UserName = user;
+          GroupName = user;
+          EnvironmentVariables.HOME = serviceHome;
+          StandardOutPath = launchdLog;
+          StandardErrorPath = launchdLog;
+          ProcessType = "Background";
+          ThrottleInterval = 30;
+          ExitTimeOut = 180;
+          Umask = 7;
+        };
+      };
+    })
+  ];
 }
