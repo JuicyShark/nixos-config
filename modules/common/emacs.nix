@@ -10,7 +10,7 @@
   cfg = config.modules.emacs;
   # emacs-pgtk requires GTK/Wayland (Linux only); emacs-macport is the macOS native port
   emacsBase =
-    if pkgs.stdenv.isDarwin
+    if pkgs.stdenv.hostPlatform.isDarwin
     then pkgs.emacs-macport
     else pkgs.emacs-pgtk;
   emacs = with pkgs;
@@ -33,10 +33,10 @@ in {
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs;
-      lib.optionals pkgs.stdenv.isLinux [
+      lib.optionals pkgs.stdenv.hostPlatform.isLinux [
         binutils # native-comp needs 'as'
       ]
-      ++ lib.optional (pkgs.stdenv.isLinux && config.programs.gnupg.agent.enable) pinentry-emacs
+      ++ lib.optional (pkgs.stdenv.hostPlatform.isLinux && config.programs.gnupg.agent.enable) pinentry-emacs
       ++ [
         cfg.package
 
