@@ -17,36 +17,26 @@
       udp_port_base = 6001;
       udp_port_range = 10;
     };
-    diagnostics = {
-      log_verbosity = 1;
+
+    sessioncontrol = {
+      allow_session_interruption = "yes";
+      session_timeout = 120;
     };
   '';
 in {
-  config = lib.mkIf (pkgs.stdenv.isLinux && (osConfig.modules.shairport.enable or false)) {
-    # User-level shairport-sync instance using shairport's native PipeWire
-    # backend, so it follows the user's default sink without requiring root.
+  config = lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && (osConfig.modules.shairport.enable or false)) {
     systemd.user.services.shairport-sync = {
       Unit = {
-        Description = "Shairport Sync (user) -> PipeWire";
-        After = [
-          "pipewire.service"
-          "wireplumber.service"
-        ];
-        Wants = [
-          "pipewire.service"
-          "wireplumber.service"
-        ];
+        Description = "Shairport Sync AirPlay receiver";
+        After = ["pipewire.service" "wireplumber.service" "network-online.target"];
+        Wants = ["network-online.target"];
       };
-
       Service = {
-        ExecStart = "${pkgs.shairport-sync}/bin/shairport-sync -c ${confFile}";
+        ExecStart = "${lib.getExe pkgs.shairport-sync} -c ${confFile}";
         Restart = "on-failure";
-        RestartSec = 2;
+        RestartSec = 5;
       };
-
-      Install = {
-        WantedBy = ["default.target"];
-      };
+      Install.WantedBy = ["default.target"];
     };
   };
 }
