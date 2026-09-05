@@ -77,5 +77,7 @@ in {
   # directory before Restic can initialize its repositories.
   systemd.tmpfiles.rules = [
     "d /srv/smol/backups 0700 ${username} users -"
+    "d /srv/smol/backups/home-assistant 0700 ${username} users -"
+    "d /srv/smol/backups/mac-jellyfin 0700 ${username} users -"
   ];
 }
