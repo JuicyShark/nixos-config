@@ -7,7 +7,7 @@
 }: let
   inherit (config.home) homeDirectory;
 in
-  lib.mkIf ((osConfig.modules.desktop.enable or false) || pkgs.stdenv.isDarwin) {
+  lib.mkIf ((osConfig.modules.desktop.enable or false) || pkgs.stdenv.hostPlatform.isDarwin) {
     xdg = {
       userDirs = {
         enable = true;

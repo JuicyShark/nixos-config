@@ -4,7 +4,7 @@
   lib,
   ...
 }:
-lib.mkIf (pkgs.stdenv.isLinux && (osConfig.modules.desktop.enable or false)) {
+lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && (osConfig.modules.desktop.enable or false)) {
   xresources.properties = {
     "Xft.hinting" = true;
     "Xft.antialias" = true;
