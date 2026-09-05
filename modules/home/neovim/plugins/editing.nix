@@ -7,7 +7,6 @@
       nix.enable = true;
       treesitter = {
         enable = true;
-        folding.enable = true;
         nixvimInjections = true;
         nixGrammars = true;
         grammarPackages = with pkgs.tree-sitter-grammars; [
