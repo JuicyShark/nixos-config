@@ -1,0 +1,17 @@
+id = "juicy/steam-games"
+name = "Steam Games"
+version = "1.0.0"
+plugin_api = 24
+author = "juicy"
+license = "MIT"
+dependencies = ["steam"]
+tags = ["gaming", "launcher"]
+icon = "brand-steam"
+description = "Search installed Steam games from Noctalia and launch them by AppID."
+
+[[launcher_provider]]
+id = "games"
+entry = "games.luau"
+prefix = "steam"
+glyph = "brand-steam"
+include_in_global_search = false
