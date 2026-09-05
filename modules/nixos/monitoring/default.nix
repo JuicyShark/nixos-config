@@ -9,7 +9,6 @@
     ./grafana.nix
     ./prometheus.nix
     ./alertmanager.nix
-    ./diagnostics.nix
   ];
 
   options.modules.monitoring = {
