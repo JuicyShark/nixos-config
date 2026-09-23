@@ -12,6 +12,8 @@
     ** Notes
   '';
 
+  imports = [../keymaps/notes.nix];
+
   programs.nixvim = {
     # Adds workspace-aware completion, references, and link-safe heading/file
     # renames through Neovim's LSP client and the existing Blink UI.
@@ -29,7 +31,6 @@
         })
       end
 
-      map("<C-g>l", "<cmd>NotesInsertLink<CR>", "Insert note link")
       map("<leader>nt", function()
         require("which-key").show({ keys = "<leader>nt" })
       end, "Task")

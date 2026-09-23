@@ -39,7 +39,7 @@ _: {
     {
       mode = "n";
       key = "<leader>xq";
-      action = "<cmd>Trouble qflist toggle<CR>";
+      action.__raw = ''function() require("quicker").toggle() end'';
       options = {
         desc = "Quickfix list";
         nowait = true;
@@ -48,7 +48,7 @@ _: {
     {
       mode = "n";
       key = "<leader>xl";
-      action = "<cmd>Trouble loclist toggle<CR>";
+      action.__raw = ''function() require("quicker").toggle({ loclist = true }) end'';
       options = {
         desc = "Location list";
         nowait = true;

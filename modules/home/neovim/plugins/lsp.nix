@@ -2,7 +2,11 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  fullDev = pkgs.stdenv.hostPlatform.isLinux;
+in {
+  imports = [../keymaps/code.nix];
+
   programs.nixvim = {
     extraPlugins = [
       pkgs.vimPlugins.otter-nvim
@@ -152,15 +156,6 @@
         }
         {
           mode = "n";
-          key = "<leader>cf";
-          lspBufAction = "format";
-          options = {
-            desc = "Format";
-            silent = true;
-          };
-        }
-        {
-          mode = "n";
           key = "<leader>cr";
           lspBufAction = "rename";
           options = {
@@ -199,63 +194,17 @@
           ];
         };
         lintersByFt = {
-          c = ["cppcheck"];
-          cpp = ["cppcheck"];
-          gdscript = ["gdlint"];
+          c = lib.optionals fullDev ["cppcheck"];
+          cpp = lib.optionals fullDev ["cppcheck"];
+          gdscript = lib.optionals fullDev ["gdlint"];
           nix = ["statix" "deadnix"];
-          python = ["ruff"];
           sh = ["shellcheck"];
           bash = ["shellcheck"];
         };
       };
 
-      conform-nvim = {
-        enable = true;
-        settings = {
-          format_on_save.__raw = ''
-            function(bufnr)
-              if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
-                return
-              end
-              return { lsp_format = "fallback", timeout_ms = 2000 }
-            end
-          '';
-          formatters_by_ft = {
-            lua = ["stylua"];
-            nix = ["alejandra"];
-            c = ["clang_format"];
-            cpp = ["clang_format"];
-            css = ["prettierd"];
-            gdscript = ["gdformat"];
-            go = ["gofmt" "goimports"];
-            html = ["prettierd"];
-            javascript = ["prettierd"];
-            javascriptreact = ["prettierd"];
-            json = ["prettierd"];
-            jsonc = ["prettierd"];
-            markdown = ["prettierd"];
-            python = ["ruff_format" "ruff_organize_imports"];
-            rust = ["rustfmt"];
-            sh = ["shfmt"];
-            bash = ["shfmt"];
-            toml = ["taplo"];
-            typescript = ["prettierd"];
-            typescriptreact = ["prettierd"];
-            yaml = ["prettierd"];
-          };
-          formatters = {
-            alejandra = {
-              command = "alejandra";
-            };
-            stylua = {
-              command = "stylua";
-            };
-          };
-        };
-      };
-
       crates = {
-        enable = true;
+        enable = fullDev;
         settings = {
           lsp = {
             enabled = true;
@@ -278,19 +227,18 @@
             ];
             settings = {
               formatting.command = ["alejandra"];
-              nixpkgs.expr = "import (builtins.getFlake (builtins.toString ./.)).inputs.nixpkgs { }";
-              options = {
-                darwin.expr = "(builtins.getFlake (builtins.toString ./.)).darwinConfigurations.mac.options";
-                home-manager.expr = "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.leo.options.home-manager.users.type.getSubOptions []";
-                leo.expr = "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.leo.options";
-                zues.expr = "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.zues.options";
-              };
+              nixpkgs.expr = "import ${pkgs.path} { }";
             };
+            extraOptions.on_init.__raw = ''
+              function(client)
+                require("juicy.project").configure_nixd(client)
+              end
+            '';
           };
           lua_ls.enable = true;
           # rust-analyzer is managed by rustaceanvim; do not double-enable here.
           basedpyright = {
-            enable = true;
+            enable = fullDev;
             settings.basedpyright.analysis = {
               autoImportCompletions = true;
               diagnosticMode = "workspace";
@@ -298,14 +246,14 @@
             };
           };
           ruff = {
-            enable = true;
+            enable = fullDev;
             settings = {
               lineLength = 100;
               lint.enable = true;
             };
           };
           clangd = {
-            enable = true;
+            enable = fullDev;
             extraOptions = {
               cmd = [
                 "clangd"
@@ -317,7 +265,7 @@
           };
           bashls.enable = true;
           gopls = {
-            enable = true;
+            enable = fullDev;
             settings.gopls = {
               analyses = {
                 shadow = true;
@@ -329,7 +277,7 @@
             };
           };
           ts_ls = {
-            enable = true;
+            enable = fullDev;
             filetypes = lib.mkForce [
               "javascript"
               "javascriptreact"
@@ -337,20 +285,20 @@
               "typescriptreact"
             ];
           };
-          jsonls.enable = true;
-          cssls.enable = true;
-          html.enable = true;
+          jsonls.enable = fullDev;
+          cssls.enable = fullDev;
+          html.enable = fullDev;
           marksman.enable = true;
           yamlls.enable = true;
           taplo.enable = true;
           gdscript = {
-            enable = true;
+            enable = fullDev;
             package = null;
           };
         };
       };
 
-      godot.enable = true;
+      godot.enable = fullDev;
     };
   };
 }

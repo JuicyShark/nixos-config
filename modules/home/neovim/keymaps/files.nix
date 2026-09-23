@@ -15,13 +15,13 @@ _: {
     {
       mode = ["n" "v"];
       key = "<leader>ff";
-      action.__raw = "function() Snacks.picker.files() end";
+      action.__raw = "function() Snacks.picker.files({ cwd = vim.fn.getcwd(), title = 'Files: current directory' }) end";
       options.desc = "Find files";
     }
     {
       mode = ["n" "v"];
       key = "<C-f>";
-      action.__raw = "function() Snacks.picker.files() end";
+      action.__raw = "function() Snacks.picker.files({ cwd = vim.fn.getcwd(), title = 'Files: current directory' }) end";
       options = {
         desc = "Find files";
         silent = true;
@@ -31,7 +31,7 @@ _: {
     {
       mode = ["n" "v"];
       key = "<leader>fg";
-      action.__raw = "function() Snacks.picker.grep() end";
+      action.__raw = "function() Snacks.picker.grep({ cwd = vim.fn.getcwd(), title = 'Search: current directory' }) end";
       options.desc = "Live grep";
     }
     {
@@ -67,26 +67,32 @@ _: {
     {
       mode = ["n" "v"];
       key = "<leader>pf";
-      action.__raw = "function() Snacks.picker.files() end";
+      action.__raw = "function() require('juicy.project').pick('files') end";
       options.desc = "Project files";
     }
     {
       mode = ["n" "v"];
       key = "<leader>ps";
-      action.__raw = "function() Snacks.picker.grep() end";
+      action.__raw = "function() require('juicy.project').pick('grep') end";
       options.desc = "Project search";
     }
     {
       mode = ["n" "v"];
       key = "<leader>pb";
-      action.__raw = "function() Snacks.picker.buffers() end";
+      action.__raw = "function() require('juicy.project').pick('buffers', { filter = { cwd = true } }) end";
       options.desc = "Project buffers";
     }
     {
       mode = "n";
       key = "<leader>pt";
-      action.__raw = "function() Snacks.explorer() end";
+      action.__raw = "function() require('juicy.project').pick('explorer') end";
       options.desc = "Project tree";
+    }
+    {
+      mode = ["n" "x"];
+      key = "<leader>sr";
+      action.__raw = ''function() require("grug-far").open({ visualSelectionUsage = "auto-detect", prefills = { paths = require("juicy.project").root() } }) end'';
+      options.desc = "Search and replace project";
     }
   ];
 }

@@ -2,6 +2,39 @@ _: {
   programs.nixvim.keymaps = [
     {
       mode = "n";
+      key = "<leader>tA";
+      action.__raw = ''
+        function()
+          vim.g.reduced_motion = not vim.g.reduced_motion
+          vim.g.snacks_animate = not vim.g.reduced_motion
+          if vim.g.reduced_motion then
+            vim.g.juicy_cursor_animation = MiniAnimate.config.cursor.enable
+            MiniAnimate.config.cursor.enable = false
+          else
+            MiniAnimate.config.cursor.enable = vim.g.juicy_cursor_animation ~= false
+          end
+          vim.notify("Reduced motion: " .. (vim.g.reduced_motion and "on" or "off"))
+        end
+      '';
+      options.desc = "Toggle reduced motion";
+    }
+    {
+      mode = "n";
+      key = "<leader>ta";
+      action.__raw = ''
+        function()
+          if vim.g.reduced_motion then
+            vim.notify("Disable reduced motion first with <leader>tA")
+            return
+          end
+          MiniAnimate.config.cursor.enable = not MiniAnimate.config.cursor.enable
+          vim.notify("Cursor animation: " .. (MiniAnimate.config.cursor.enable and "on" or "off"))
+        end
+      '';
+      options.desc = "Toggle cursor animation";
+    }
+    {
+      mode = "n";
       key = "<leader>tw";
       action.__raw = ''function() Snacks.toggle.option("wrap", { name = "Wrap" }):toggle() end'';
       options.desc = "Toggle wrap";
@@ -45,6 +78,12 @@ _: {
         end
       '';
       options.desc = "Toggle inlay hints";
+    }
+    {
+      mode = "n";
+      key = "<leader>tm";
+      action.__raw = ''function() require("render-markdown").toggle() end'';
+      options.desc = "Toggle Markdown rendering";
     }
   ];
 }

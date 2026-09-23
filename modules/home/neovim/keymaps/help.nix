@@ -2,6 +2,12 @@ _: {
   programs.nixvim.keymaps = [
     {
       mode = "n";
+      key = "<leader>hk";
+      action = "<cmd>NeovimIdeReference<CR>";
+      options.desc = "Active keyboard reference";
+    }
+    {
+      mode = "n";
       key = "<leader>h";
       action.__raw = ''function() require("which-key").show({ keys = "<leader>h" }) end'';
       options.desc = "Help";

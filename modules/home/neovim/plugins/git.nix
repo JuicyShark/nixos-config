@@ -1,4 +1,6 @@
 {pkgs, ...}: {
+  imports = [../keymaps/git.nix];
+
   programs.nixvim = {
     extraPlugins = [
       pkgs.vimPlugins.diffview-nvim

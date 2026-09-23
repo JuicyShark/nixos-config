@@ -1,4 +1,6 @@
 {pkgs, ...}: {
+  imports = [../keymaps/files.nix ../keymaps/diagnostics.nix ../keymaps/help.nix ../keymaps/toggles.nix];
+
   programs.nixvim = {
     highlightOverride = {
       Comment = {
@@ -22,61 +24,21 @@
       "@lsp.type.comment" = {
         italic = true;
       };
-      "@lsp.type.variable" = {
-        fg = "#fb4934";
-      };
-      "@lsp.type.parameter" = {
-        fg = "#fb4934";
-      };
-      "@lsp.type.property" = {
-        fg = "#83a598";
-      };
-      "@lsp.type.function" = {
-        fg = "#83a598";
-      };
-      "@lsp.type.method" = {
-        fg = "#83a598";
-      };
-      "@lsp.type.macro" = {
-        fg = "#83a598";
-      };
-      "@lsp.type.namespace" = {
-        fg = "#d3869b";
-      };
-      "@lsp.type.type" = {
-        fg = "#fabd2f";
-      };
-      "@lsp.type.typeParameter" = {
-        fg = "#fabd2f";
-      };
-      "@lsp.type.enum" = {
-        fg = "#fabd2f";
-      };
-      "@lsp.type.enumMember" = {
-        fg = "#fe8019";
-      };
-      "@lsp.type.keyword" = {
-        fg = "#d3869b";
-      };
-      "@lsp.type.string" = {
-        fg = "#b8bb26";
-      };
-      "@lsp.type.number" = {
-        fg = "#fe8019";
-      };
-      "@lsp.type.boolean" = {
-        fg = "#fe8019";
-      };
-      "@lsp.mod.deprecated" = {
-        strikethrough = true;
-        italic = true;
-      };
     };
 
     plugins = {
       web-devicons.enable = true;
       "sqlite-lua".enable = true;
       trouble.enable = true;
+
+      render-markdown = {
+        enable = true;
+        settings = {
+          completions.lsp.enabled = true;
+          heading.sign = false;
+          code.sign = false;
+        };
+      };
 
       which-key = {
         enable = true;
@@ -89,6 +51,10 @@
             spelling.suggestions = 8;
           };
           spec = [
+            {
+              __unkeyed-1 = "<leader>a";
+              group = "AI";
+            }
             {
               __unkeyed-1 = "<leader>e";
               group = "Explorer";
@@ -224,18 +190,7 @@
                   action = ":qa";
                 }
               ];
-              header.__raw = ''
-                table.concat({
-                  "                                       ",
-                  "  ███╗   ██╗██╗██╗  ██╗██╗   ██╗██╗███╗   ███╗ ",
-                  "  ████╗  ██║██║╚██╗██╔╝██║   ██║██║████╗ ████║ ",
-                  "  ██╔██╗ ██║██║ ╚███╔╝ ██║   ██║██║██╔████╔██║ ",
-                  "  ██║╚██╗██║██║ ██╔██╗ ╚██╗ ██╔╝██║██║╚██╔╝██║ ",
-                  "  ██║ ╚████║██║██╔╝ ██╗ ╚████╔╝ ██║██║ ╚═╝ ██║ ",
-                  "  ╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝  ╚═══╝  ╚═╝╚═╝     ╚═╝ ",
-                  "                                       ",
-                }, "\n")
-              '';
+              header = "NEOVIM";
             };
             sections = [
               {
@@ -278,8 +233,12 @@
           input.enabled = true;
           picker = {
             enabled = true;
-            layout = "telescope";
-            db.sqlite3_path = "${pkgs.sqlite.out}/lib/libsqlite3.so";
+            layout.__raw = ''
+              function()
+                return { preset = vim.o.columns < 100 and "ivy" or "telescope" }
+              end
+            '';
+            db.sqlite3_path = "${pkgs.sqlite.out}/lib/libsqlite3${pkgs.stdenv.hostPlatform.extensions.sharedLibrary}";
             sources = {
               files = {
                 hidden = true;
@@ -419,22 +378,7 @@
               }
             ];
             lualine_x = ["filetype"];
-            lualine_y = [
-              {
-                __unkeyed-1.__raw = ''
-                  function()
-                    local clients = vim.lsp.get_clients({ bufnr = 0 })
-                    if #clients == 0 then return "" end
-                    local names = {}
-                    for _, c in ipairs(clients) do
-                      table.insert(names, c.name)
-                    end
-                    return " " .. table.concat(names, ",")
-                  end
-                '';
-              }
-              "progress"
-            ];
+            lualine_y = ["progress"];
             lualine_z = ["location" "selectioncount"];
           };
         };

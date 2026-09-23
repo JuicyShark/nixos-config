@@ -1,7 +1,70 @@
-{pkgs, ...}: let
+{
+  lib,
+  pkgs,
+  ...
+}: let
   codelldbAdapter = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
 in {
-  programs.nixvim = {
+  imports = [../keymaps/rust.nix];
+
+  programs.nixvim = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+    keymaps = [
+      {
+        mode = "n";
+        key = "<F5>";
+        action.__raw = "function() require('dap').continue() end";
+        options.desc = "DAP continue / start";
+      }
+      {
+        mode = "n";
+        key = "<F10>";
+        action.__raw = "function() require('dap').step_over() end";
+        options.desc = "DAP step over";
+      }
+      {
+        mode = "n";
+        key = "<F11>";
+        action.__raw = "function() require('dap').step_into() end";
+        options.desc = "DAP step into";
+      }
+      {
+        mode = "n";
+        key = "<S-F11>";
+        action.__raw = "function() require('dap').step_out() end";
+        options.desc = "DAP step out";
+      }
+      {
+        mode = "n";
+        key = "<leader>db";
+        action.__raw = "function() require('dap').toggle_breakpoint() end";
+        options.desc = "Toggle breakpoint";
+      }
+      {
+        mode = "n";
+        key = "<leader>dB";
+        action.__raw = "function() require('dap').set_breakpoint(vim.fn.input('Condition: ')) end";
+        options.desc = "Conditional breakpoint";
+      }
+      {
+        mode = "n";
+        key = "<leader>du";
+        action.__raw = "function() require('dapui').toggle() end";
+        options.desc = "Toggle DAP UI";
+      }
+      {
+        mode = "n";
+        key = "<leader>dr";
+        action.__raw = "function() require('dap').repl.toggle() end";
+        options.desc = "Toggle DAP REPL";
+      }
+      {
+        mode = "n";
+        key = "<leader>dq";
+        action.__raw = "function() require('dap').terminate() end";
+        options.desc = "Terminate session";
+      }
+    ];
+
     extraConfigLua = ''
       do
         local dap = require("dap")

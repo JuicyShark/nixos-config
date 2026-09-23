@@ -3,6 +3,8 @@ _: {
   programs.nixvim.opts = {
     # Code folding settings (prevent auto-folding on file open)
     foldenable = false; # Don't fold by default when opening files
+    foldmethod = "expr";
+    foldexpr = "v:lua.vim.treesitter.foldexpr()";
     foldlevel = 99; # Open all folds by default
     foldlevelstart = 99; # Start with all folds open
 
@@ -25,6 +27,7 @@ _: {
     updatetime = 250;
 
     termguicolors = true;
+    winborder = "rounded";
     mouse = "a";
 
     scrolloff = 8;
@@ -53,4 +56,23 @@ _: {
       "noselect"
     ];
   };
+
+  programs.nixvim.autoCmd = [
+    {
+      event = "FileType";
+      pattern = ["nix" "lua" "json" "jsonc" "yaml" "html" "css" "javascript" "javascriptreact" "typescript" "typescriptreact"];
+      callback.__raw = ''function() vim.bo.shiftwidth = 2; vim.bo.tabstop = 2 end'';
+    }
+    {
+      event = "FileType";
+      pattern = ["markdown" "norg" "text"];
+      callback.__raw = ''
+        function()
+          vim.wo.wrap = true
+          vim.wo.linebreak = true
+          vim.wo.spell = true
+        end
+      '';
+    }
+  ];
 }

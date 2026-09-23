@@ -1,5 +1,9 @@
-_: {
-  programs.nixvim.files."after/ftplugin/rust.lua".keymaps = let
+{
+  lib,
+  pkgs,
+  ...
+}: {
+  programs.nixvim.files."after/ftplugin/rust.lua".keymaps = lib.mkIf pkgs.stdenv.hostPlatform.isLinux (let
     rustMap = key: action: desc: {
       mode = "n";
       inherit key action;
@@ -22,5 +26,5 @@ _: {
     (rustMap "<leader>mp" "<cmd>RustLsp parentModule<CR>" "Rust parent module")
     (rustMap "<leader>ma" "<cmd>RustLsp codeAction<CR>" "Rust code action")
     (rustMap "<leader>mj" "<cmd>RustLsp joinLines<CR>" "Rust join lines")
-  ];
+  ]);
 }

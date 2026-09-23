@@ -37,7 +37,14 @@ local function picker(method, options)
 end
 
 function M.slug(title)
-	local slug = title:lower():gsub("[^%w%s-]", ""):gsub("%s+", "-"):gsub("-+", "-"):gsub("^-", ""):gsub("-$", "")
+	-- Preserve UTF-8 titles while excluding path separators and link syntax.
+	local slug = title
+		:lower()
+		:gsub("[%z\1-\31/\\:%[%]{}]", "")
+		:gsub("%s+", "-")
+		:gsub("-+", "-")
+		:gsub("^[-.]+", "")
+		:gsub("[-.]+$", "")
 
 	return slug ~= "" and slug or os.date("%Y%m%d%H%M%S")
 end
@@ -131,12 +138,19 @@ function M.agenda()
 end
 
 function M.backlinks()
-	local stem = vim.fn.expand("%:t:r")
+	local path = vim.api.nvim_buf_get_name(0)
+	local relative = vim.fs.relpath(root(), path)
+	if not relative or relative:match("^%.%.") or not relative:match("%.norg$") then
+		vim.notify("Open a note in the notes workspace first", vim.log.levels.INFO)
+		return
+	end
+	local target = relative:gsub("%.norg$", "")
 	picker("grep", {
 		cwd = ensure(),
 		hidden = true,
 		ignored = true,
-		search = stem ~= "" and stem or nil,
+		search = "{:" .. target .. ":}",
+		regex = false,
 		title = "Backlinks",
 	})
 end
@@ -152,12 +166,28 @@ function M.tags()
 end
 
 function M.insert_link()
-	local title = vim.fn.input("link> ")
-	if not title or title == "" then
-		return
-	end
-
-	vim.api.nvim_put({ "{:pages/" .. M.slug(title) .. ":}[" .. title .. "]" }, "c", true, true)
+	local source = vim.api.nvim_get_current_buf()
+	picker("files", {
+		cwd = ensure(),
+		ft = "norg",
+		title = "Insert note link",
+		confirm = function(p, item)
+			p:close()
+			if not item or not vim.api.nvim_buf_is_valid(source) then
+				return
+			end
+			local file = Snacks.picker.util.path(item)
+			local relative = file and vim.fs.relpath(root(), file)
+			if not relative or relative:match("^%.%.") then
+				return
+			end
+			local target = relative:gsub("%.norg$", "")
+			local label = vim.fn.fnamemodify(target, ":t"):gsub("[%[%]]", "")
+			vim.api.nvim_buf_call(source, function()
+				vim.api.nvim_put({ "{:" .. target .. ":}[" .. label .. "]" }, "c", true, true)
+			end)
+		end,
+	})
 end
 
 function M.calendar()
@@ -171,58 +201,7 @@ function M.calendar()
 end
 
 function M.reference()
-	local existing = vim.g.neovim_ide_reference_win
-	if existing and vim.api.nvim_win_is_valid(existing) then
-		vim.api.nvim_win_close(existing, true)
-		vim.g.neovim_ide_reference_win = nil
-		return
-	end
-
-	local path = root() .. "/pages/neovim-ide-cheatsheet.norg"
-	local lines = vim.fn.filereadable(path) == 1 and vim.fn.readfile(path)
-		or {
-			"* Neovim IDE Cheatsheet",
-			"",
-			"The managed cheatsheet file has not been activated into ~/documents/notes yet.",
-		}
-	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_name(buf, "neovim-ide-reference")
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-	vim.bo[buf].bufhidden = "wipe"
-	vim.bo[buf].buftype = "nofile"
-	vim.bo[buf].filetype = "norg"
-	vim.bo[buf].modifiable = false
-
-	local columns = vim.o.columns
-	local rows = vim.o.lines
-	local width = math.min(math.max(50, math.floor(columns * 0.38)), columns - 4)
-	local height = math.min(28, rows - 4, #lines)
-	local win = vim.api.nvim_open_win(buf, true, {
-		relative = "editor",
-		anchor = "NE",
-		row = 1,
-		col = columns - 2,
-		width = width,
-		height = height,
-		border = "rounded",
-		style = "minimal",
-		title = " IDE Reference ",
-		title_pos = "center",
-	})
-
-	vim.g.neovim_ide_reference_win = win
-	vim.wo[win].conceallevel = 2
-	vim.wo[win].wrap = true
-	vim.wo[win].linebreak = true
-	vim.wo[win].number = false
-	vim.wo[win].relativenumber = false
-	for _, key in ipairs({ "q", "<Esc>" }) do
-		vim.keymap.set("n", key, "<cmd>close<CR>", {
-			buffer = buf,
-			silent = true,
-			nowait = true,
-		})
-	end
+	require("juicy.reference").open()
 end
 
 function M.setup()

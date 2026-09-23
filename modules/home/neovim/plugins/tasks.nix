@@ -1,4 +1,33 @@
-_: {
+{pkgs, ...}: {
+  imports = [../keymaps/run.nix ../keymaps/inspect.nix];
+
+  programs.nixvim.keymaps = [
+    {
+      mode = "n";
+      key = "<leader>aa";
+      action.__raw = ''function() require("sidekick.cli").toggle({ name = "codex", focus = true }) end'';
+      options.desc = "Toggle Codex";
+    }
+    {
+      mode = "n";
+      key = "<leader>as";
+      action.__raw = ''function() require("sidekick.cli").select({ filter = { installed = true } }) end'';
+      options.desc = "Select coding agent";
+    }
+    {
+      mode = ["n" "x"];
+      key = "<leader>at";
+      action.__raw = ''function() require("sidekick.cli").send({ msg = "{this}" }) end'';
+      options.desc = "Send context to agent";
+    }
+    {
+      mode = ["n" "x"];
+      key = "<leader>ap";
+      action.__raw = ''function() require("sidekick.cli").prompt() end'';
+      options.desc = "Select agent prompt";
+    }
+  ];
+
   programs.nixvim = {
     userCommands = {
       Hexdump = {
@@ -54,10 +83,32 @@ _: {
     };
 
     plugins = {
+      # The coding-agent terminal is useful without a Copilot subscription;
+      # NES stays off until a Copilot LSP is explicitly configured.
+      sidekick = {
+        enable = true;
+        # Nixpkgs adds Copilot's unfree language server as an unconditional
+        # runtime dependency. This setup only uses Sidekick's CLI integration.
+        package = pkgs.vimPlugins.sidekick-nvim.overrideAttrs (_: {
+          runtimeDeps = [];
+        });
+        settings = {
+          nes.enabled = false;
+          cli = {
+            picker = "snacks";
+            mux = {
+              enabled = true;
+              backend = "zellij";
+            };
+            tools.codex = {};
+          };
+        };
+      };
+
       overseer = {
         enable = true;
         settings = {
-          dap = true;
+          dap = pkgs.stdenv.hostPlatform.isLinux;
           task_list = {
             direction = "bottom";
             min_height = 12;

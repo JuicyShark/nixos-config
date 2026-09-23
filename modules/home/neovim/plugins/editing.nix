@@ -1,4 +1,10 @@
-{pkgs, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
+  imports = [../keymaps/navigation.nix ../keymaps/buffers.nix];
+
   programs.nixvim = {
     plugins = {
       # Sticky scope header — useful when reading unfamiliar C/Rust source.
@@ -110,8 +116,35 @@
               C.__raw = "require('mini.ai').gen_spec.treesitter({ a = '@class.outer', i = '@class.inner' })";
             };
           };
+          align = {};
+          animate = {
+            cursor = {
+              enable = true;
+              timing.__raw = ''require("mini.animate").gen_timing.linear({ duration = 125, unit = "total" })'';
+            };
+            scroll.enable = false;
+            resize.enable = false;
+            open.enable = false;
+            close.enable = false;
+          };
+          hipatterns.highlighters.hex_color.__raw = "require('mini.hipatterns').gen_highlighter.hex_color()";
+          splitjoin = {};
         };
       };
+
+      # Project-wide replacement stays reviewable in a normal buffer and uses
+      # the same ripgrep implementation as the rest of the editor workflow.
+      grug-far = {
+        enable = true;
+        settings = {
+          engine = "ripgrep";
+          engines.ripgrep.path = lib.getExe pkgs.ripgrep;
+        };
+      };
+
+      # Keep quickfix as a first-class editable result buffer. Trouble remains
+      # the diagnostics overview, while Quicker owns qf/loclist interaction.
+      quicker.enable = true;
 
       vim-surround.enable = true;
 

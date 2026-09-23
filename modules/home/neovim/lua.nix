@@ -7,10 +7,15 @@
   linkOpener =
     if pkgs.stdenv.hostPlatform.isDarwin
     then "/usr/bin/open"
-    else lib.getExe pkgs.qutebrowser;
+    else lib.getExe' pkgs.xdg-utils "xdg-open";
   linksModule = ./lua/juicy/links.lua;
   notesModule = ./lua/juicy/notes.lua;
   smartFocusModule = ./lua/juicy/smart_focus.lua;
+  smartFocusOptions = lib.generators.toLua {} (
+    lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+      broker = lib.getExe (pkgs.callPackage ../../../packages/smart-focus {});
+    }
+  );
 in {
   programs.nixvim.extraConfigLuaPre = ''
     -- Some bundled treesitter queries still use this nvim-treesitter predicate
@@ -51,10 +56,13 @@ in {
       package.preload["juicy.links"] = assert(loadfile("${linksModule}"))
       package.preload["juicy.notes"] = assert(loadfile("${notesModule}"))
       package.preload["juicy.smart_focus"] = assert(loadfile("${smartFocusModule}"))
+      package.preload["juicy.project"] = assert(loadfile("${./lua/juicy/project.lua}"))
+      package.preload["juicy.reference"] = assert(loadfile("${./lua/juicy/reference.lua}"))
 
       require("juicy.links").setup("${linkOpener}")
       require("juicy.notes").setup()
-      require("juicy.smart_focus").start()
+      require("juicy.smart_focus").start(${smartFocusOptions})
     end
+
   '';
 }

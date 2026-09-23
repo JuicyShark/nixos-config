@@ -15,6 +15,18 @@ if ok_focus then
 		"Ghostty uses pid socket",
 		#ghostty_sockets == 1 and ghostty_sockets[1] == "/run/user/1000/nvim-smart-focus-789.sock"
 	)
+	expect(
+		"smart focus parses process start time",
+		smart_focus.parse_proc_start_time("789 (nvim) S 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 4242") == "4242"
+	)
+	expect(
+		"expired smart focus requests are rejected",
+		smart_focus.request({ direction = "left", deadline = 0 }).status == "stale"
+	)
+	expect(
+		"invalid smart focus requests are rejected",
+		smart_focus.request({ direction = "sideways" }).status == "blocked"
+	)
 
 	if #vim.api.nvim_tabpage_list_wins(0) > 1 then
 		vim.cmd("only")
@@ -55,50 +67,71 @@ if ok_focus then
 	vim.cmd("only")
 end
 
-local diagnostics = vim.diagnostic.config()
-expect("legacy diagnostic virtual text disabled", diagnostics.virtual_text == false)
-expect(
-	"native current-line diagnostic virtual lines",
-	type(diagnostics.virtual_lines) == "table" and diagnostics.virtual_lines.current_line == true
-)
-
-expect("node provider disabled by NixVim", vim.g.loaded_node_provider == 0)
-expect("python provider disabled by NixVim", vim.g.loaded_python3_provider == 0)
-expect("ruby provider disabled by NixVim", vim.g.loaded_ruby_provider == 0)
-expect("legacy LspInfo command removed", vim.fn.exists(":LspInfo") == 0)
-expect(
-	"native linked editing API",
-	type(vim.lsp.linked_editing_range) == "table" and type(vim.lsp.linked_editing_range.enable) == "function"
-)
-expect("nvim-ufo removed", not pcall(require, "ufo"))
-expect("compiler.nvim removed", vim.fn.exists(":CompilerOpen") == 0)
-expect("Overseer task command", vim.fn.exists(":OverseerRun") == 2)
-expect("word-level inline diff", vim.list_contains(vim.opt.diffopt:get(), "inline:word"))
-
-local command_line_map = vim.fn.maparg(";", "n", false, true)
-expect("semicolon enters command-line mode", command_line_map.rhs == ":")
-expect("colon keeps its built-in command-line behavior", vim.fn.maparg(":", "n") == "")
-
-local code_map = vim.fn.maparg("<leader>cd", "n", false, true)
-expect("Doom-style code prefix", code_map.desc == "Definitions")
-expect("old LSP prefix removed", vim.fn.maparg("<leader>ld", "n") == "")
-
-local run_map = vim.fn.maparg("<leader>rr", "n", false, true)
-expect("Overseer owns run workflow", run_map.desc == "Run task")
-
+-- Keep this contract focused on runtime integration that Nix evaluation cannot
+-- prove. Plugin presence and declarative option values belong to Nix itself.
 local dap = require("dap")
 expect("DAP UI opens on launch", type(dap.listeners.before.launch.juicy_dapui) == "function")
 expect("DAP UI closes on exit", type(dap.listeners.before.event_exited.juicy_dapui) == "function")
 
-vim.cmd("enew")
-vim.cmd("setfiletype rust")
-expect("native treesitter foldexpr", vim.wo.foldexpr == "v:lua.vim.treesitter.foldexpr()")
-expect("rust indent is four spaces", vim.bo.shiftwidth == 4 and vim.bo.tabstop == 4)
+-- Exercise the user-facing formatting path without requiring an LSP client.
+local fixture = vim.fn.tempname()
+vim.fn.mkdir(fixture .. "/.git", "p")
+vim.fn.mkdir(fixture .. "/src", "p")
+local lua_file = fixture .. "/src/format.lua"
+vim.fn.writefile({ "local x={1,2}" }, lua_file)
+vim.cmd.edit(vim.fn.fnameescape(lua_file))
+local format_map = vim.fn.maparg("<leader>cf", "n", false, true)
+expect("manual format available without LSP", type(format_map.callback) == "function")
+if type(format_map.callback) == "function" then
+	format_map.callback()
+	local manual = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+	expect("manual format uses configured formatter", manual[1] == "local x = { 1, 2 }")
+	vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local x={1,2}" })
+	vim.cmd.write()
+	expect("save and manual formatting agree", vim.deep_equal(vim.fn.readfile(lua_file), manual))
+	vim.g.disable_autoformat = true
+	vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local x={1,2}" })
+	vim.cmd.write()
+	expect("disabled autoformat preserves save", vim.fn.readfile(lua_file)[1] == "local x={1,2}")
+	vim.g.disable_autoformat = nil
+end
 
-local rust_map = vim.fn.maparg("<leader>mr", "n", false, true)
-expect("rust ftplugin keymap", rust_map.buffer == 1 and rust_map.desc == "Rust runnables")
+local project = require("juicy.project")
+expect("project root follows file outside cwd", project.root() == fixture)
+local client = { config = { root_dir = fixture, settings = { nixd = {} } } }
+client.notify = function() end
+local original_flake = vim.env.FLAKE
+vim.env.FLAKE = fixture .. "/unrelated"
+project.configure_nixd(client)
+expect("unrelated Nix project has no host options", client.config.settings.nixd.options == nil)
+vim.env.FLAKE = fixture
+project.configure_nixd(client)
+expect("configured flake gets host options", client.config.settings.nixd.options.leo ~= nil)
+vim.env.FLAKE = original_flake
+
+local links = require("juicy.links")
+expect("URL punctuation preserved", links.normalize("https://example.org/a(b);") == "https://example.org/a(b);")
+expect(
+	"balanced Markdown URL",
+	links.markdown_link_at("[link](https://example.org/a(b))", 3) == "https://example.org/a(b)"
+)
+local original_open = vim.ui.open
+links.setup("unused-opener")
+expect("native ui.open remains intact", vim.ui.open == original_open)
+
+local notes = require("juicy.notes")
+expect("Unicode note title preserved", notes.slug("中文 笔记") == "中文-笔记")
+expect("note slug cannot escape directory", not notes.slug("../../test"):find("/", 1, true))
+
+vim.keymap.set("n", "<leader>zz", function() end, { buffer = true, desc = "Fixture buffer action" })
+local reference = require("juicy.reference")
+local reference_text = table.concat(reference.lines(0), "\n")
+expect("reference includes buffer mappings", reference_text:find("Fixture buffer action", 1, true) ~= nil)
+reference.open()
+expect("reference opens without managed notes file", vim.bo.buftype == "nofile")
+reference.open()
 
 if #failures > 0 then
-	vim.api.nvim_err_writeln("NixVim native config contract failed:\n- " .. table.concat(failures, "\n- "))
+	vim.api.nvim_err_writeln("NixVim runtime contract failed:\n- " .. table.concat(failures, "\n- "))
 	vim.cmd.cquit(1)
 end
