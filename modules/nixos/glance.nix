@@ -1,15 +1,15 @@
 {
+  ports,
   self,
-  config,
+  homelabFeatures,
   lib,
   pkgs,
   ...
 }: let
-  portsCfg = config.modules.ports;
+  portsCfg = ports;
   glanceAssets = pkgs.writeTextDir "nixlab.css" (builtins.readFile ./glance.css);
-  homelabConfig = self.nixosConfigurations.zues.config;
   endpoints = self.lib.services.mkHomelabEndpoints {
-    config = homelabConfig;
+    features = homelabFeatures;
   };
 
   # The catalog deliberately uses terse machine-readable names. Keep its data
@@ -19,7 +19,6 @@
     glance = "Nixlab";
     hass = "Home Assistant";
     jellyseerr = "Seerr";
-    media-vote = "Media Vote";
     torrent = "qBittorrent";
   };
   iconOverrides = {
@@ -164,9 +163,7 @@
     }
   ];
 in {
-  options.modules.glance.enable = lib.mkEnableOption "Glance homelab dashboard";
-
-  config = lib.mkIf config.modules.glance.enable {
+  config = {
     services.glance = {
       enable = true;
       openFirewall = true;

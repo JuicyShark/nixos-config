@@ -1,46 +1,23 @@
-{
-  config,
-  lib,
-  ...
-}: let
-  inherit (lib) mkEnableOption mkDefault mkOption;
-  inherit (lib.types) str;
-  inherit (config.modules) ports;
+{lib, ...}: let
+  inherit (lib) mkEnableOption mkDefault;
 in {
   imports = [
     ./media.nix
-    ./media-vote.nix
+    ./tidarr.nix
+    ./jellystat.nix
     ./swiparr.nix
     ./vaultwarden.nix
     ./gatus.nix
     ./filebrowser.nix
     ./syncthing.nix
+    ./atuin.nix
   ];
 
   options.modules.homelab = {
-    smtpEmail = mkOption {
-      type = str;
-      default = "noreply@localhost";
-      description = "Email address for SMTP notifications";
-    };
-
     jellyfin = {
       enable = mkEnableOption "Jellyfin media server";
-      host = mkOption {
-        type = str;
-        default = "192.168.1.52";
-        description = "Host or address for the Jellyfin backend.";
-      };
-      adminUsername = mkOption {
-        type = str;
-        default = config.modules.profile.username;
-        description = "Jellyfin admin username used by Jellyseerr setup.";
-      };
     };
     media.enable = mkEnableOption "*arr media acquisition stack (sonarr, radarr, lidarr, prowlarr, jellyseerr)";
-    syncthing.enable = mkEnableOption "Syncthing file sync node";
-    vaultwarden.enable = mkEnableOption "Vaultwarden self-hosted password manager";
-    gatus.enable = mkEnableOption "Gatus declarative uptime monitor";
   };
 
   config = {
@@ -49,12 +26,6 @@ in {
       recommendedGzipSettings = mkDefault true;
       recommendedOptimisation = mkDefault true;
       recommendedProxySettings = mkDefault true;
-
-      # Raspberry Pi 5 - HAOS
-      virtualHosts."hass.home.arpa".locations."/" = {
-        proxyPass = "http://192.168.1.49:${toString ports.homeAssistant}";
-        proxyWebsockets = true;
-      };
     };
   };
 }

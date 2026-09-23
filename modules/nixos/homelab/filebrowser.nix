@@ -1,27 +1,22 @@
 {
+  ports,
   lib,
   config,
   ...
 }: let
-  inherit (lib) mkEnableOption;
-  inherit (config.modules) ports;
-  cfg = config.modules.homelab.filebrowser;
   username = config.modules.profile.username;
   rootPath = "/srv/chonk/family";
 in {
-  options.modules.homelab.filebrowser.enable = mkEnableOption "Filebrowser web file manager";
+  config = lib.mkIf config.services.filebrowser.enable {
+    modules.system.media.enable = true;
 
-  config = lib.mkIf cfg.enable {
     services.filebrowser = {
-      enable = true;
-      openFirewall = false;
       user = "media";
       group = "media";
       settings = {
         address = "127.0.0.1";
         port = ports.filebrowser;
         root = rootPath;
-        noauth = false;
       };
     };
 
@@ -46,6 +41,6 @@ in {
       "d ${rootPath}/Private/${username} 0770 media media -"
     ];
 
-    systemd.services.filebrowser.serviceConfig.RequiresMountsFor = ["/srv/chonk"];
+    systemd.services.filebrowser.unitConfig.RequiresMountsFor = [rootPath];
   };
 }

@@ -1,18 +1,21 @@
-{lib}: {
+{lib}: let
+  ports = import ./ports.nix;
+in {
   # Homelab service catalog.
   #
   # The attr name is the service name. Most generated names come directly from
   # that key: <name>.home.arpa, qutebrowser quickmark names, Gatus labels, and
   # Glance titles. Use `homeName` only when the LAN hostname intentionally
   # differs from the service key, such as jellyseerr -> seerr.
-  mkHomelabEndpoints = {config}: let
-    inherit (config.modules) ports;
-
+  mkHomelabEndpoints = {
+    config ? null,
+    features,
+  }: let
     # Backend addresses. User-facing names belong in service entries below.
     hosts = {
       leo = "192.168.1.54";
       zues = "192.168.1.99";
-      homeAssistant = "192.168.1.49";
+      homeAssistant = "192.168.1.48";
     };
 
     internalDomain = "home.arpa";
@@ -29,10 +32,12 @@
     home = name: "http://${name}.${internalDomain}";
     public = domain: "https://${domain}";
 
-    jellyfinHost = config.modules.homelab.jellyfin.host or "192.168.1.52";
+    # Mac's reserved Wi-Fi address hosts the migrated Jellyfin library.
+    jellyfinHost = "192.168.1.52";
     vaultwardenPublicDomain = "pass.${publicDomain}";
     sunshineStatusUrl = "http://${host "leo"}:${toString ports.sunshine.http}";
     sunshineAdminUrl = "https://leo.${internalDomain}:${toString ports.sunshine.web}";
+    hassLanUrl = "http://hass.${internalDomain}:${toString ports.homeAssistant}";
 
     removeScheme = url: lib.removePrefix "https://" (lib.removePrefix "http://" url);
     urlHost = url:
@@ -69,11 +74,14 @@
       // lib.optionalAttrs (icon != null) {inherit icon;}
       // lib.optionalAttrs (altStatusCodes != null) {inherit altStatusCodes;};
 
-    nixflixBackend = serviceName: portName: let
-      hostConfig = config.nixflix.${serviceName}.config.hostConfig or {};
-      address = hostConfig.bindAddress or "127.0.0.1";
-      servicePort = hostConfig.port or (port portName);
-    in "http://${address}:${toString servicePort}";
+    nixflixBackend = serviceName: portName:
+      if config == null
+      then local portName
+      else let
+        hostConfig = config.nixflix.${serviceName}.config.hostConfig or {};
+        address = hostConfig.bindAddress or "127.0.0.1";
+        servicePort = hostConfig.port or (port portName);
+      in "http://${address}:${toString servicePort}";
 
     # Service facts. Keep entries boring: only write fields that differ from
     # the service key or from the local-app defaults.
@@ -82,12 +90,12 @@
       grafana = mkLocalApp {
         portName = "grafana";
         icon = "di:grafana";
-        enabled = config.services.grafana.enable or false;
+        enabled = features.monitoring;
       };
 
       prometheus = mkLocalApp {
         portName = "prometheus";
-        enabled = config.services.prometheus.enable or false;
+        enabled = features.monitoring;
         checkPath = "/-/ready";
         statusPath = "/-/healthy";
       };
@@ -95,35 +103,39 @@
       alertmanager = mkLocalApp {
         portName = "alertmanager";
         icon = "si:prometheus";
-        enabled = config.services.prometheus.alertmanager.enable or false;
+        enabled = features.monitoring;
         checkPath = "/-/ready";
         statusPath = "/-/ready";
       };
 
-      loki = mkLocalApp {
-        portName = "loki";
-        enabled = config.services.loki.enable or false;
-        checkPath = "/ready";
-        statusPath = "/ready";
+      # Loki has no user-facing LAN endpoint; Grafana queries it over loopback
+      # and Alloy writers use the explicitly firewalled ingestion port.
+      loki = {
+        enabled = features.monitoring;
+        statusUrl = "${local "loki"}/ready";
       };
 
-      jellyseerr = mkLocalApp {
-        portName = "jellyseerr";
-        homeName = "seerr";
-        icon = "di:jellyseerr";
-        enabled = config.nixflix.seerr.enable or config.services.seerr.enable or false;
+      atuin = mkLocalApp {
+        portName = "atuin";
+        enabled = features.atuin;
       };
 
-      media-vote = mkLocalApp {
-        portName = "mediaVote";
-        homeName = "media-vote";
-        icon = "si:jellyfin";
-        enabled = config.modules.homelab.mediaVote.enable or false;
-        statusPath = "/health";
-      };
+      jellyseerr =
+        mkLocalApp {
+          portName = "jellyseerr";
+          homeName = "seerr";
+          icon = "di:jellyseerr";
+          enabled = features.media;
+        }
+        // {
+          public = {
+            domain = "seerr.${publicDomain}";
+            upstream = local "jellyseerr";
+          };
+        };
 
       swiparr = {
-        enabled = config.modules.homelab.swiparr.enable or false;
+        enabled = features.swiparr;
         icon = "si:jellyfin";
         homeName = "swiparr";
         url = home "swiparr";
@@ -141,7 +153,7 @@
       sonarr = mkLocalApp {
         portName = "sonarr";
         icon = "di:sonarr";
-        enabled = config.nixflix.sonarr.enable or false;
+        enabled = features.media;
         backendUrl = nixflixBackend "sonarr" "sonarr";
         statusUrl = home "sonarr";
       };
@@ -149,7 +161,7 @@
       radarr = mkLocalApp {
         portName = "radarr";
         icon = "di:radarr";
-        enabled = config.nixflix.radarr.enable or false;
+        enabled = features.media;
         backendUrl = nixflixBackend "radarr" "radarr";
         statusUrl = home "radarr";
       };
@@ -157,15 +169,21 @@
       lidarr = mkLocalApp {
         portName = "lidarr";
         icon = "di:lidarr";
-        enabled = config.nixflix.lidarr.enable or false;
+        enabled = features.media;
         backendUrl = nixflixBackend "lidarr" "lidarr";
         statusUrl = home "lidarr";
+      };
+
+      tidarr = mkLocalApp {
+        portName = "tidarr";
+        icon = "si:tidal";
+        enabled = features.tidarr;
       };
 
       prowlarr = mkLocalApp {
         portName = "prowlarr";
         icon = "di:prowlarr";
-        enabled = config.nixflix.prowlarr.enable or false;
+        enabled = features.media;
         backendUrl = nixflixBackend "prowlarr" "prowlarr";
         statusUrl = home "prowlarr";
       };
@@ -174,13 +192,13 @@
         portName = "filebrowser";
         homeName = "files";
         icon = "di:filebrowser";
-        enabled = config.modules.homelab.filebrowser.enable or false;
+        enabled = features.filebrowser;
       };
 
       syncthing = mkLocalApp {
         portName = "syncthing";
         icon = "di:syncthing";
-        enabled = config.services.syncthing.enable or false;
+        enabled = features.syncthing;
       };
 
       # Manual entries: remote backends, public-only services, or nonstandard
@@ -199,7 +217,7 @@
       };
 
       jellyfin = {
-        enabled = config.modules.homelab.jellyfin.enable or false;
+        enabled = features.jellyfin;
         icon = "di:jellyfin";
         homeName = "jellyfin";
         url = home "jellyfin";
@@ -214,8 +232,15 @@
         };
       };
 
+      jellystat = mkLocalApp {
+        portName = "jellystat";
+        icon = "si:jellyfin";
+        enabled = features.jellystat;
+        statusPath = "/auth/isConfigured";
+      };
+
       torrent = {
-        enabled = config.nixflix.torrentClients.qbittorrent.enable or false;
+        enabled = features.media;
         icon = "di:qbittorrent";
         homeName = "torrent";
         url = home "torrent";
@@ -224,7 +249,7 @@
       };
 
       vaultwarden = {
-        enabled = config.services.vaultwarden.enable or false;
+        enabled = features.vaultwarden;
         icon = "di:vaultwarden";
         homeName = "vaultwarden";
         url = home "vaultwarden";
@@ -248,8 +273,7 @@
 
       hass = {
         icon = "di:home-assistant";
-        homeName = "hass";
-        url = home "hass";
+        url = hassLanUrl;
         checkUrl = remote "homeAssistant" "homeAssistant";
         upstream = remote "homeAssistant" "homeAssistant";
         statusUrl = remote "homeAssistant" "homeAssistant";
@@ -260,7 +284,7 @@
       };
 
       gatus = {
-        enabled = config.modules.homelab.gatus.enable or false;
+        enabled = features.gatus;
         icon = "di:gatus";
         homeName = "status";
         url = home "status";
@@ -289,16 +313,18 @@
       ];
       media = [
         "jellyfin"
-        "media-vote"
+        "jellystat"
         "swiparr"
         "jellyseerr"
         "sonarr"
         "radarr"
         "lidarr"
+        "tidarr"
         "prowlarr"
         "torrent"
       ];
       personal = [
+        "atuin"
         "vaultwarden"
         "filebrowser"
         "syncthing"
@@ -421,7 +447,10 @@
       )
       ++ map mkPublicStatusPageEndpoint (
         lib.filter (
-          svc: enabled svc && hasIcon svc && (svc.public.statusUrl or null) != null
+          svc:
+            enabled svc
+            && hasIcon svc
+            && (svc.public.statusUrl or (svc.public.checkUrl or (svc.public.domain or null))) != null
         )
         serviceList
       );

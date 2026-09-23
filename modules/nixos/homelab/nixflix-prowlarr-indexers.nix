@@ -1,6 +1,6 @@
 # Local replacement for the pinned nixflix Prowlarr indexer module. It adds
 # schema/display-name separation and resolves nested secret references at
-# service runtime; flake.nix disables the corresponding upstream module.
+# service runtime; hosts/zues/configuration.nix disables the upstream module.
 {
   inputs,
   config,

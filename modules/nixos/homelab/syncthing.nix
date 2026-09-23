@@ -2,18 +2,16 @@
 # GUI proxied at syncthing.home.arpa. Devices and folders are
 # configured through the web UI on first run.
 {
+  ports,
   config,
   lib,
   ...
 }: let
-  enabled = config.modules.homelab.syncthing.enable;
-  inherit (config.modules) ports;
   username = config.modules.profile.username;
   homeDirectory = "/home/${username}";
 in {
-  config = lib.mkIf enabled {
+  config = lib.mkIf config.services.syncthing.enable {
     services.syncthing = {
-      enable = true;
       user = username;
       dataDir = homeDirectory;
       guiAddress = "127.0.0.1:${toString ports.syncthing}";
@@ -22,11 +20,7 @@ in {
 
     services.nginx.virtualHosts."syncthing.home.arpa".locations."/" = {
       proxyPass = "http://127.0.0.1:${toString ports.syncthing}";
-      extraConfig = ''
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-      '';
+      proxyWebsockets = true;
     };
   };
 }

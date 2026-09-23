@@ -1,45 +1,14 @@
 {
+  ports,
   config,
   lib,
   ...
 }: let
-  inherit (lib) mkEnableOption mkIf mkOption;
-  inherit (lib.types) str;
+  inherit (lib) mkEnableOption mkIf;
   cfg = config.modules.homelab.swiparr;
-  ports = config.modules.ports;
 in {
   options.modules.homelab.swiparr = {
     enable = mkEnableOption "Swiparr collaborative Jellyfin discovery";
-
-    image = mkOption {
-      type = str;
-      default = "ghcr.io/m3sserstudi0s/swiparr:v1.5.1";
-      description = "Pinned Swiparr OCI image.";
-    };
-
-    jellyfinUrl = mkOption {
-      type = str;
-      default = "http://${config.modules.homelab.jellyfin.host}:${toString ports.jellyfin}";
-      description = "Internal Jellyfin URL used by the Swiparr server.";
-    };
-
-    jellyfinPublicUrl = mkOption {
-      type = str;
-      default = "https://jellyfin.nixlab.au";
-      description = "Jellyfin URL opened by Swiparr clients.";
-    };
-
-    publicUrl = mkOption {
-      type = str;
-      default = "https://swiparr.nixlab.au";
-      description = "Canonical public Swiparr URL.";
-    };
-
-    adminUsername = mkOption {
-      type = str;
-      default = config.modules.homelab.jellyfin.adminUsername;
-      description = "Jellyfin username granted Swiparr administrator access.";
-    };
   };
 
   config = mkIf cfg.enable {
@@ -48,15 +17,17 @@ in {
       oci-containers = {
         backend = "podman";
         containers.swiparr = {
-          inherit (cfg) image;
-          pull = "newer";
+          image = "ghcr.io/m3sserstudi0s/swiparr:v1.5.1";
+          # Updates must be reviewed and deployed explicitly; do not replace
+          # the running image merely because a mutable tag changed upstream.
+          pull = "missing";
           environment = {
-            ADMIN_USERNAME = cfg.adminUsername;
-            APP_PUBLIC_URL = cfg.publicUrl;
+            ADMIN_USERNAME = config.modules.profile.username;
+            APP_PUBLIC_URL = "https://swiparr.nixlab.au";
             DATABASE_URL = "file:/app/data/swiparr.db";
             HOSTNAME = "127.0.0.1";
-            JELLYFIN_PUBLIC_URL = cfg.jellyfinPublicUrl;
-            JELLYFIN_URL = cfg.jellyfinUrl;
+            JELLYFIN_PUBLIC_URL = "https://jellyfin.nixlab.au";
+            JELLYFIN_URL = "http://192.168.1.52:${toString ports.jellyfin}";
             PORT = toString ports.swiparr;
             PROVIDER = "jellyfin";
             PROVIDER_LOCK = "true";
@@ -65,7 +36,14 @@ in {
           };
           volumes = ["/var/lib/swiparr:/app/data"];
           networks = ["host"];
-          extraOptions = ["--security-opt=no-new-privileges"];
+          # Keep a third-party container from starving DNS, nginx, and
+          # monitoring on the homelab host.
+          extraOptions = [
+            "--security-opt=no-new-privileges"
+            "--memory=2g"
+            "--cpus=2"
+            "--pids-limit=512"
+          ];
         };
       };
     };
@@ -76,6 +54,6 @@ in {
 
     # HTTP access cannot carry Swiparr's secure session cookie. Keep the
     # familiar LAN hostname, but move browsers onto the canonical HTTPS URL.
-    services.nginx.virtualHosts."swiparr.home.arpa".locations."/".return = "302 ${cfg.publicUrl}$request_uri";
+    services.nginx.virtualHosts."swiparr.home.arpa".locations."/".return = "302 https://swiparr.nixlab.au$request_uri";
   };
 }

@@ -1,23 +1,17 @@
 # Vaultwarden self-hosted password manager + SMTP options.
 {
+  ports,
   lib,
   config,
   ...
-}: let
-  inherit (lib) mkIf;
-  homelabVaultwarden = config.modules.homelab.vaultwarden.enable;
-  inherit (config.modules) ports;
-  cfg = config.modules.homelab;
-in {
-  config = mkIf homelabVaultwarden {
+}: {
+  config = lib.mkIf config.services.vaultwarden.enable {
     age.secrets."vaultwarden.env" = {
       file = ../../../secrets/vaultwarden.env.age;
       owner = "vaultwarden";
     };
 
     services.vaultwarden = {
-      enable = true;
-      backupDir = "/var/backup/vaultwarden";
       environmentFile = config.age.secrets."vaultwarden.env".path;
       config = {
         DOMAIN = "https://pass.nixlab.au";
@@ -33,8 +27,6 @@ in {
         SMTP_HOST = "smtp.gmail.com";
         SMTP_PORT = 465;
         SMTP_SECURITY = "force_tls";
-        SMTP_FROM = cfg.smtpEmail;
-        SMTP_USERNAME = cfg.smtpEmail;
       };
     };
 
