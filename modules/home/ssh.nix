@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: {
   programs.ssh = {
@@ -37,11 +38,13 @@
   # linking it so `ssh` can use the normal config path without `-F` workarounds.
   home.file.".ssh/config".force = true;
   home.activation.materializeSshConfig = lib.hm.dag.entryAfter ["linkGeneration"] ''
-    # The previous activation leaves a regular file here, so it can be both
-    # the source and destination. Copy first, then replace it atomically.
-    ssh_config_temp="$(mktemp "$HOME/.ssh/config.XXXXXX")"
-    trap 'rm -f "$ssh_config_temp"' EXIT
-    install -m 600 "$HOME/.ssh/config" "$ssh_config_temp"
-    mv -f "$ssh_config_temp" "$HOME/.ssh/config"
+    run ${pkgs.bash}/bin/bash -euc ${lib.escapeShellArg ''
+      # Copy before replacing: the previous generation leaves a regular file.
+      # A child shell scopes cleanup and lets HM skip all writes in a dry run.
+      ssh_config_temp="$(mktemp "$HOME/.ssh/config.XXXXXX")"
+      trap 'rm -f "$ssh_config_temp"' EXIT
+      install -m 600 "$HOME/.ssh/config" "$ssh_config_temp"
+      mv -f "$ssh_config_temp" "$HOME/.ssh/config"
+    ''}
   '';
 }

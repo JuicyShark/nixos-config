@@ -3,6 +3,7 @@
   lib,
   osConfig,
   pkgs,
+  inputs,
   ...
 }: let
   nvim = lib.getExe config.programs.nixvim.build.package;
@@ -25,7 +26,7 @@ in {
 
   stylix = {
     enable = true;
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
+    base16Scheme = "${inputs.stylix.inputs.tinted-schemes}/base16/kanagawa.yaml";
     polarity = "dark";
     # The ISO shares the system package set with Home Manager, so per-user
     # package overlays cannot take effect and only trigger an HM warning.

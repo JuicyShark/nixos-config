@@ -6,20 +6,15 @@
   ...
 }: let
   inherit (config.boot) isContainer;
-  inherit (lib) mkIf mkEnableOption mkOption;
+  inherit (lib) mkIf mkEnableOption;
   username = config.modules.profile.username;
 
   cfg = config.modules.desktop;
 
   desktopBasePackages = with pkgs; [
     rsync
-    wl-clipboard-rs
     gparted
-    imv
     pciutils
-    # Wayland/Hyprland QoL
-    wdisplays
-    cliphist
   ];
 in {
   imports = [
@@ -30,35 +25,16 @@ in {
   options.modules.desktop = {
     enable = mkEnableOption "desktop environment (Hyprland/Wayland)";
     applications = {
-      enable = mkEnableOption "extra desktop applications (Signal, Discord, Obsidian, etc.)";
-      vivaldi.enable = mkEnableOption "Vivaldi browser";
-      godot.enable = mkEnableOption "Godot editor";
+      enable = mkEnableOption "extra desktop applications (Signal, Discord, LocalSend, etc.)";
     };
-    annotation.enable = mkEnableOption "Wayland screen annotation tooling";
     gaming = {
       enable = mkEnableOption "gaming features (Steam, GameMode, Wine, Proton, etc.)";
-      extraTools.enable = mkEnableOption "extra gaming tools (GOverlay, vkBasalt, WowUp, osu!)";
-      gamescope = {
-        enable = mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = "Whether to enable the Gamescope Wayland micro-compositor for games.";
-        };
-        session.enable = mkEnableOption "a dedicated Steam Gamescope session";
-      };
-      retro.enable = mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Whether to install retro gaming tools and ports with the gaming bundle.";
-      };
     };
     streaming = {
       enable = mkEnableOption "streaming tools";
-      chat.enable = mkEnableOption "streaming chat client";
-      mirror.enable = mkEnableOption "Wayland display mirroring tool";
     };
+    terminalFileChooser.enable = mkEnableOption "Yazi-backed terminal file chooser portal";
     media.jellyfinMpvShim.enable = mkEnableOption "Jellyfin MPV Shim";
-    virtual.enable = mkEnableOption "virtualization support (quickemu, cdemu)";
   };
 
   config = lib.mkMerge [
@@ -76,6 +52,10 @@ in {
           assertion = cfg.streaming.enable -> cfg.enable;
           message = "modules.desktop.streaming requires modules.desktop to be enabled";
         }
+        {
+          assertion = cfg.terminalFileChooser.enable -> cfg.enable;
+          message = "modules.desktop.terminalFileChooser requires modules.desktop to be enabled";
+        }
       ];
     }
     (mkIf cfg.enable {
@@ -87,6 +67,16 @@ in {
 
       nixpkgs.overlays = lib.optionals (!isContainer) [
         inputs.hyprland.overlays.hyprland-packages
+        (final: prev: {
+          mpv-unwrapped = prev.mpv-unwrapped.overrideAttrs (old: {
+            buildInputs = old.buildInputs ++ [final.SDL2];
+            mesonFlags = map (flag:
+              if flag == "-Dsdl2-gamepad=disabled"
+              then "-Dsdl2-gamepad=enabled"
+              else flag)
+            old.mesonFlags;
+          });
+        })
       ];
 
       qt = {
@@ -105,14 +95,13 @@ in {
         hyprland = {
           enable = !isContainer;
           withUWSM = !isContainer;
+          package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
           portalPackage = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
         };
-        uwsm.enable = mkIf (!isContainer) true;
-        thunar.enable = true;
         ssh = {
           startAgent = true;
           enableAskPassword = true;
-          askPassword = "${pkgs.wayprompt}/bin/wayprompt-ssh-askpass";
+          askPassword = lib.getExe pkgs.lxqt.lxqt-openssh-askpass;
         };
 
         nix-ld = {
@@ -130,23 +119,22 @@ in {
       xdg.portal = {
         enable = !isContainer;
         xdgOpenUsePortal = !isContainer;
-        extraPortals = with pkgs; [
-          xdg-desktop-portal-gtk
-        ];
-        config.hyprland = {
-          default = [
-            "hyprland"
-            "gtk"
-          ];
-        };
+        extraPortals =
+          [pkgs.xdg-desktop-portal-gtk]
+          ++ lib.optional cfg.terminalFileChooser.enable pkgs.xdg-desktop-portal-termfilechooser;
+        config.hyprland =
+          {
+            default = [
+              "hyprland"
+              "gtk"
+            ];
+          }
+          // lib.optionalAttrs cfg.terminalFileChooser.enable {
+            "org.freedesktop.impl.portal.FileChooser" = ["termfilechooser"];
+          };
       };
 
       services = {
-        greetd = mkIf (!isContainer) {
-          enable = true;
-          settings.default_session.user = "greeter";
-        };
-
         playerctld.enable = true;
         libinput.mouse.accelProfile = "flat";
 
@@ -155,22 +143,17 @@ in {
           alsa.enable = true;
           alsa.support32Bit = true;
           pulse.enable = true;
-          wireplumber.enable = true;
         };
 
-        tumbler.enable = true;
-        gvfs.enable = true;
         upower.enable = true;
         udisks2.enable = true;
         power-profiles-daemon.enable = true;
-        # Firmware updates over LVFS (NVMe, dock/monitor controllers,
-        # Logitech receivers, ZSA boards via flashing tools, etc.).
         fwupd.enable = true;
       };
 
-      programs.noctalia-greeter.enable = !isContainer;
+      # Noctalia enables greetd; keep its condition independent of greetd.
+      services.displayManager.noctalia-greeter.enable = !isContainer;
 
-      # Kill runaway processes under memory pressure instead of swap-thrashing
       systemd.oomd.enable = true;
 
       security.rtkit.enable = true;

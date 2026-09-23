@@ -1,6 +1,11 @@
-{lib, ...}: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   fileSearchCommand =
-    "rg --files --hidden "
+    "${lib.getExe pkgs.ripgrep} --files --hidden "
     + (lib.concatMapStringsSep " "
       (glob: "--glob=" + lib.escapeShellArg "!${glob}") [
         ".git/"
@@ -14,10 +19,11 @@
 in {
   programs.fzf = {
     enable = true;
-    enableZshIntegration = true;
-    enableBashIntegration = true;
 
-    colors = lib.mkForce {};
+    # Use normal text contrast for results; retain Stylix's other roles.
+    colors = lib.mkIf (config.lib ? stylix) {
+      fg = lib.mkForce config.lib.stylix.colors.withHashtag.base05;
+    };
     historyWidget.zsh.command = "";
     historyWidget.bash.command = "";
 
@@ -25,8 +31,16 @@ in {
       "--height 40%"
       "--reverse"
       "--border"
-      "--color=16"
     ];
     defaultCommand = fileSearchCommand;
+    fileWidget = {
+      command = fileSearchCommand;
+      options = [
+        "--preview '${lib.getExe pkgs.bat} --color=always --style=numbers --line-range=:200 -- {}'"
+        "--preview-window=right:50%:hidden"
+        "--bind=ctrl-/:toggle-preview"
+      ];
+    };
+    changeDirWidget.command = "${lib.getExe pkgs.fd} --type d --hidden --exclude .git --exclude .cache --exclude .direnv --exclude node_modules --exclude .venv";
   };
 }

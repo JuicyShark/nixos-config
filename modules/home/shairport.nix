@@ -28,8 +28,8 @@ in {
     systemd.user.services.shairport-sync = {
       Unit = {
         Description = "Shairport Sync AirPlay receiver";
-        After = ["pipewire.service" "wireplumber.service" "network-online.target"];
-        Wants = ["network-online.target"];
+        After = ["pipewire.service" "wireplumber.service"];
+        Wants = ["pipewire.service" "wireplumber.service"];
       };
       Service = {
         ExecStart = "${lib.getExe pkgs.shairport-sync} -c ${confFile}";

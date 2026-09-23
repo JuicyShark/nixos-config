@@ -4,12 +4,9 @@
   pkgs,
   ...
 }: let
-  browserDesktop = "chromium-browser.desktop";
-  editorDesktop =
-    if osConfig.modules.emacs.enable or false
-    then "emacsclient.desktop"
-    else "nvim.desktop";
-  filesDesktop = "thunar.desktop";
+  browserDesktop = "firefox.desktop";
+  editorDesktop = "nvim.desktop";
+  filesDesktop = "yazi.desktop";
   editorMimeTypes = [
     "application/ecmascript"
     "application/javascript"
@@ -52,7 +49,7 @@
     "text/x-yaml"
   ];
 in
-  lib.mkIf (pkgs.stdenv.isLinux && (osConfig.modules.desktop.enable or false)) {
+  lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && (osConfig.modules.desktop.enable or false)) {
     xdg.mimeApps = {
       enable = true;
 
@@ -62,9 +59,9 @@ in
           "x-scheme-handler/http" = browserDesktop;
           "x-scheme-handler/https" = browserDesktop;
           "inode/directory" = filesDesktop;
-          "image/png" = "imv.desktop";
-          "image/jpeg" = "imv.desktop";
-          "image/gif" = "imv.desktop";
+          "image/png" = "mpv.desktop";
+          "image/jpeg" = "mpv.desktop";
+          "image/gif" = "mpv.desktop";
           "audio/flac" = "mpv.desktop";
           "audio/mpeg" = "mpv.desktop";
           "audio/mp4" = "mpv.desktop";

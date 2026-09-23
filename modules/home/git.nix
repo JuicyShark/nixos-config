@@ -1,4 +1,8 @@
-{pkgs, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   home.packages = with pkgs; [
     tig
     gh
@@ -24,7 +28,7 @@
       include.path = "~/.gituser";
 
       diff.lockb = {
-        textconv = "bun";
+        textconv = lib.getExe pkgs.bun;
         binary = true;
       };
 

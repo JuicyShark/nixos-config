@@ -2,47 +2,51 @@
   lib,
   pkgs,
   osConfig,
+  config,
   ...
 }: let
   inherit (lib) getExe;
   inherit (pkgs) stdenv;
-  flake = osConfig.environment.variables.FLAKE or ".";
+  flake = lib.escapeShellArg (osConfig.environment.variables.FLAKE or ".");
 
   shellAliases =
     {
-      ytmp3 = "${getExe pkgs.yt-dlp} -x --continue --add-metadata --embed-thumbnail --audio-format mp3 --audio-quality 0 --metadata-from-title=\"%(artist)s - %(title)s\" --prefer-ffmpeg -o \"%(title)s.%(ext)s\"";
       fm = "y";
-      eza = "eza --icons auto --group-directories-first --no-quotes --git-ignore";
 
       cleanup = "sudo nix-collect-garbage --delete-older-than 1d";
       nixremove = "nix-store --gc";
       c = "clear";
       q = "exit";
       temp = "cd /tmp/";
-      gitui = "lazygit";
 
       ssh-leo = "ssh leo";
       ssh-zues = "ssh zues";
       ssh-fallarbor = "ssh fallarbor";
 
       g = "git";
-      add = "git add .";
-      commit = "git commit";
-      push = "git push";
-      pull = "git pull";
+      gs = "git status --short --branch";
+      ga = "git add";
+      gc = "git commit";
+      gp = "git push";
+      gl = "git pull --ff-only";
       gdiff = "git diff --staged";
       gcld = "git clone --depth 1";
       gco = "git checkout";
       gitgrep = "git ls-files | rg";
-      groot = "cd \"$(git rev-parse --show-toplevel)\"";
 
-      tls = "tmux list-sessions";
+      tls = "zellij list-sessions";
 
       l = "eza -lF --time-style=long-iso --icons";
-      ll = "eza -h --git --icons --color=auto --group-directories-first -s extension";
-      tree = "eza --tree --icons";
+      ll = "eza --long --all --header --git --group-directories-first";
+      tree = "eza --tree --level=2 --group-directories-first";
     }
-    // lib.optionalAttrs stdenv.isLinux {
+    // lib.optionalAttrs config.programs.yt-dlp.enable {
+      ytmp3 = "${getExe config.programs.yt-dlp.package} -x --continue --add-metadata --embed-thumbnail --audio-format mp3 --audio-quality 0 --metadata-from-title=\"%(artist)s - %(title)s\" --prefer-ffmpeg -o \"%(title)s.%(ext)s\"";
+    }
+    // lib.optionalAttrs config.programs.lazygit.enable {
+      gitui = getExe config.programs.lazygit.package;
+    }
+    // lib.optionalAttrs stdenv.hostPlatform.isLinux {
       listgen = "sudo nix-env -p /nix/var/nix/profiles/system --list-generations";
       closure-size = "nix path-info -Sh /run/current-system";
       trimall = "sudo fstrim -va";
@@ -52,10 +56,7 @@
       leo-diff = "nix run ${flake}#os-diff -- leo";
       fallarbor-diff = "nix run ${flake}#os-diff -- fallarbor";
       zues-diff = "nix run ${flake}#zues-diff --";
-      test-build = "nix run ${flake}#os-build --";
-      switch-build = "nix run ${flake}#os-switch --";
       zues-test = "nix run ${flake}#zues-test --";
-      zues-build = "nix run ${flake}#zues-switch --";
     };
   zshOnlyAliases = {
     nocorrect = "unsetopt correct";
@@ -69,13 +70,11 @@ in {
   programs = {
     carapace = {
       enable = true;
-      enableZshIntegration = true;
-      enableBashIntegration = true;
     };
 
     zsh = {
       enable = true;
-      enableCompletion = true;
+      defaultKeymap = "emacs";
       autosuggestion.enable = true;
       syntaxHighlighting.enable = true;
       autocd = true;
@@ -90,6 +89,18 @@ in {
       };
       shellAliases = shellAliases // zshOnlyAliases;
       initContent = lib.mkBefore ''
+        # Native completion stays predictable; Carapace supplies command specs.
+        zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
+        zstyle ':completion:*' menu select
+        zstyle ':completion:*' group-name ""
+        zstyle ':completion:*:descriptions' format '%B%d%b'
+
+        groot() {
+          local root
+          root=$(git rev-parse --show-toplevel) || return
+          builtin cd -- "$root"
+        }
+
         # Make managed SSH shells immediately distinguishable from local work.
         # OSC palette changes are scoped to the current Ghostty surface; the
         # local prompt resets them after `ssh` returns.
@@ -128,7 +139,6 @@ in {
 
     bash = {
       enable = true;
-      enableCompletion = true;
       historyControl = [
         "ignoredups"
         "ignorespace"

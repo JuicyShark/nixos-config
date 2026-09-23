@@ -1,9 +1,15 @@
-_: {
+{pkgs, ...}: {
+  programs.fastfetch.enable = true;
+
   xdg.configFile."fastfetch/config.jsonc".text = ''
     {
       "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/master/doc/json_schema.json",
       "logo": {
-        "source": "NixOS",
+        "source": "${
+      if pkgs.stdenv.hostPlatform.isDarwin
+      then "macos"
+      else "NixOS"
+    }",
         "padding": {
           "top": 1,
           "left": 2,

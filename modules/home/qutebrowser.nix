@@ -1,5 +1,6 @@
 {
   self,
+  homelabFeatures,
   config,
   osConfig,
   lib,
@@ -7,10 +8,9 @@
   ...
 }: let
   c = config.lib.stylix.colors;
-  terminal = config.modules.terminal.command;
-  homelabConfig = self.nixosConfigurations.zues.config;
+  terminal = (import ../../lib/terminal.nix {inherit lib pkgs;}).command;
   endpoints = self.lib.services.mkHomelabEndpoints {
-    config = homelabConfig;
+    features = homelabFeatures;
   };
 
   mpvUserscript = pkgs.writeShellApplication {
@@ -25,10 +25,67 @@
       disown
     '';
   };
+
+  rbwUserscript = pkgs.writeTextFile {
+    name = "qute-rbw";
+    destination = "/bin/qute-rbw";
+    executable = true;
+    text = ''
+      #!${lib.getExe pkgs.python3}
+      import os
+      import shlex
+      import subprocess
+      import sys
+
+      RBW = ${builtins.toJSON (lib.getExe pkgs.rbw)}
+
+
+      def qute(command):
+          with open(os.environ["QUTE_FIFO"], "w", encoding="utf-8") as fifo:
+              fifo.write(command + "\n")
+
+
+      def insert_text(text):
+          qute("insert-text -- " + shlex.quote(text))
+
+
+      url = os.environ.get("QUTE_URL")
+      if not url:
+          qute("message-error 'rbw: current page has no URL'")
+          sys.exit(1)
+
+      try:
+          username = subprocess.run(
+              [RBW, "get", "--field", "username", url],
+              check=True,
+              capture_output=True,
+              text=True,
+          ).stdout.rstrip("\n")
+          password = subprocess.run(
+              [RBW, "get", url],
+              check=True,
+              capture_output=True,
+              text=True,
+          ).stdout.rstrip("\n")
+      except subprocess.CalledProcessError as error:
+          message = error.stderr.strip().replace("'", "")
+          qute(f"message-error 'rbw: {message or 'could not find login'}'")
+          sys.exit(error.returncode)
+
+      insert_text(username)
+      qute("fake-key <Tab>")
+      insert_text(password)
+    '';
+  };
 in
   lib.mkIf ((osConfig.modules.desktop.enable or false) && !pkgs.stdenv.hostPlatform.isDarwin) {
     xdg.dataFile."qutebrowser/userscripts/qute-mpv" = {
       source = "${mpvUserscript}/bin/qute-mpv";
+      executable = true;
+    };
+
+    xdg.dataFile."qutebrowser/userscripts/qute-rbw" = {
+      source = "${rbwUserscript}/bin/qute-rbw";
       executable = true;
     };
 
@@ -299,6 +356,7 @@ in
         L = "nop";
         ",m" = "spawn --userscript qute-mpv";
         ",M" = "hint links userscript qute-mpv";
+        ",p" = "spawn --userscript qute-rbw";
       };
 
       perDomainSettings = {
@@ -315,7 +373,6 @@ in
       # Home Manager flattens nested settings into config.set calls; these
       # qutebrowser options intentionally need Python dict assignment.
       extraConfig = ''
-        c.qt.environ = {"LIBVA_DRIVER_NAME": "radeonsi"}
 
         c.tabs.padding = {"top": 3, "bottom": 3, "left": 6, "right": 6}
         c.hints.padding = {"top": 1, "bottom": 1, "left": 3, "right": 3}

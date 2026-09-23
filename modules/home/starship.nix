@@ -1,65 +1,54 @@
-{lib, ...}: {
+{
+  lib,
+  config,
+  ...
+}: {
   programs = {
     starship = {
       enable = true;
       # Starship can wedge while probing the Darwin host over SSH, leaving
       # zsh without a prompt. Initialise it only for local interactive zsh.
       enableZshIntegration = false;
-      enableBashIntegration = true;
       settings = {
-        add_newline = true;
+        # Headless homes do not import Stylix. Its palette takes precedence
+        # on desktops; elsewhere these names follow the terminal's colors.
+        palette = lib.mkDefault "terminal";
+        palettes.terminal = {
+          base03 = "bright-black";
+          base04 = "white";
+          base05 = "white";
+          base08 = "red";
+          base09 = "yellow";
+          base13 = "bright-yellow";
+          base14 = "bright-green";
+          base15 = "bright-cyan";
+        };
         scan_timeout = 10;
-        command_timeout = 800;
+        command_timeout = 300;
 
         format = ''
-          $os$username$hostname$sudo$directory$git_branch$fill$nix_shell$nodejs$python$rust$golang$lua$package$jobs
+          $username$hostname$directory$git_branch$git_state$nix_shell$jobs$cmd_duration
           $character
         '';
 
-        right_format = "$git_status$git_metrics$git_state$status";
-
-        fill = {
-          symbol = " ";
-          style = "base03";
-        };
-
-        os = {
-          disabled = false;
-          format = "[ $symbol ]($style)";
-          style = "fg:base04 bold";
-          symbols = {
-            NixOS = "";
-            Macos = "";
-            Linux = "";
-          };
-        };
+        right_format = "$git_status$status";
 
         username = {
-          show_always = true;
-          disabled = false;
+          show_always = false;
           format = "[ $user ]($style)";
           style_user = "fg:base05 bold";
           style_root = "fg:base08 bold";
         };
 
         hostname = {
-          ssh_only = false;
+          ssh_only = true;
           format = "[@$hostname ]($style)";
           style = "fg:base15 bold";
           trim_at = ".nixlab.au";
-          disabled = false;
-        };
-
-        sudo = {
-          format = "[ $symbol]($style)";
-          symbol = "󰌋 ";
-          style = "fg:base08 bold";
-          allow_windows = false;
-          disabled = false;
         };
 
         directory = {
-          format = "[ 󰉋 $path ]($style)";
+          format = "[$path]($style)[$read_only]($read_only_style) ";
           style = "fg:base15 bold";
           truncation_length = 4;
           truncation_symbol = "…/";
@@ -78,14 +67,12 @@
         };
 
         git_branch = {
-          format = "[  $branch(:$remote_branch) ]($style)";
-          ignore_branches = ["master" "main"];
+          format = "[ $symbol$branch(:$remote_branch) ]($style)";
           style = "fg:base14 bold";
           symbol = " ";
         };
 
         git_status = {
-          disabled = false;
           format = "[$all_status$ahead_behind]($style)";
           style = "fg:base09 bold";
           conflicted = "!$count ";
@@ -102,17 +89,8 @@
         };
 
         git_state = {
-          disabled = false;
           format = "[ $state( $progress_current/$progress_total) ]($style)";
           style = "fg:base13 bold";
-        };
-
-        git_metrics = {
-          disabled = false;
-          only_nonzero_diffs = true;
-          format = "([ diff +$added ]($added_style))([-$deleted ]($deleted_style))";
-          added_style = "fg:base14 bold";
-          deleted_style = "fg:base08 bold";
         };
 
         character = {
@@ -121,30 +99,15 @@
           error_symbol = "[❯](fg:base08 bold) ";
           vicmd_symbol = "[❮](fg:base13 bold) ";
           vimcmd_visual_symbol = "[V](fg:base13 bold) ";
-          disabled = false;
         };
 
         nix_shell = {
-          disabled = false;
-          heuristic = false;
-          format = "[ $symbol$state ]($style)";
-          style = "fg:base16 bold";
-          symbol = " ";
+          format = "[ $symbol nix ]($style)";
+          style = "fg:base15 bold";
+          symbol = "";
           impure_msg = "";
           pure_msg = "";
           unknown_msg = "";
-        };
-
-        direnv = {
-          disabled = false;
-          format = "[ env $loaded/$allowed ]($style)";
-          style = "fg:base17 bold";
-          symbol = " ";
-          allowed_msg = "ok";
-          not_allowed_msg = "lock";
-          loaded_msg = "env";
-          unloaded_msg = "off";
-          denied_msg = "deny";
         };
 
         jobs = {
@@ -154,81 +117,28 @@
           number_threshold = 1;
         };
 
+        cmd_duration = {
+          min_time = 2000;
+          format = "[ $duration ](fg:base13)";
+        };
+
         status = {
           disabled = false;
           format = "[ $symbol$status ]($style)";
           style = "fg:base08 bold";
           symbol = "󰅙 ";
         };
-
-        time = {
-          disabled = false;
-          format = "[ $time ]($style)";
-          style = "fg:base04 bold";
-          time_format = "%H:%M";
-        };
-
-        aws.disabled = true;
-        gcloud.disabled = true;
-        nodejs = {
-          disabled = false;
-          format = "[ $symbol$version ]($style)";
-          style = "fg:base13 bold";
-          symbol = " ";
-        };
-        ruby.disabled = true;
-        python = {
-          disabled = false;
-          format = "[ $symbol$version( $virtualenv) ]($style)";
-          style = "fg:base16 bold";
-          symbol = " ";
-        };
-        rust = {
-          disabled = false;
-          format = "[ $symbol$version ]($style)";
-          style = "fg:base09 bold";
-          symbol = " ";
-        };
-        golang = {
-          disabled = false;
-          format = "[ $symbol$version ]($style)";
-          style = "fg:base15 bold";
-          symbol = " ";
-        };
-        java.disabled = true;
-        kotlin.disabled = true;
-        lua = {
-          disabled = false;
-          format = "[ $symbol$version ]($style)";
-          style = "fg:base17 bold";
-          symbol = " ";
-        };
-        perl.disabled = true;
-        php.disabled = true;
-        swift.disabled = true;
-        terraform.disabled = true;
-        zig.disabled = true;
-        package = {
-          disabled = false;
-          format = "[ $symbol$version ]($style)";
-          style = "fg:base04 bold";
-          symbol = "󰏗 ";
-        };
-        conda.disabled = true;
-        docker_context.disabled = true;
-        kubernetes.disabled = true;
-        helm.disabled = true;
-        cmd_duration = {
-          min_time = 500;
-          style = "fg:base09 bold";
-          format = "[ 󰔟 $duration ]($style)";
-        };
       };
     };
 
     zsh.initContent = lib.mkAfter ''
-      if [[ $TERM != "dumb" && -z ''${SSH_CONNECTION-} ]]; then
-        eval "$(starship init zsh)"
+      if [[ $TERM == dumb ]]; then
+        PROMPT='%n@%m:%~ %# '
+      elif [[ -n ''${SSH_CONNECTION-} ]]; then
+        PROMPT='%F{yellow}%n@%m%f %F{cyan}%~%f %(?..%F{red}exit %?%f )%# '
+        RPROMPT=""
+      else
+        eval "$(${lib.getExe config.programs.starship.package} init zsh)"
       fi
     '';
   };
