@@ -1,11 +1,10 @@
 return function(ctx)
 	local hl = ctx.hl
 	local gameWindows = {}
-	local screenshares = 0
 
 	local function has_tag(window, name)
 		for _, tag in ipairs((window and window.tags) or {}) do
-			if tag == name then
+			if tag == name or tag == name .. "*" then
 				return true
 			end
 		end
@@ -39,8 +38,15 @@ return function(ctx)
 	hl.on("window.open", update_game)
 	hl.on("window.update_rules", update_game)
 	hl.on("window.close", remove_game)
-	hl.on("screenshare.state", function(active)
-		screenshares = math.max(0, screenshares + (active and 1 or -1))
-		ctx.state.setSource("hyprland-screenshare", "screen-recording", screenshares > 0)
+	hl.on("screenshare.state", function(active, kind, name)
+		-- Track each screencast independently. A single counter loses identity on
+		-- Lua reload and can briefly invent or clear recording state when portal
+		-- sessions close in a different order.
+		local source = table.concat({
+			"hyprland-screenshare",
+			tostring(kind or "unknown"),
+			tostring(name or "unnamed"),
+		}, ":")
+		ctx.state.setSource(source, "screen-recording", active == true)
 	end)
 end

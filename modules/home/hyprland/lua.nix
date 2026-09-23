@@ -1,11 +1,16 @@
 {
-  cfg,
+  osConfig,
+  config,
+  pkgs,
   commands,
   settings,
   lib,
 }: let
   inherit (lib) concatMapStringsSep listToAttrs nameValuePair;
   toLua = lib.generators.toLua {multiline = false;};
+  hasNeovim = config.programs.nixvim.enable or false;
+  smartFocus = pkgs.callPackage ../../../packages/smart-focus {};
+  presenceEnabled = osConfig.modules.haPresence.enable or false;
 
   initModule =
     ''
@@ -31,26 +36,10 @@
   luaModuleWithArgs = name: args: luaModuleFromName name args;
   stateNames = [
     "gaming"
-    "idle"
     "locked"
     "streaming"
     "remote-streaming"
-    "double"
     "screen-recording"
-    "do-not-disturb"
-  ];
-  statePriority = [
-    "locked"
-    "remote-streaming"
-    "streaming"
-    "double"
-    "screen-recording"
-    "gaming"
-    "do-not-disturb"
-    "idle"
-  ];
-  userClearStates = [
-    "do-not-disturb"
   ];
   layoutPresets = {
     gapless = {
@@ -81,69 +70,42 @@
     };
   };
 
-  initModules =
-    [
-      (luaModuleWithArgs "state" {
-        states = stateNames;
-        priority = statePriority;
-        clearUser = userClearStates;
-        publisher = commands.statePublish;
-      })
-      (luaModuleWithArgs "dispatch" {
-        presets = layoutPresets;
-      })
-      (luaModuleWithArgs "next-window" {
-        timeoutMs = 5 * 60 * 1000;
-      })
-      (luaModuleWithArgs "cwd" {
-        pgrep = commands.pgrepBin;
-        readlink = commands.readlinkBin;
-      })
-      (luaModuleWithArgs "terminal" {
-        fallback = commands.terminal;
-        workingDirectoryFlag = "--working-directory";
-      })
-      (luaModuleWithArgs "window-state" {})
-      (luaModuleWithArgs "monitor-policy" {
-        inherit (cfg) desktop;
-        stream = cfg.sunshine.stream;
-      })
-      (luaModuleWithArgs "external-monitor-workspaces" {
-        inherit (cfg) desktop;
-      })
-      (luaModuleWithArgs "smart-focus" {
-        features = {
-          inherit (cfg.features) emacs neovim;
-        };
-        apps = {
-          terminal = commands.terminalBin;
-          nvim = commands.nvimBin;
-          emacsclient = commands.emacsclientBin;
-          timeout = commands.timeoutBin;
-          tmux = commands.tmuxBin;
-        };
-        inherit (cfg) smartFocus;
-      })
-      (luaModuleWithArgs "state-watchers" {})
-      (luaModuleWithArgs "monitor-states" {
-        inherit (cfg) desktop;
-        stream = cfg.sunshine.stream;
-        hyprctl = commands.hyprctlBin;
-        debounceMs = 180;
-        retryMs = 250;
-        recoveryMs = 5000;
-        retryTicks = 4;
-        maxAttempts = 3;
-      })
-      (luaModuleWithArgs "sunshine" {
-        enable = cfg.sunshine.enable;
-      })
-    ]
-    ++ lib.optionals cfg.features.emacs [
-      (luaModuleWithArgs "emacs" {
-        raise = commands.emacsRaise;
-      })
-    ];
+  initModules = [
+    (luaModuleWithArgs "state" {
+      states = stateNames;
+      sourceCommand = lib.optionalString presenceEnabled "${config.home.profileDirectory}/bin/ha-presence source";
+    })
+    (luaModuleWithArgs "dispatch" {
+      presets = layoutPresets;
+      monocleMonitor = config.modules.desktop.hyprland.tvMonitor;
+    })
+    (luaModuleWithArgs "feedback" {})
+    (luaModuleWithArgs "terminal" {
+      fallback = commands.terminal;
+      home = config.home.homeDirectory;
+      workingDirectoryFlag = "--working-directory";
+      inheritShortcut = {
+        mods = "CTRL ALT";
+        key = "Return";
+      };
+    })
+    (luaModuleWithArgs "smart-focus" {
+      broker = lib.getExe smartFocus;
+      nvim = lib.getExe (
+        if hasNeovim
+        then config.programs.nixvim.build.package
+        else pkgs.neovim
+      );
+    })
+    (luaModuleWithArgs "state-watchers" {})
+    (luaModuleWithArgs "monitor-states" {
+      mainOutput = config.modules.desktop.hyprland.primaryMonitor;
+      tvOutput = config.modules.desktop.hyprland.tvMonitor;
+    })
+    (luaModuleWithArgs "sunshine" {
+      enable = osConfig.services.sunshine.enable or false;
+    })
+  ];
 
   modules = initModules;
 

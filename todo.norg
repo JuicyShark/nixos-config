@@ -1,0 +1,3 @@
+* TODO
+  - Replace three-finger swipe up (fullscreen) with native overview when Hyprland PR #15898 lands; keep gestures a beginner-friendly alternative to keyboard OS navigation.
+  - smart focus gets trapped in just vanilla terminal running neovim. focus swaps panes but doesnt know to back to hyprfocus when no more panes in set direction

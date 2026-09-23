@@ -1,12 +1,47 @@
 {
-  cfg,
+  osConfig,
+  config,
   commands,
   lib,
 }: let
-  primary = cfg.desktop.primary;
-  monitorWorkspace = cfg.desktop.monitorWorkspace or {};
-  externalWorkspaces = monitorWorkspace.workspaces or [];
-  isExternalWorkspace = workspace: builtins.elem workspace externalWorkspaces;
+  hasApplications = osConfig.modules.desktop.applications.enable or false;
+  cfg = config.modules.desktop.hyprland;
+  ultrawide = cfg.sizing == "ultrawide";
+  width = wide: portable:
+    if ultrawide
+    then wide
+    else portable;
+  browserWidth = width 0.3 0.8;
+  socialWorkspace = "3";
+  mediaWorkspace = "6";
+
+  # Game workspace 5 is gapless. Convert the requested aspect ratio to a
+  # scrolling column fraction, excluding the primary monitor's reserved bars.
+  gameWidth = ratio:
+    lib.generators.mkLuaInline ''
+      (function()
+        local m = hl.get_monitor(${builtins.toJSON cfg.primaryMonitor})
+        if not m then return ${toString (width (ratio / (32.0 / 9.0)) 1.0)} end
+        local r = m.reserved
+        local w = m.width / m.scale - r.left - r.right
+        local h = m.height / m.scale - r.top - r.bottom
+        return math.min(1, h * ${toString ratio} / w)
+      end)()
+    '';
+
+  tiledStrategyGame = name: class: ratio: {
+    inherit name;
+    match.class = class;
+    workspace = "5 silent";
+    tile = true;
+    fullscreen_state = "0 0";
+    sync_fullscreen = false;
+    suppress_event = "fullscreen fullscreenoutput maximize";
+    scrolling_width = gameWidth ratio;
+    immediate = true;
+    content = "game";
+    tag = "+game";
+  };
 
   centeredFadeRule = spec:
     spec
@@ -18,84 +53,70 @@
 
   pipTitle = "(Picture-in-Picture|Picture in picture|Picture-in-picture)";
 
-  workspaceNames = [
-    "1"
-    "2"
-    "3"
-    "4"
-    "5"
-    "6"
-    "7"
-    "8"
-    "9"
-    "10"
-    "special:minimized"
-    "special:steam"
-    "special:discord"
-  ];
-  workspaceStartups =
-    {
-      "1" = commands.workspaceOne;
-      "2" = commands.browser;
-    }
-    // lib.optionalAttrs cfg.features.applications {
-      "8" = commands.music;
-      "special:discord" = commands.discord;
-    }
-    // lib.optionalAttrs cfg.features.gaming {
-      "special:steam" = commands.steam;
-    }
-    // lib.optionalAttrs cfg.features.zsa {
-      "9" = commands.keymapp;
-    };
-  workspaceOverrides = {
-    "1" = {
-      layout = "master";
-      layout_opts.orientation = "center";
-      persistent = true;
-    };
-    "2" = {
-      default = true;
-      layout = "master";
-      layout_opts.orientation = "center";
-      persistent = true;
-    };
-    "3" = {
-      layout = "scrolling";
-      persistent = true;
-    };
-    "4" = {
-      layout = "scrolling";
-      gaps_in = 0;
-      gaps_out = 0;
-      no_rounding = true;
-      decorate = true;
-      persistent = true;
-    };
-    "5" = {
-      layout = "scrolling";
-      gaps_in = 0;
-      gaps_out = 0;
-      no_rounding = true;
-      no_shadow = true;
-      decorate = false;
-      persistent = true;
-    };
-  };
-  baseWorkspaceRule = workspace:
+  mainWorkspace = workspace:
     {
       inherit workspace;
     }
-    // lib.optionalAttrs (! isExternalWorkspace workspace) {
-      monitor = primary.selector;
+    // lib.optionalAttrs (cfg.primaryMonitor != "") {monitor = cfg.primaryMonitor;};
+  persistentWorkspace = workspace: name: rule:
+    mainWorkspace workspace
+    // {
+      default_name = name;
+      persistent = true;
     }
-    // lib.optionalAttrs (builtins.hasAttr workspace workspaceStartups) {
-      on_created_empty = workspaceStartups.${workspace};
-    }
-    // (workspaceOverrides.${workspace} or {});
+    // rule;
+  workspaceRules =
+    [
+      (persistentWorkspace "1" "1" {layout = "scrolling";})
+      (persistentWorkspace "2" "web" {
+        default = true;
+        layout = "scrolling";
+        on_created_empty = lib.optionalString cfg.autostartApplications commands.web;
+      })
+      (persistentWorkspace "3" "social" {
+        layout = "scrolling";
+        on_created_empty = lib.optionalString (hasApplications && cfg.autostartApplications) commands.social;
+      })
+      (persistentWorkspace "4" "4" {
+        layout = "scrolling";
+        gaps_in = 0;
+        gaps_out = 0;
+        no_rounding = true;
+        decorate = true;
+      })
+      (persistentWorkspace "5" "game" {
+        layout = "scrolling";
+        gaps_in = 0;
+        gaps_out = 0;
+        no_rounding = true;
+        no_shadow = true;
+        decorate = false;
+      })
+      {
+        workspace = "6";
+        default_name = "media";
+        persistent = true;
+        layout = "scrolling";
+      }
+      {
+        workspace = "7";
+        default_name = "tv-secondary";
+        persistent = true;
+        layout = "scrolling";
+      }
+      (mainWorkspace "8")
+      (mainWorkspace "9")
+      (mainWorkspace "10")
+      (mainWorkspace "s[true]")
+    ]
+    ++ lib.optional (cfg.tvMonitor != "") {
+      # Follow the output, including workspaces moved there after creation.
+      workspace = "m[${cfg.tvMonitor}]";
+      layout = "monocle";
+    };
 in {
   settings = {
-    workspace_rule = map baseWorkspaceRule workspaceNames;
+    workspace_rule = workspaceRules;
 
     layer_rule = [
       {
@@ -121,31 +142,31 @@ in {
       }
       {
         match.class = "com.mitchellh.ghostty";
-        scrolling_width = 0.3;
+        scrolling_width = width 0.25 0.65;
       }
       {
-        match.class = "(org.qutebrowser.qutebrowser|chromium-browser|Chromium|google-chrome|Google-chrome|chrome|vivaldi-stable|Vivaldi-stable|firefox|firefox-esr|librewolf|brave-browser|Brave-browser|microsoft-edge|Microsoft-edge)";
+        match.class = "(org.qutebrowser.qutebrowser|firefox|firefox-esr|librewolf)";
         # Just under 16:9 at the usable height of the ultrawide.
-        scrolling_width = 0.45;
-        suppress_event = "fullscreen fullscreenoutput maximize";
+        scrolling_width = browserWidth;
+        suppress_event = "maximize";
       }
       {
-        match.class = "emacs";
-        scrolling_width = 0.4;
+        match.class = "(firefox|firefox-esr|librewolf)";
+        sync_fullscreen = false;
       }
       {
         # Narrow, navigation-heavy apps work well as a companion column.
-        match.class = "(thunar|org.gnome.Nautilus|dolphin|pcmanfm|org.keepassxc.KeePassXC|bitwarden)";
-        scrolling_width = 0.3;
+        match.class = "(org.gnome.Nautilus|dolphin|pcmanfm|org.keepassxc.KeePassXC|bitwarden)";
+        scrolling_width = width 0.2 0.5;
       }
       {
         # Notes and IDEs need enough line length without claiming the panel.
-        match.class = "(obsidian|logseq|Code|code|codium|VSCodium|jetbrains-.+)";
-        scrolling_width = 0.4;
+        match.class = "(logseq|Code|code|codium|VSCodium|jetbrains-.+)";
+        scrolling_width = width 0.35 0.8;
       }
       {
         match.class = "(com.obsproject.Studio|tidal-hifi)";
-        scrolling_width = 0.5;
+        scrolling_width = width 0.4 0.8;
       }
       {
         match.class = "mpv";
@@ -153,17 +174,44 @@ in {
         tag = "+low-latency";
       }
       {
+        # Placement is static and independent of connected displays.
         match.xdg_tag = "proton-game";
-        scrolling_width = 1;
-        content = "game";
         workspace = "5 silent";
+        scrolling_width = 1;
+        fullscreen_state = "2 0";
+        immediate = true;
+        content = "game";
+        suppress_event = "fullscreen fullscreenoutput maximize";
         tag = "+game";
       }
       {
-        match.class = "^gamescope$";
-        scrolling_width = 1;
-        content = "game";
+        match.class = "^steam_app_[0-9]+$";
         workspace = "5 silent";
+        scrolling_width = 1;
+        fullscreen_state = "2 0";
+        immediate = true;
+        content = "game";
+        suppress_event = "fullscreen fullscreenoutput maximize";
+        tag = "+game";
+      }
+      # Override the generic Proton/Steam fullscreen policy above. Include
+      # native Linux classes as well as Proton's Steam application IDs.
+      (tiledStrategyGame "victoria-3-tiled" "(?i)^(victoria3([.]exe)?|steam_app_529340)$" (16.0 / 9.0))
+      (tiledStrategyGame "paradox-ultrawide-tiled" "(?i)^((ck2|ck3|eu4|eu5|stellaris)([.]exe)?|Crusader Kings (II|III)|Europa Universalis (IV|V)|steam_app_(203770|1158310|236850|3450310|281990))$" (21.0 / 9.0))
+      {
+        match.class = "^com[.]factorio[.]Factorio$";
+        workspace = "5 silent";
+        scrolling_width = 0.6;
+        immediate = true;
+        content = "game";
+        tag = "+game";
+      }
+      {
+        match.class = "^Slay the Spire 2$";
+        workspace = "5 silent";
+        scrolling_width = 0.5;
+        immediate = true;
+        content = "game";
         tag = "+game";
       }
       {
@@ -172,60 +220,115 @@ in {
         no_shadow = true;
         rounding = 0;
         border_size = 0;
-        idle_inhibit = "always";
         no_dim = true;
       }
       {
-        match.class = "battle.net.exe";
-        size = "2000 1200";
+        # Native Wine class: include launcher dialogs without enlarging menus.
+        match.class = "(?i)^battle[.]net[.]exe$";
         float = true;
+        fullscreen_state = "0 0";
+      }
+      {
+        # Proton replaces the executable class with steam_app_<shortcut id>.
+        # Match the launcher title as well so launched games keep their rules.
+        match = {
+          class = "(?i)^(battle[.]net[.]exe|steam_app_[0-9]+)$";
+          initial_title = "(?i)^Battle[.]net(.*)$";
+        };
+        float = true;
+        fullscreen_state = "0 0";
+        immediate = false;
+        content = "none";
+        tag = "-game";
+      }
+      {
+        match = {
+          class = "(?i)^(battle[.]net[.]exe|steam_app_[0-9]+)$";
+          initial_title = "(?i)^Battle[.]net$";
+        };
+        size = "70% 80%";
         center = true;
       }
       {
         match.initial_title = "World of Warcraft";
-        suppress_event = "fullscreen";
-        fullscreen = true;
+        workspace = "5 silent";
+        scrolling_width = 0.8;
+        fullscreen_state = "0 2";
+        content = "game";
+        tag = "+game";
       }
       {
         match.class = "^Minecraft.*$";
-        scrolling_width = 0.65;
+        scrolling_width = 0.75;
       }
       (centeredFadeRule {
         match.class = "org.prismlauncher.PrismLauncher";
         scrolling_width = 0.15;
-        size = "900, 480";
+        size = "60% 60%";
       })
       {
         match.class = "(discord|vesktop|signal|org.telegram.desktop)";
-        workspace = "special:discord silent";
+        workspace = "${socialWorkspace} silent";
         tile = true;
         tag = "+chat";
       }
       {
         match = {
-          class = "steam";
-          title = "Steam";
+          class = "^firefox$";
+          title = ".*Facebook.*";
         };
-        workspace = "special:steam silent";
-        tag = "+steam-shell";
+        workspace = "${socialWorkspace} silent";
+        tile = true;
+        tag = "+chat";
+      }
+      {
+        # The Discord main window establishes the locked communication slot.
+        # `new` also bars it from accidentally joining another nearby group.
+        match = {
+          class = "^discord$";
+          initial_title = "^Discord$";
+          float = false;
+        };
+        group = "new lock";
+      }
+      {
+        # Only tiled main windows from the other communication clients may
+        # bypass that lock. Floating popouts are denied by the shared rule below.
+        match = {
+          class = "^(vesktop|signal|org\\.telegram\\.desktop)$";
+          initial_title = "^(Vesktop|Signal|Telegram.*)$";
+          float = false;
+        };
+        group = "invade";
       }
       {
         match = {
-          workspace = "special:discord";
-          class = "negative:^(discord|vesktop|signal|org\\.telegram\\.desktop)$";
+          class = "^firefox$";
+          title = ".*YouTube.*";
         };
-        workspace = "2 silent";
+        scrolling_width = 0.45;
+        content = "video";
       }
       {
         match = {
-          workspace = "special:steam";
-          class = "negative:^steam$";
+          class = "^steam$";
+          initial_title = "^Steam$";
+          title = "^Steam$";
+          float = false;
         };
         workspace = "5 silent";
       }
+      {
+        match = {
+          class = "^steam$";
+          initial_title = "^Friends List$";
+          title = "^Friends List$";
+        };
+        float = true;
+      }
       (centeredFadeRule {
         match.class = "^(pwvucontrol|com.saivert.pwvucontrol)$";
-        size = "1000, 700";
+        size = "65% 75%";
         tag = "+dialog";
       })
       {
@@ -235,7 +338,7 @@ in {
       }
       {
         match = {
-          class = "chromium-browser";
+          class = "firefox";
           title = ".* - YouTube.*";
         };
         content = "video";
@@ -274,12 +377,19 @@ in {
         tag = "+dialog";
       })
       (centeredFadeRule {
+        match = {
+          class = "com.mitchellh.ghostty";
+          title = "termfilechooser";
+        };
+        tag = "+dialog";
+      })
+      (centeredFadeRule {
         match.modal = true;
         pin = true;
         tag = "+dialog";
       })
       (centeredFadeRule {
-        match.title = "(Sign in - Google Accounts.*|pinentry.*|gcr-prompter|org.gnome.keyring.SystemPrompter)";
+        match.title = "(pinentry.*|gcr-prompter|org.gnome.keyring.SystemPrompter)";
         pin = true;
         tag = "+attention";
       })
@@ -315,7 +425,7 @@ in {
       }
       {
         match = {
-          class = "(chromium-browser|vivaldi-stable)";
+          class = "firefox";
           title = ".*Private Browsing";
         };
         tag = "+privacy";
@@ -329,6 +439,10 @@ in {
         tag = "+privacy";
       }
       {
+        match.title = "Sign in - Google Accounts — Mozilla Firefox";
+        float = true;
+      }
+      {
         match = {
           class = "steam";
           initial_title = "Steam Big Picture Mode";
@@ -336,15 +450,17 @@ in {
         fullscreen_state = "2 2";
       }
       {
-        match.class = "tidal-hifi";
-        workspace = "8 silent";
-      }
-      {
         match.class = "explorer.exe";
         workspace = "special:minimized silent";
       }
       {
+        match.class = "tidal-hifi";
+        workspace = "${mediaWorkspace} silent";
+      }
+      {
         match.float = true;
+        # Floating dialogs and popups should remain independent surfaces, not tabs.
+        group = "deny";
         max_size = "1900 1240";
         border_size = 6;
       }
@@ -364,7 +480,6 @@ in {
       }
       {
         match.tag = "media";
-        idle_inhibit = "always";
         no_dim = true;
       }
       {
@@ -379,6 +494,10 @@ in {
       {
         match.fullscreen_state_client = 2;
         border_size = 0;
+      }
+      {
+        match.group = true;
+        rounding = 0;
       }
       {
         match = {

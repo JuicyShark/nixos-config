@@ -1,5 +1,5 @@
 -- ============================================================
--- SUNSHINE STREAM MONITOR
+-- SUNSHINE PRESENCE FACTS (NO DISPLAY MANAGEMENT)
 -- ============================================================
 return function(ctx, opts)
 	opts = opts or {}
@@ -7,19 +7,15 @@ return function(ctx, opts)
 		return
 	end
 
-	local function set_streaming(enabled, remote, width, height, refresh, scale)
+	local function set_streaming(enabled, remote)
 		if enabled == true then
-			ctx.monitors.setStream({
-				kind = remote == true and "remote" or "local",
-				width = width,
-				height = height,
-				refresh = refresh,
-				scale = scale,
-			})
+			ctx.state.setSource("sunshine-session", "streaming", remote ~= true)
+			ctx.state.setSource("sunshine-session", "remote-streaming", remote == true)
 			return
 		end
 
-		ctx.monitors.setStream("off")
+		ctx.state.setSource("sunshine-session", "streaming", false)
+		ctx.state.setSource("sunshine-session", "remote-streaming", false)
 	end
 
 	ctx.sunshine = ctx.sunshine or {}
