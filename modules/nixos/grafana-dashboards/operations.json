@@ -135,68 +135,6 @@
       }
     },
     {
-      "id": 3,
-      "type": "stat",
-      "title": "Backup Timers Present",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      },
-      "targets": [
-        {
-          "expr": "count(node_systemd_timer_last_trigger_seconds{name=~\"restic-backups-.*\\\\.timer\"})",
-          "instant": true,
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "green",
-                "value": 3
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      }
-    },
-    {
       "id": 4,
       "type": "stat",
       "title": "Monitored Hosts Up",
@@ -256,64 +194,6 @@
           "values": false
         },
         "textMode": "auto"
-      }
-    },
-    {
-      "id": 5,
-      "type": "timeseries",
-      "title": "Hours Since Backup Timer Trigger",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 5
-      },
-      "targets": [
-        {
-          "expr": "(time() - node_systemd_timer_last_trigger_seconds{name=~\"restic-backups-.*\\\\.timer\"}) / 3600",
-          "legendFormat": "{{instance}} {{name}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "h",
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 24
-              },
-              {
-                "color": "red",
-                "value": 36
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
       }
     },
     {
@@ -399,47 +279,6 @@
           "sort": "desc"
         }
       }
-    },
-    {
-      "id": 8,
-      "type": "timeseries",
-      "title": "Backup Errors (Logs)",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 13
-      },
-      "targets": [
-        {
-          "expr": "sum by (host, unit) (count_over_time({job=\"systemd-journal\",unit=~\"restic-backups-.*\\\\.service|postgresqlBackup-.*\\\\.service|backup-vaultwarden\\\\.service\"} |~ \"(?i)(error|failed|fatal|denied)\" [15m]))",
-          "legendFormat": "{{host}} {{unit}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
     }
   ],
   "refresh": "30s",
@@ -447,8 +286,7 @@
   "style": "dark",
   "tags": [
     "homelab",
-    "operations",
-    "backups"
+    "operations"
   ],
   "templating": {
     "list": []

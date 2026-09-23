@@ -65,52 +65,6 @@ groups:
           summary: "Filesystem is read-only on {{ $labels.instance }}"
           description: "{{ $labels.mountpoint }} on {{ $labels.instance }} has become read-only."
 
-      - alert: BackupTimerMissing
-        expr: |
-          absent(node_systemd_timer_last_trigger_seconds{instance="zues",name="restic-backups-zues-services.timer"})
-          or absent(node_systemd_timer_last_trigger_seconds{instance="zues",name="restic-backups-zues-family.timer"})
-          or absent(node_systemd_timer_last_trigger_seconds{instance="leo",name="restic-backups-leo-smol.timer"})
-        for: 30m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Expected backup timer is missing"
-          description: "{{ $labels.name }} is not exposed by node_exporter on {{ $labels.instance }}."
-
-      - alert: BackupTimerStale
-        expr: |
-          time()
-          - node_systemd_timer_last_trigger_seconds{name=~"restic-backups-.*\\.timer"}
-          > 36 * 60 * 60
-        for: 30m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Backup timer is stale on {{ $labels.instance }}"
-          description: "{{ $labels.name }} has not triggered for more than 36 hours."
-
-      - alert: BackupSuccessMetricMissing
-        expr: |
-          absent(homelab_backup_last_success_timestamp_seconds{backup="zues-services"})
-          or absent(homelab_backup_last_success_timestamp_seconds{backup="zues-family"})
-          or absent(homelab_backup_last_success_timestamp_seconds{backup="leo-smol"})
-        for: 36h
-        labels:
-          severity: warning
-        annotations:
-          summary: "A backup has no recorded successful completion"
-          description: "At least one expected backup has not completed successfully since success metrics were deployed."
-
-      - alert: BackupLastSuccessStale
-        expr: |
-          time() - homelab_backup_last_success_timestamp_seconds > 36 * 60 * 60
-        for: 30m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Backup success is stale for {{ $labels.backup }}"
-          description: "{{ $labels.backup }} has not completed its backup and repository check successfully for more than 36 hours."
-
       - alert: PrometheusNotificationErrors
         expr: sum(rate(prometheus_notifications_errors_total[10m])) > 0
         for: 5m
@@ -127,16 +81,7 @@ groups:
           severity: critical
         annotations:
           summary: "Alertmanager is down"
-          description: "Prometheus cannot reach Alertmanager. Leo's independent diagnostic mailer remains the fallback path."
-
-      - alert: BackupServiceFailed
-        expr: node_systemd_unit_state{name=~"restic-backups-.*\\.service",state="failed"} == 1
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Backup failed on {{ $labels.instance }}"
-          description: "{{ $labels.name }} is failed; a timer trigger alone does not prove a successful backup."
+          description: "Prometheus cannot reach Alertmanager, so email notifications are unavailable."
 
       - alert: BtrfsScrubTimerStale
         expr: |
@@ -158,15 +103,6 @@ groups:
         annotations:
           summary: "Btrfs scrub failed on {{ $labels.instance }}"
           description: "{{ $labels.name }} is failed; inspect its scrub result before clearing the unit."
-
-      - alert: DiagnosticWatcherFailed
-        expr: node_systemd_unit_state{name=~"homelab-diagnostics(-digest)?\\.service",state="failed"} == 1
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Independent diagnostic watcher failed"
-          description: "{{ $labels.name }} is failed on {{ $labels.instance }}."
 
   - name: service-health
     rules:

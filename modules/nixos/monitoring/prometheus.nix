@@ -1,14 +1,18 @@
 {
+  ports,
   self,
   config,
+  homelabFeatures,
   lib,
   ...
 }: let
-  endpoints = self.lib.services.mkHomelabEndpoints {inherit config;};
+  endpoints = self.lib.services.mkHomelabEndpoints {
+    inherit config;
+    features = homelabFeatures;
+  };
   homelabMonitoring = config.modules.monitoring.enable;
   promCfg = config.services.prometheus.exporters;
-  inherit (config.modules) ports;
-  exporterPorts = config.modules.ports.exporters;
+  exporterPorts = ports.exporters;
   hostname = config.networking.hostName;
   localTarget = port: "127.0.0.1:${toString port}";
   rulesFile = ./prometheus-rules.yml;
@@ -78,9 +82,7 @@ in {
         port = ports.prometheus;
         ruleFiles = [rulesFile];
         scrapeConfigs =
-          [
-            (mkLocalScrape "unbound" promCfg.unbound.port)
-          ]
+          mkExporterScrape "unbound" promCfg.unbound
           ++ mkOptionalLocalScrape config.services.prometheus.enable "prometheus" ports.prometheus
           ++ mkOptionalLocalScrape config.services.prometheus.alertmanager.enable "alertmanager" ports.alertmanager
           ++ mkOptionalLocalScrape config.services.grafana.enable "grafana" ports.grafana

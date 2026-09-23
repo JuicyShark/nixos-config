@@ -1,13 +1,18 @@
 # Gatus uptime monitoring endpoint declarations for zues.
 {
+  ports,
   self,
   config,
+  homelabFeatures,
   ...
 }: let
-  portsCfg = config.modules.ports;
-  endpoints = self.lib.services.mkHomelabEndpoints {inherit config;};
+  portsCfg = ports;
+  endpoints = self.lib.services.mkHomelabEndpoints {
+    inherit config;
+    features = homelabFeatures;
+  };
 in {
-  modules.homelab.gatus.settings = {
+  services.gatus.settings = {
     web = {
       address = "127.0.0.1";
       port = portsCfg.gatus;

@@ -1,6 +1,7 @@
 # Prometheus exporters — one per monitored service.
 # Host-health textfiles, secrets, and Jellyfin exporter config rendering live here too.
 {
+  ports,
   config,
   lib,
   pkgs,
@@ -13,8 +14,7 @@
   btrfsMounts = config.services.btrfs.autoScrub.fileSystems or [];
   writablePaths = config.modules.monitoring.writablePaths;
   vpnGuard = config.modules.monitoring.vpnGuard;
-  inherit (config.modules) ports;
-  exporterPorts = config.modules.ports.exporters;
+  exporterPorts = ports.exporters;
   textfileDirectory = "/var/lib/node-exporter-textfiles";
 
   homelabHealthMetrics = pkgs.writeShellApplication {
@@ -39,10 +39,16 @@
     }
     config;
 
-  # Produces an agenix secret entry gated on a service-enable condition.
-  mkExporterSecret = secretName: condition: owner:
+  # Grant an enabled exporter access to a secret owned by its source service.
+  mkExporterSecretAccess = condition: owner:
     lib.mkIf condition {
-      file = ../../../secrets/${secretName}.age;
+      inherit owner;
+    };
+
+  # Jellyfin is remote, so monitoring owns this secret's source declaration.
+  mkJellyfinExporterSecret = condition: owner:
+    lib.mkIf condition {
+      file = ../../../secrets/jellyfin-api.age;
       inherit owner;
     };
 
@@ -86,18 +92,18 @@
   '';
 in {
   config = {
-    users.groups.${config.services.prometheus.exporters.json.group} = {};
-    users.users.${config.services.prometheus.exporters.json.user} = {
+    users.groups.${config.services.prometheus.exporters.json.group} = lib.mkIf config.services.prometheus.exporters.json.enable {};
+    users.users.${config.services.prometheus.exporters.json.user} = lib.mkIf config.services.prometheus.exporters.json.enable {
       isSystemUser = true;
       inherit (config.services.prometheus.exporters.json) group;
     };
 
     age.secrets = {
-      jellyfin-api = mkExporterSecret "jellyfin-api" config.services.prometheus.exporters.json.enable config.services.prometheus.exporters.json.user;
-      prowlarr-api = mkExporterSecret "prowlarr-api" config.services.prometheus.exporters.exportarr-prowlarr.enable config.services.prometheus.exporters.exportarr-prowlarr.user;
-      radarr-api = mkExporterSecret "radarr-api" config.services.prometheus.exporters.exportarr-radarr.enable config.services.prometheus.exporters.exportarr-radarr.user;
-      sonarr-api = mkExporterSecret "sonarr-api" config.services.prometheus.exporters.exportarr-sonarr.enable config.services.prometheus.exporters.exportarr-sonarr.user;
-      lidarr-api = mkExporterSecret "lidarr-api" config.services.prometheus.exporters.exportarr-lidarr.enable config.services.prometheus.exporters.exportarr-lidarr.user;
+      jellyfin-api = mkJellyfinExporterSecret config.services.prometheus.exporters.json.enable config.services.prometheus.exporters.json.user;
+      prowlarr-api = mkExporterSecretAccess config.services.prometheus.exporters.exportarr-prowlarr.enable config.services.prometheus.exporters.exportarr-prowlarr.user;
+      radarr-api = mkExporterSecretAccess config.services.prometheus.exporters.exportarr-radarr.enable config.services.prometheus.exporters.exportarr-radarr.user;
+      sonarr-api = mkExporterSecretAccess config.services.prometheus.exporters.exportarr-sonarr.enable config.services.prometheus.exporters.exportarr-sonarr.user;
+      lidarr-api = mkExporterSecretAccess config.services.prometheus.exporters.exportarr-lidarr.enable config.services.prometheus.exporters.exportarr-lidarr.user;
     };
 
     services.prometheus.exporters = {
@@ -106,7 +112,6 @@ in {
         apiKeyFile = config.age.secrets.lidarr-api.path;
         port = exporterPorts.lidarr;
         url = let service = mkNixflixService "lidarr" ports.lidarr; in "http://${service.connectionAddress}:${toString service.config.hostConfig.port}";
-        openFirewall = false;
         environment = {
           ENABLE_ADDITIONAL_METRICS = "true";
           PROWLARR__BACKFILL = "true";
@@ -118,7 +123,6 @@ in {
         apiKeyFile = config.age.secrets.prowlarr-api.path;
         port = exporterPorts.prowlarr;
         url = let service = mkNixflixService "prowlarr" ports.prowlarr; in "http://${service.connectionAddress}:${toString service.config.hostConfig.port}";
-        openFirewall = false;
         environment = {
           ENABLE_ADDITIONAL_METRICS = "true";
           PROWLARR__BACKFILL = "true";
@@ -130,7 +134,6 @@ in {
         apiKeyFile = config.age.secrets.radarr-api.path;
         port = exporterPorts.radarr;
         url = let service = mkNixflixService "radarr" ports.radarr; in "http://${service.connectionAddress}:${toString service.config.hostConfig.port}";
-        openFirewall = false;
         environment = {
           ENABLE_ADDITIONAL_METRICS = "true";
           PROWLARR__BACKFILL = "true";
@@ -142,7 +145,6 @@ in {
         apiKeyFile = config.age.secrets.sonarr-api.path;
         port = exporterPorts.sonarr;
         url = let service = mkNixflixService "sonarr" ports.sonarr; in "http://${service.connectionAddress}:${toString service.config.hostConfig.port}";
-        openFirewall = false;
         environment = {
           ENABLE_ADDITIONAL_METRICS = "true";
           PROWLARR__BACKFILL = "true";
@@ -151,7 +153,6 @@ in {
 
       smartctl = {
         enable = homelabNas;
-        openFirewall = false;
         maxInterval = "5m";
       };
 
@@ -161,7 +162,6 @@ in {
         user = "jellyfin-exporter";
         group = "jellyfin-exporter";
         port = exporterPorts.jellyfin;
-        openFirewall = false;
         configFile = "/var/lib/json-exporter/config.yml";
         # json_exporter logs its fully rendered config at info level, including
         # request headers. Keep the runtime-injected Jellyfin key out of the
@@ -175,7 +175,6 @@ in {
           "systemd"
           "textfile"
         ];
-        openFirewall = false;
         extraFlags = [
           "--collector.textfile.directory=${textfileDirectory}"
           "--collector.ethtool"
@@ -193,7 +192,6 @@ in {
       nginx = {
         enable = config.services.nginx.enable && homelabMonitoring;
         port = exporterPorts.nginx;
-        openFirewall = false;
         scrapeUri = "http://127.0.0.1/nginx_status";
       };
     };
@@ -222,7 +220,13 @@ in {
           PrivateTmp = true;
           ProtectHome = true;
           ProtectSystem = "strict";
-          ReadWritePaths = [textfileDirectory];
+          # The collector must perform a real write through the same NFS
+          # identity used by backup jobs. Prefix optional paths with "-" so an
+          # unavailable automount produces a metric value of zero instead of
+          # preventing the collector from starting.
+          ReadWritePaths =
+            [textfileDirectory]
+            ++ map (path: "-${path}") writablePaths;
         };
       };
 

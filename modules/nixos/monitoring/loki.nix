@@ -1,12 +1,12 @@
 # Loki log aggregation + Alloy log shipping (replaces promtail).
 {
+  ports,
   config,
   lib,
   ...
 }: let
   homelabMonitoring = config.modules.monitoring.enable;
   homelabHostMonitoring = config.modules.monitoring.host.enable;
-  inherit (config.modules) ports;
   lokiUrl = "http://192.168.1.99:${toString ports.loki}/loki/api/v1/push";
   hostname = config.networking.hostName;
 in {
@@ -85,19 +85,6 @@ in {
             }
           ];
           analytics.reporting_enabled = false;
-        };
-      };
-
-      nginx.virtualHosts = lib.mkIf config.services.loki.enable {
-        "loki.home.arpa" = {
-          locations."/" = {
-            proxyPass = "http://127.0.0.1:${toString ports.loki}";
-          };
-          extraConfig = ''
-            allow 192.168.1.0/24;
-            allow 100.64.0.0/10;
-            deny all;
-          '';
         };
       };
     };

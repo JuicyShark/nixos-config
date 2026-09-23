@@ -1,12 +1,11 @@
 # Grafana dashboards, datasources, and alerting policies.
 {
+  ports,
   config,
   lib,
   ...
 }: let
   homelabMonitoring = config.modules.monitoring.enable;
-  inherit (config.modules) ports;
-  hostFqdn = "${config.networking.hostName}.home.arpa";
   # Dashboards and rules live alongside this module directory
   dashboardsDir = ../grafana-dashboards;
 in {
@@ -18,7 +17,6 @@ in {
 
     services.grafana = {
       enable = true;
-      openFirewall = false;
       settings = {
         server = {
           http_addr = "127.0.0.1";
@@ -51,21 +49,21 @@ in {
               type = "prometheus";
               isDefault = true;
               access = "proxy";
-              url = "http://${hostFqdn}:${toString ports.prometheus}";
+              url = "http://127.0.0.1:${toString ports.prometheus}";
             }
             {
               name = "Loki";
               uid = "loki";
               type = "loki";
               access = "proxy";
-              url = "http://${hostFqdn}:${toString ports.loki}";
+              url = "http://127.0.0.1:${toString ports.loki}";
             }
             {
               name = "Alertmanager";
               uid = "alertmanager";
               type = "alertmanager";
               access = "proxy";
-              url = "http://${hostFqdn}:${toString ports.alertmanager}";
+              url = "http://127.0.0.1:${toString ports.alertmanager}";
               jsonData.implementation = "prometheus";
             }
           ];
@@ -77,7 +75,6 @@ in {
               name = "homelab";
               folder = "Homelab";
               type = "file";
-              disableDeletion = false;
               editable = false;
               options.path = toString dashboardsDir;
             }
@@ -95,6 +92,7 @@ in {
         };
         "grafana.home.arpa".locations."/" = {
           proxyPass = "http://127.0.0.1:${toString ports.grafana}";
+          proxyWebsockets = true;
         };
       };
     };

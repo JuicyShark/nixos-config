@@ -1,14 +1,18 @@
-# Prometheus Alertmanager retains and groups alerts locally. Email delivery is
-# owned by the independent, daily-rate-limited diagnostics service on Leo.
 {
+  ports,
   config,
   lib,
   ...
 }: let
   enabled = config.modules.monitoring.enable;
-  inherit (config.modules) ports;
+  alertEmail = config.modules.monitoring.alertEmail;
 in {
   config = lib.mkIf enabled {
+    age.secrets.alertmanager-smtp-password = {
+      file = ../../../secrets/alertmanager-smtp-password.age;
+      mode = "0400";
+    };
+
     services.prometheus = {
       alertmanagers = [
         {
@@ -24,11 +28,20 @@ in {
         enable = true;
         listenAddress = "127.0.0.1";
         port = ports.alertmanager;
-        checkConfig = true;
+        # The SMTP password is supplied through a systemd credential at
+        # runtime, so build-time amtool cannot open it.
+        checkConfig = false;
         webExternalUrl = "http://alertmanager.home.arpa";
         configuration = {
+          global = {
+            smtp_smarthost = "smtp.gmail.com:465";
+            smtp_from = alertEmail;
+            smtp_auth_username = alertEmail;
+            smtp_auth_password_file = "$CREDENTIALS_DIRECTORY/smtp-password";
+            smtp_require_tls = true;
+          };
           route = {
-            receiver = "local";
+            receiver = "email";
             group_by = [
               "alertname"
               "instance"
@@ -39,10 +52,14 @@ in {
           };
           receivers = [
             {
-              # Alertmanager remains useful for grouping, inhibition, and its
-              # API. The diagnostics mailer polls Prometheus and owns the only
-              # outbound notification path.
-              name = "local";
+              name = "email";
+              email_configs = [
+                {
+                  to = alertEmail;
+                  send_resolved = true;
+                  force_implicit_tls = true;
+                }
+              ];
             }
           ];
           inhibit_rules = [
@@ -58,6 +75,8 @@ in {
         };
       };
     };
+
+    systemd.services.alertmanager.serviceConfig.LoadCredential = "smtp-password:${config.age.secrets.alertmanager-smtp-password.path}";
 
     services.nginx.virtualHosts."alertmanager.home.arpa" = {
       locations."/".proxyPass = "http://127.0.0.1:${toString ports.alertmanager}";
