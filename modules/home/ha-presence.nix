@@ -1,14 +1,11 @@
-# Home-side wiring for HA presence reporting via MQTT. Reads
-# osConfig.modules.haPresence and provides:
-#   - ha-presence-update <state>  on $PATH  (publishes retained MQTT message)
-#   - ha-presence-discover        publishes HA discovery config (retained, once)
-#   - Noctalia hooks for shell started/lock/unlock/session-exit transitions
-#   - Noctalia idle behaviors for idle/sleep with on-resume → active
-#   - systemd user drop-in for wayland-wm@hyprland.service ExecStopPost → offline
+# Home-side wiring for HA presence reporting via MQTT. Hyprland and Noctalia
+# write immediate source facts; a persistent user service qualifies and
+# stabilizes them before publishing.
 #
 # Topics:
 #   homeassistant/sensor/<deviceId>/config   ← discovery (retained)
-#   homeassistant/sensor/<deviceId>/state    ← Hyprland primary state or offline (retained)
+#   homeassistant/sensor/<deviceId>/state    ← stable primary state (retained)
+#   homeassistant/sensor/<deviceId>/availability ← persistent-client LWT
 #
 {
   osConfig,
@@ -17,58 +14,13 @@
   ...
 }: let
   cfg = osConfig.modules.haPresence or {enable = false;};
-  enabled = cfg.enable && pkgs.stdenv.isLinux;
+  enabled = cfg.enable && pkgs.stdenv.hostPlatform.isLinux;
   passPath = osConfig.age.secrets.ha-mqtt-pass.path or "";
 
   topicBase = "homeassistant/sensor/${cfg.deviceId or "presence"}";
   stateTopic = "${topicBase}/state";
   configTopic = "${topicBase}/config";
-
-  # mosquitto_pub arguments common to every publish. Authentication is loaded
-  # from a private options file so the password never appears in argv.
-  mqttPub = pkgs.writeShellApplication {
-    name = "ha-presence-mqtt-pub";
-    runtimeInputs = [pkgs.mosquitto];
-    text = ''
-      topic="''${1:?usage: ha-presence-mqtt-pub <topic> <payload>}"
-      payload="''${2:?usage: ha-presence-mqtt-pub <topic> <payload>}"
-      pass_file="${passPath}"
-      auth_file="$(mktemp)"
-      trap 'rm -f "$auth_file"' EXIT
-      if [ ! -r "$pass_file" ]; then
-        echo "ha-presence: cannot read $pass_file" >&2
-        exit 1
-      fi
-
-      # mosquitto 2.1 supports authentication options in a private config file,
-      # keeping the password out of the process command line.
-      {
-        printf '%s %s\n' '-u' "${cfg.username or ""}"
-        printf '%s ' '-P'
-        cat "$pass_file"
-        printf '\n'
-      } >"$auth_file"
-
-      mosquitto_pub \
-        -o "$auth_file" \
-        -h "${cfg.brokerHost or ""}" \
-        -p "${toString (cfg.brokerPort or 1883)}" \
-        -t "$topic" \
-        -m "$payload" \
-        -r \
-        -q 1 \
-        --keepalive 10
-    '';
-  };
-
-  ha-presence-update = pkgs.writeShellApplication {
-    name = "ha-presence-update";
-    runtimeInputs = [mqttPub];
-    text = ''
-      state="''${1:?usage: ha-presence-update <state>}"
-      ha-presence-mqtt-pub "${stateTopic}" "$state"
-    '';
-  };
+  availabilityTopic = "${topicBase}/availability";
 
   # HA MQTT discovery payload — registers the sensor on first publish.
   # Sent retained so HA picks it up whenever it (re)connects to the broker.
@@ -76,6 +28,9 @@
     name = "${cfg.deviceId or "presence"}";
     unique_id = "${cfg.deviceId or "presence"}";
     state_topic = stateTopic;
+    availability_topic = availabilityTopic;
+    payload_available = "online";
+    payload_not_available = "offline";
     icon = "mdi:account";
     device = {
       identifiers = [(cfg.deviceId or "presence")];
@@ -84,23 +39,49 @@
     };
   };
 
-  ha-presence-discover = pkgs.writeShellApplication {
-    name = "ha-presence-discover";
-    runtimeInputs = [mqttPub];
+  python = pkgs.python3.withPackages (pythonPackages: [pythonPackages.paho-mqtt]);
+  haPresence = pkgs.writeShellApplication {
+    name = "ha-presence";
+    runtimeInputs = [python];
     text = ''
-      ha-presence-mqtt-pub "${configTopic}" '${discoveryPayload}'
+      exec python ${./ha-presence.py} "$@"
     '';
   };
+  mqttPublisher = import ../../lib/ha-mqtt-publisher.nix {
+    inherit pkgs;
+    host = cfg.brokerHost or "";
+    username = cfg.username or "";
+    passwordFile = passPath;
+    port = cfg.brokerPort;
+  };
 
-  updateBin = "${ha-presence-update}/bin/ha-presence-update";
-  discoverBin = "${ha-presence-discover}/bin/ha-presence-discover";
-  hyprctl = "${osConfig.programs.hyprland.package}/bin/hyprctl";
-  uwsm = lib.getExe pkgs.uwsm;
-  hyprState = name: enabled: "${uwsm} app -- ${hyprctl} eval 'Juicy.state.set(\"${name}\", ${
-    if enabled
+  controllerConfig = pkgs.writeText "ha-presence-controller.json" (builtins.toJSON {
+    host = cfg.brokerHost or "";
+    port = cfg.brokerPort;
+    username = cfg.username or "";
+    password_file = passPath;
+    device_id = cfg.deviceId or "presence";
+    state_topic = stateTopic;
+    config_topic = configTopic;
+    availability_topic = availabilityTopic;
+    discovery_payload = discoveryPayload;
+    stability_seconds = cfg.stabilitySeconds;
+    gaming_seconds = cfg.gamingQualificationSeconds;
+    priority = [
+      "locked"
+      "remote-streaming"
+      "streaming"
+      "screen-recording"
+      "gaming"
+    ];
+  });
+
+  presenceBin = lib.getExe haPresence;
+  sourceState = source: name: active: "${presenceBin} source ${source} ${name} ${
+    if active
     then "true"
     else "false"
-  })'";
+  }";
 in {
   config = lib.mkIf enabled {
     assertions = [
@@ -114,51 +95,27 @@ in {
       }
     ];
 
-    home.packages = [ha-presence-update ha-presence-discover mqttPub];
+    home.packages = [haPresence mqttPublisher];
 
     programs.noctalia.settings.hooks = {
-      started = [
-        discoverBin
-        "${uwsm} app -- ${hyprctl} eval 'Juicy.state.set(\"idle\", false)'"
-      ];
-      session_locked = [(hyprState "locked" true)];
-      session_unlocked = [
-        (hyprState "locked" false)
-        (hyprState "idle" false)
-      ];
-      logging_out = ["${updateBin} offline"];
-      rebooting = ["${updateBin} offline"];
-      shutting_down = ["${updateBin} offline"];
+      session_locked = [(sourceState "noctalia" "locked" true)];
+      session_unlocked = [(sourceState "noctalia" "locked" false)];
     };
 
-    programs.noctalia.settings.idle.behavior = {
-      "ha-presence-idle" = {
-        enabled = true;
-        timeout = cfg.idleTimeout;
-        action = "command";
-        command = hyprState "idle" true;
-        resume_command = hyprState "idle" false;
+    systemd.user.services.ha-presence-controller = {
+      Unit = {
+        Description = "Stable Home Assistant presence controller";
+        After = ["graphical-session.target" "network-online.target"];
+        Wants = ["network-online.target"];
+        PartOf = ["graphical-session.target"];
       };
-
-      "ha-presence-sleep" = {
-        enabled = true;
-        timeout = cfg.sleepTimeout;
-        action = "command";
-        command = hyprState "idle" true;
-        resume_command = hyprState "idle" false;
+      Service = {
+        ExecStart = "${presenceBin} daemon --config ${controllerConfig}";
+        Restart = "on-failure";
+        RestartSec = 5;
+        UMask = "0077";
       };
+      Install.WantedBy = ["graphical-session.target"];
     };
-
-    # uwsm runs hyprland under wayland-wm@hyprland.service; ExecStopPost fires
-    # on both clean exit and crash. Publish `offline` retained — HA will see
-    # it next time it polls and on every reconnect.
-    #
-    # NOTE: a true MQTT LWT would catch hard power loss too, but that requires
-    # a long-lived client. Acceptable trade-off for now; hyprland-shutdown
-    # paths cover the normal cases.
-    xdg.configFile."systemd/user/wayland-wm@hyprland.service.d/ha-presence.conf".text = ''
-      [Service]
-      ExecStopPost=${updateBin} offline
-    '';
   };
 }
