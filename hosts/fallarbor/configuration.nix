@@ -1,5 +1,5 @@
 {
-  self,
+  ports,
   homeProfiles,
   config,
   pkgs,
@@ -10,10 +10,11 @@
   turnHost = "turn.nixlab.au";
   leoBuilderKey = lib.removeSuffix "\n" (builtins.readFile ../leo/id_ed25519.pub);
 in {
-  imports = with self.nixosModules; [
-    system
-    shell
-    monitoring
+  imports = [
+    ./hardware-configuration.nix
+    ../../modules/nixos/system.nix
+    ../../modules/common/shell.nix
+    ../../modules/nixos/monitoring
   ];
   environment.systemPackages = with pkgs; [
     tcpdump
@@ -34,7 +35,6 @@ in {
   modules = {
     profile = {
       flakePath = "/home/${config.modules.profile.username}/nixos-config";
-      hashedPasswordFile = config.age.secrets.juicy-password.path;
     };
     monitoring.host.enable = true; # ship logs to zues Loki + expose node metrics
   };
@@ -54,7 +54,8 @@ in {
       enable = true;
       protocol = "ssh-ng";
       write = true;
-      trusted = true;
+      # Permit store uploads without granting trusted-client privileges.
+      trusted = false;
       keys = [leoBuilderKey];
     };
   };
@@ -76,7 +77,7 @@ in {
         }
       ];
       # Open node_exporter for Tailscale scraping from zues
-      interfaces.tailscale0.allowedTCPPorts = [config.modules.ports.exporters.node];
+      interfaces.tailscale0.allowedTCPPorts = [ports.exporters.node];
     };
 
     # Optional host entry
@@ -87,13 +88,13 @@ in {
   };
 
   services = {
-    journald.extraConfig = ''
-      SystemMaxUse=100M
-      RuntimeMaxUse=50M
-      MaxFileSec=1day
-      RateLimitInterval=30s
-      RateLimitBurst=1000
-    '';
+    journald.settings.Journal = {
+      SystemMaxUse = "100M";
+      RuntimeMaxUse = "50M";
+      MaxFileSec = "1day";
+      RateLimitIntervalSec = "30s";
+      RateLimitBurst = 1000;
+    };
 
     tailscale = {
       enable = true;
@@ -125,12 +126,6 @@ in {
       '';
     };
   };
-
-  # Secret provisioning via systemd credentials + runtime conf merge
-  # We create /run/coturn/turn-extra.conf at start, injecting the secret safely.
-  systemd.tmpfiles.rules = [
-    "d /run/coturn 0750 turnserver turnserver -"
-  ];
 
   system.stateVersion = "25.11";
 }

@@ -1,12 +1,15 @@
 # Zues networking: firewall, Cloudflare tunnel, Avahi, and DNS stack.
 {
+  ports,
   self,
   config,
+  homelabFeatures,
   lib,
   ...
 }: let
   endpoints = self.lib.services.mkHomelabEndpoints {
     inherit config;
+    features = homelabFeatures;
   };
 in {
   networking.firewall.interfaces = {
@@ -14,7 +17,6 @@ in {
       allowedTCPPorts = [
         53
         80
-        config.modules.ports.loki
       ];
       allowedUDPPorts = [
         53
@@ -26,30 +28,44 @@ in {
       allowedTCPPorts = [
         53
         80
-        config.modules.ports.loki
       ];
       allowedUDPPorts = [53];
     };
   };
+  networking.firewall.extraInputRules = ''
+    ip saddr { 192.168.1.54, 192.168.1.99, 100.112.235.76 } tcp dport ${toString ports.loki} accept comment "Loki ingestion from Alloy hosts"
+  '';
 
   age.secrets = {
-    cloudflared-cert = {
-      file = ../../secrets/cloudflared-cert.age;
-      owner = "cloudflared";
-    };
     cloudflared-credentials = {
       file = ../../secrets/cloudflared-credentials.age;
-      owner = "cloudflared";
     };
   };
 
+  environment.etc."resolv.conf" = lib.mkIf config.services.unbound.enable {
+    text = ''
+      nameserver 192.168.1.99
+      options timeout:2 attempts:2
+    '';
+  };
+
   services = {
+    prometheus.exporters.unbound = lib.mkIf config.services.unbound.enable {
+      enable = true;
+      port = ports.exporters.unbound;
+      unbound = {
+        host = "unix://${config.services.unbound.localControlSocketPath}";
+        ca = null;
+        certificate = null;
+        key = null;
+      };
+    };
+
     cloudflared = {
       enable = true;
       tunnels."3c58774d-3e30-4151-a9e3-28daf4f5f307" = {
         default = "http_status:404";
 
-        certificateFile = config.age.secrets.cloudflared-cert.path;
         credentialsFile = config.age.secrets.cloudflared-credentials.path;
 
         ingress = endpoints.publicTunnelIngress;
@@ -110,7 +126,6 @@ in {
         domain = "home.arpa";
         local = [
           "/home.arpa/"
-          "/mc.nixlab.au/"
         ];
         localise-queries = true;
 
@@ -134,9 +149,11 @@ in {
           "192.168.1.100,192.168.1.254,24h"
         ];
         dhcp-host = [
-          "D8:5E:D3:AF:EE:02,machop,set:machop,192.168.1.54"
+          "56:33:6F:22:1E:49,pallet,192.168.1.14"
+          "D8:5E:D3:AF:EE:02,leo,set:leo,192.168.1.54"
           "86:22:d4:1a:f8:0c,machop-iphone,192.168.1.53"
-          "D0:11:E5:9A:85:20,imac-machop,192.168.1.52"
+          "A0:CE:C8:90:9D:64,imac-machop,192.168.1.47"
+          "D0:11:E5:9A:85:20,mac-wifi,192.168.1.52"
           "34:C9:3D:1E:4C:1D,quagsire-laptop,192.168.1.120"
           "D8:BB:C1:92:7B:1D,viridian,192.168.1.150"
           "04:E4:B6:13:C0:EC,viridian-monitor,192.168.1.152"
@@ -162,11 +179,11 @@ in {
             }
             {
               name = "machop";
-              ip = "192.168.1.52";
+              ip = "192.168.1.47";
             }
             {
               name = "hass";
-              ip = "192.168.1.49";
+              ip = "192.168.1.48";
             }
             {
               name = "zues";
@@ -180,7 +197,6 @@ in {
         in
           # router also resolves without domain suffix (legacy compat)
           ["/router/192.168.1.99"]
-          ++ ["/mc.nixlab.au/192.168.1.52"]
           ++ map (svc: "/${svc}.home.arpa/192.168.1.99") homeArpaServiceAliases
           ++ lib.concatMap (h: [
             "/${h.name}/${h.ip}"

@@ -1,5 +1,5 @@
 {
-  self,
+  ports,
   homeProfiles,
   config,
   pkgs,
@@ -12,70 +12,36 @@
     zues = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOQOb2XaMyLNZNRKvrfcwxVgeIF3rqsSNyY3Kldv735z";
   };
 
-  inputLeapPort = 24800;
   username = config.modules.profile.username;
   homeDirectory = "/home/${username}";
-  deskflowServerConfig = pkgs.writeText "deskflow-server.conf" ''
-    section: screens
-      leo:
-      mac:
-    end
-
-    section: aliases
-    end
-
-    section: links
-      leo:
-        right = mac
-      mac:
-        left = leo
-    end
-
-    section: options
-      protocol = synergy
-      clipboardSharing = true
-      clipboardSharingSize = 20480
-    end
-  '';
-  deskflowSettings = pkgs.writeText "Deskflow.conf" ''
-    [core]
-    computerName=leo
-    coreMode=2
-    interface=192.168.1.54
-    port=${toString inputLeapPort}
-    processMode=1
-    wlClipboard=true
-
-    [security]
-    certificate=${homeDirectory}/.config/Deskflow/tls/deskflow.pem
-    checkPeerFingerprints=true
-    keySize=2048
-    tlsEnabled=true
-
-    [server]
-    externalConfig=true
-    externalConfigFile=${deskflowServerConfig}
-  '';
+  uwsm = lib.getExe pkgs.uwsm;
+  gitDataDir = "/srv/smol/git";
+  jellyfinDataDir = "/var/lib/jellyfin";
+  jellyfinCacheDir = "/var/cache/jellyfin";
 in {
-  imports =
-    (with self.nixosModules; [
-      system
-      shell
-      desktop
-      pipewire
-      recomp
-      shairport
-      stylix
-      fonts
-      git-server
-      emacs
-      glance
-      monitoring
-      nfs
-      ios
-      local-models
-    ])
-    ++ [./backups.nix];
+  imports = [
+    ./hardware-configuration.nix
+    ../../modules/nixos/system.nix
+    ../../modules/common/shell.nix
+    ../../modules/nixos/desktop
+    ./audio.nix
+    ../../modules/nixos/shairport.nix
+    ../../modules/common/stylix.nix
+    ../../modules/nixos/fonts.nix
+    ../../modules/nixos/glance.nix
+    ../../modules/nixos/monitoring
+    ../../modules/nixos/nfs.nix
+    ../../modules/common/local-models.nix
+    ../../modules/nixos/nymvpn.nix
+    ../../modules/nixos/tether.nix
+  ];
+
+  assertions = [
+    {
+      assertion = lib.versions.major pkgs.jellyfin.version == "12";
+      message = "The migrated Jellyfin database must only be opened by Jellyfin 12.";
+    }
+  ];
 
   environment = {
     systemPackages = with pkgs; [
@@ -86,7 +52,9 @@ in {
       radeontop
       vulkan-tools
       mesa-demos
-      deskflow
+      n64recomp
+      libimobiledevice
+      ifuse
       wl-clipboard
     ];
   };
@@ -103,7 +71,7 @@ in {
       mac = {
         hostNames = [
           "imac-machop"
-          "192.168.1.52"
+          "192.168.1.47"
         ];
         publicKey = hostKeys.mac;
       };
@@ -136,79 +104,100 @@ in {
         amd_performance_level = "high";
       };
     };
-
-    gamescope.args = lib.mkAfter [
-      # Stable PCI ID for Leo's RX 7800 XT; avoids selecting the Intel iGPU.
-      "--prefer-vk-device"
-      "1002:747e"
-    ];
-
-    steam.gamescopeSession.args = [
-      "--adaptive-sync"
-      "--hdr-enabled"
-      "-W"
-      "5120"
-      "-H"
-      "1440"
-      "-r"
-      "120"
-    ];
   };
 
   networking = {
     hostName = "leo";
     domain = "home.arpa";
-    # A WAN/DNS outage must not leave interactive recovery commands waiting on
-    # glibc's default multi-second resolver retries. Keep the router as the
-    # DNS authority for home.arpa, but fail unavailable lookups promptly.
+
     resolvconf.extraOptions = [
       "timeout:1"
       "attempts:1"
     ];
     firewall.interfaces.enp7s0.allowedTCPPorts = [
-      config.modules.ports.alloy
-      config.modules.ports.exporters.node
+      ports.alloy
+      ports.exporters.node
     ];
+    firewall.extraInputRules = ''
+      ip saddr { 192.168.1.0/24, 100.64.0.0/10 } tcp dport {
+        ${toString ports.sunshine.https},
+        ${toString ports.sunshine.http},
+        ${toString ports.sunshine.web},
+        ${toString ports.sunshine.rtsp}
+      } accept comment "Sunshine from LAN and Tailscale"
+      ip saddr { 192.168.1.0/24, 100.64.0.0/10 } udp dport {
+        ${toString ports.sunshine.video},
+        ${toString ports.sunshine.control},
+        ${toString ports.sunshine.audio},
+        ${toString ports.sunshine.mic},
+        ${toString ports.sunshine.rtsp}
+      } accept comment "Sunshine streams from LAN and Tailscale"
+    '';
     hosts."192.168.1.99" = [
       "zues"
       "zues.home.arpa"
     ];
   };
-  home-manager.sharedModules = homeProfiles.desktop;
+  home-manager.users.juicy.modules.desktop.hyprland = {
+    sizing = "ultrawide";
+    keyboard = "moonlander";
+    primaryMonitor = "DP-2";
+    tvMonitor = "HDMI-A-2";
+    autostartApplications = true;
+    applicationPlacement = true;
+  };
+  home-manager.sharedModules =
+    homeProfiles.desktop
+    ++ [
+      ../../modules/home/qutebrowser.nix
+      ./noctalia.nix
+      {
+        modules.desktop.hyprland.monitors = [
+          {
+            output = "DP-2";
+            mode = "preferred";
+            position = "0x0";
+            scale = 1;
+          }
+          {
+            output = "HDMI-A-2";
+            mode = "1920x1080@60";
+            position = "auto-center-right";
+            scale = 1;
+            disabled = true;
+          }
+          {
+            output = "iPad";
+            mode = "2420x1668@100";
+            position = "auto";
+            scale = 2;
+            disabled = true;
+          }
+        ];
+      }
+    ];
 
   boot = {
+    tmp.useTmpfs = true;
     kernelPackages = pkgs.linuxPackages_latest;
     kernelParams = ["pcie_aspm=off"];
     #binfmt.emulatedSystems = ["aarch64-linux"];
   };
 
-  services.lact.enable = true;
-
-  # Keep the headless server layout declarative; the GUI cannot safely manage
-  # settings while this service owns the core process.
-  systemd.user.services.deskflow-server = {
-    description = "Share Leo keyboard and mouse with Mac via Deskflow";
-    wantedBy = ["graphical-session.target"];
-    partOf = ["graphical-session.target"];
-    after = ["graphical-session.target"];
-    unitConfig.ConditionUser = username;
-    serviceConfig = {
-      ExecStart = "${pkgs.deskflow}/bin/deskflow-core server --settings ${deskflowSettings}";
-      Restart = "on-failure";
-      RestartSec = 3;
-    };
+  zramSwap = {
+    enable = true;
+    memoryPercent = 25;
   };
 
   modules = {
     profile = {
       flakePath = "/mnt/smol/nixos-config";
-      hashedPasswordFile = config.age.secrets.juicy-password.path;
     };
     system = {
-      keyboard.zsa = true;
-      highMemory.enable = true;
+      media.enable = true;
     };
     shell = {
+      atuin.syncUrl = "http://atuin.home.arpa";
       admin.enable = true;
       dev.enable = true;
     };
@@ -216,53 +205,87 @@ in {
       enable = true;
       applications.enable = true;
       gaming.enable = true;
-      gaming.gamescope.session.enable = true;
       media.jellyfinMpvShim.enable = true;
       streaming.enable = true;
+      terminalFileChooser.enable = true;
     };
-    emacs.enable = true;
-    gitServer.enable = true;
-    recomp.enable = true;
-    glance.enable = true;
     monitoring = {
       host.enable = true;
-      diagnostics = {
-        enable = true;
-        smtpEmail = "maxwellb9879@gmail.com";
-      };
-      writablePaths = ["/mnt/chonk/backups"];
     };
-    ios.enable = true;
     localModels = {
       enable = true;
-      endpoint = "http://192.168.1.52:11434";
-      defaultModel = "qwen3.5:9b";
+      endpoint = "http://192.168.1.47:11434";
     };
     haPresence = {
       enable = true;
       deviceId = "leo_presence";
-      brokerHost = "192.168.1.49";
+      brokerHost = "192.168.1.48";
       username = "homeassistant";
-      idleTimeout = 300;
-      sleepTimeout = 900;
     };
     shairport = {
       enable = true;
       name = "Max Linux";
     };
+    tether = {
+      enable = true;
+      interface = "enp7s0";
+    };
     nfs = {
       exportPath = "/srv/smol";
+      allowedHosts = [
+        "192.168.1.14"
+        "192.168.1.47"
+        "192.168.1.52"
+        "192.168.1.99"
+      ];
       firewallInterfaces = [
         "enp7s0"
+      ];
+      additionalExports = [
+        {
+          path = "/srv/smol/backups/home-assistant";
+          allowedHosts = ["192.168.1.48"];
+        }
       ];
     };
   };
   services = {
-    syncthing = {
+    gitolite = {
       enable = true;
+      dataDir = gitDataDir;
+      user = "git";
+      group = "git";
+      adminPubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILUlQ0gc5NIpsO3qPU7NR9NF8DobGXlhlmVzP944USPC juicy@leo";
+      extraGitoliteRc = ''
+        $RC{UMASK} = 0027;
+        $RC{SITE_INFO} = 'leo private git';
+      '';
+    };
+
+    # The Mac owns Jellyfin; retain Leo's state for migration rollback.
+    jellyfin = {
+      enable = false;
+      package = pkgs.jellyfin;
+      dataDir = jellyfinDataDir;
+      cacheDir = jellyfinCacheDir;
+      openFirewall = false;
+    };
+
+    lact.enable = true;
+    nymvpn.enable = true;
+    usbmuxd.enable = true;
+    udev.packages = [pkgs.libimobiledevice];
+
+    greetd.settings.initial_session = {
+      user = username;
+      command = "${uwsm} start -e -D Hyprland hyprland.desktop";
+    };
+
+    syncthing = {
+      enable = false;
       user = username;
       dataDir = homeDirectory;
-      guiAddress = "127.0.0.1:${toString config.modules.ports.syncthing}";
+      guiAddress = "127.0.0.1:${toString ports.syncthing}";
       openDefaultPorts = true;
     };
 
@@ -278,18 +301,20 @@ in {
     sunshine = {
       enable = true;
       autoStart = true;
-      capSysAdmin = true;
-      openFirewall = true;
+      capSysAdmin = false;
+      openFirewall = false;
       settings = {
         capture = "wlr";
         encoder = "vaapi";
+        origin_web_ui_allowed = "lan";
+        upnp = "disabled";
         stream_audio = "disabled";
         fec_percentage = 0;
         hevc_mode = 1;
         av1_mode = 1;
         max_bitrate = 35000;
-        output_name = "virtual-screen";
-        port = config.modules.ports.sunshine.http;
+        output_name = "DP-2";
+        port = ports.sunshine.http;
       };
       applications.apps = let
         sunshineHyprlandStream = pkgs.writeShellScriptBin "sunshine-hyprland-stream" ''
@@ -297,66 +322,23 @@ in {
 
           action="''${1:-}"
           remote="''${2:-false}"
-          hyprctl_cmd="${pkgs.hyprland}/bin/hyprctl"
-          uwsm_cmd="${lib.getExe pkgs.uwsm}"
-          stream_output="virtual-screen"
-
-          output_present() {
-            expected_width="''${1:-}"
-            expected_height="''${2:-}"
-            if ! monitors="$("$uwsm_cmd" app -- "$hyprctl_cmd" monitors -j 2>/dev/null)"; then
-              return 2
-            fi
-            ${lib.getExe pkgs.jq} -e \
-              --arg output "$stream_output" \
-              --arg width "$expected_width" \
-              --arg height "$expected_height" \
-              'any(.[];
-                .name == $output
-                and ($width == "" or .width == ($width | tonumber))
-                and ($height == "" or .height == ($height | tonumber))
-              )' <<<"$monitors" >/dev/null
-          }
-
-          wait_for_output() {
-            expected="$1"
-            expected_width="''${2:-}"
-            expected_height="''${3:-}"
-            attempts=0
-            while [ "$attempts" -lt 50 ]; do
-              if output_present "$expected_width" "$expected_height"; then
-                [ "$expected" = present ] && return 0
-              else
-                result=$?
-                [ "$result" -eq 1 ] && [ "$expected" = absent ] && return 0
-              fi
-              attempts=$((attempts + 1))
-              ${pkgs.coreutils}/bin/sleep 0.1
-            done
-            echo "sunshine-hyprland-stream: timed out waiting for $stream_output to become $expected" >&2
-            return 1
-          }
 
           case "$remote" in
             true|false) ;;
             *)
-              echo "usage: sunshine-hyprland-stream start true|false" >&2
+              echo "usage: sunshine-hyprland-stream start true|false | stop" >&2
               exit 2
               ;;
           esac
 
           case "$action" in
             start)
-              width="''${SUNSHINE_CLIENT_WIDTH:-2560}"
-              height="''${SUNSHINE_CLIENT_HEIGHT:-1440}"
-              fps="''${SUNSHINE_CLIENT_FPS:-120}"
-
-              "$uwsm_cmd" app -- "$hyprctl_cmd" eval "Juicy.sunshine.setStreaming(true, $remote, $width, $height, $fps)"
-              wait_for_output present "$width" "$height"
+              exec ${uwsm} app -- ${lib.getExe' config.programs.hyprland.package "hyprctl"} eval \
+                "Juicy.sunshine.setStreaming(true, $remote)"
               ;;
             stop)
-              "$uwsm_cmd" app -- "$hyprctl_cmd" eval "Juicy.sunshine.setStreaming(false, false)"
-              wait_for_output absent
+              exec ${uwsm} app -- ${lib.getExe' config.programs.hyprland.package "hyprctl"} eval \
+                'Juicy.sunshine.setStreaming(false, false)'
               ;;
             *)
               echo "usage: sunshine-hyprland-stream start true|false | stop" >&2
@@ -388,22 +370,41 @@ in {
       ];
     };
 
-    journald.extraConfig = ''
-      SystemMaxUse=512M
-      RuntimeMaxUse=256M
-      MaxFileSec=7day
-      RateLimitInterval=30s
-      RateLimitBurst=1000
-    '';
+    journald.settings.Journal = {
+      SystemMaxUse = "512M";
+      RuntimeMaxUse = "256M";
+      MaxFileSec = "7day";
+      RateLimitIntervalSec = "30s";
+      RateLimitBurst = 1000;
+    };
     fstrim.enable = true;
     irqbalance.enable = true;
   };
 
-  security.wrappers.sunshine.capabilities = lib.mkForce "cap_sys_admin,cap_sys_nice+ep";
-
-  networking.firewall.allowedTCPPorts = [
-    inputLeapPort
+  # Preserve the Mac paths already stored in the migrated database while
+  # resolving them through Leo's Linux NFS mount.
+  systemd.tmpfiles.rules = [
+    "d ${gitDataDir} 0750 git git - -"
+    "d /srv/smol/backups 0700 ${username} users -"
+    "d /srv/smol/backups/home-assistant 0700 ${username} users -"
+    "d /Volumes 0755 root root -"
+    "L+ /Volumes/chonk - - - - /mnt/chonk"
   ];
+
+  systemd.services.gitolite-init.unitConfig.RequiresMountsFor = [gitDataDir];
+
+  systemd.services.jellyfin = lib.mkIf config.services.jellyfin.enable {
+    after = ["mnt-chonk.mount"];
+    requires = ["mnt-chonk.mount"];
+    # This host owns an existing migrated library. Missing state requires an
+    # explicit restore, never an empty library or an import from /tmp.
+    preStart = lib.mkBefore ''
+      if [ ! -s ${lib.escapeShellArg "${jellyfinDataDir}/data/jellyfin.db"} ]; then
+        echo "Jellyfin state is missing; restore the existing library state before starting the server" >&2
+        exit 1
+      fi
+    '';
+  };
 
   fileSystems = {
     "/mnt/games" = {
@@ -450,6 +451,7 @@ in {
     };
   };
   hardware = {
+    keyboard.zsa.enable = true;
     steam-hardware.enable = true;
     openrazer = {
       enable = true;

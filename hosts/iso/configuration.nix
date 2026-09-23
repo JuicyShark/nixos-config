@@ -8,15 +8,19 @@
   pkgs,
   lib,
   inputs,
+  homeProfiles,
   ...
 }: {
   imports = [
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
+    inputs.home-manager.nixosModules.home-manager
+    ../../modules/common/options.nix
+    ../../modules/common/shell.nix
   ];
 
   # ── Image settings ─────────────────────────────────────────────────────────
   isoImage.squashfsCompression = "zstd -Xcompression-level 6";
-  image.fileName = lib.mkForce "nixos-juicy-${pkgs.stdenv.hostPlatform.system}.iso";
+  image.baseName = lib.mkForce "nixos-juicy-${pkgs.stdenv.hostPlatform.system}";
 
   # ── Locale / timezone ──────────────────────────────────────────────────────
   time.timeZone = "Australia/Brisbane";
@@ -24,19 +28,48 @@
 
   # ── Networking ─────────────────────────────────────────────────────────────
   networking = {
-    hostName = "nixos-iso";
+    hostName = "nixos-recovery";
     networkmanager.enable = true;
     wireless.enable = lib.mkForce false;
   };
 
-  # ── SSH ────────────────────────────────────────────────────────────────────
-  services.openssh = {
+  # ── Graphical recovery session ─────────────────────────────────────────────
+  xdg.portal = {
     enable = true;
-    settings = {
-      PermitRootLogin = "no";
-      PasswordAuthentication = false;
-      KbdInteractiveAuthentication = false;
+    xdgOpenUsePortal = true;
+    extraPortals = [pkgs.xdg-desktop-portal-gtk];
+  };
+
+  services = {
+    greetd = {
+      enable = true;
+      settings.default_session = {
+        user = "juicy";
+        command = "${lib.getExe pkgs.uwsm} start -e -D Hyprland hyprland.desktop";
+      };
     };
+    pipewire = {
+      enable = true;
+      alsa.enable = true;
+      pulse.enable = true;
+    };
+    udisks2.enable = true;
+
+    # ── SSH ──────────────────────────────────────────────────────────────────
+    openssh = {
+      enable = true;
+      settings = {
+        PermitRootLogin = "no";
+        PasswordAuthentication = false;
+        KbdInteractiveAuthentication = false;
+      };
+    };
+  };
+
+  security = {
+    polkit.enable = true;
+    rtkit.enable = true;
+    sudo.wheelNeedsPassword = false;
   };
 
   # ── User ───────────────────────────────────────────────────────────────────
@@ -50,76 +83,42 @@
     ];
   };
 
-  security.sudo.wheelNeedsPassword = false;
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    extraSpecialArgs = {
+      inherit inputs;
+      system = pkgs.stdenv.hostPlatform.system;
+    };
+    sharedModules =
+      homeProfiles.recovery
+      ++ [
+        {
+          home = {
+            stateVersion = "25.11";
+            username = "juicy";
+            homeDirectory = "/home/juicy";
+          };
+        }
+      ];
+    users.juicy = {};
+  };
 
   programs = {
+    hyprland = {
+      enable = true;
+      withUWSM = true;
+      package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+      portalPackage = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
+    };
     # ── Shell ──────────────────────────────────────────────────────────────────
-    zsh = {
-      enable = true;
-      promptInit = ''eval "$(${pkgs.starship}/bin/starship init zsh)"'';
-      shellAliases = {
-        ls = "eza --icons";
-        ll = "eza -lah --icons --git";
-        cat = "bat --plain";
-        vim = "nvim";
-      };
-    };
-
-    # ── Neovim ─────────────────────────────────────────────────────────────────
-    neovim = {
-      enable = true;
-      defaultEditor = true;
-      configure.customRC = ''
-        set number relativenumber
-        set expandtab shiftwidth=2 tabstop=2
-        set clipboard=unnamedplus
-        set ignorecase smartcase
-        colorscheme habamax
-      '';
-    };
-
-    # ── Git ────────────────────────────────────────────────────────────────────
-    git = {
-      enable = true;
-      config = {
-        init.defaultBranch = "master";
-        pull.rebase = true;
-        core.editor = "nvim";
-      };
-    };
-
-    # ── Tmux ───────────────────────────────────────────────────────────────────
-    tmux = {
-      enable = true;
-      terminal = "tmux-256color";
-      shortcut = "a";
-      escapeTime = 0;
-      extraConfig = ''
-        set -g mouse on
-        set -g history-limit 50000
-        set -g status-style 'bg=#1e1e2e fg=#cdd6f4'
-        set -g pane-border-style 'fg=#313244'
-        set -g pane-active-border-style 'fg=#89b4fa'
-      '';
-    };
+    zsh.enable = true;
   };
 
   environment = {
-    etc."starship.toml".text = ''
-      [character]
-      success_symbol = "[λ](bold green)"
-      error_symbol   = "[λ](bold red)"
-      [directory]
-      truncation_length = 4
-      truncate_to_repo  = false
-      [nix_shell]
-      symbol = " "
-    '';
-
     variables = {
       EDITOR = "nvim";
       VISUAL = "nvim";
-      STARSHIP_CONFIG = "/etc/starship.toml";
     };
 
     # ── Packages ─────────────────────────────────────────────────────────────
@@ -135,10 +134,17 @@
       smartmontools
       ddrescue
       hdparm
+      efibootmgr
+      testdisk
+      ntfs3g
+      exfatprogs
+      lvm2
+      mdadm
 
       # System inspection
       pciutils
       usbutils
+      dmidecode
       lsof
       htop
       btop
@@ -146,7 +152,7 @@
       # Preferred CLI
       neovim
       git
-      tmux
+      zellij
       ripgrep
       fd
       bat
@@ -157,6 +163,10 @@
       wget
       rsync
       unzip
+      bind
+      iproute2
+      networkmanager
+      wl-clipboard-rs
 
       # Nix tooling
       nixos-install-tools

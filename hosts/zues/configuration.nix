@@ -1,23 +1,30 @@
 {
-  self,
+  inputs,
   homeProfiles,
-  config,
+  homelabFeatures,
   pkgs,
   lib,
   ...
 }: let
+  smtpEmail = "maxwellb9879@gmail.com";
   leoBuilderKey = lib.removeSuffix "\n" (builtins.readFile ../leo/id_ed25519.pub);
 in {
-  imports = with self.nixosModules; [
-    system
-    shell
-    homelab
-    monitoring
-    stylix
-    unbound
-    nfs
-    acme
+  imports = [
+    ./hardware-configuration.nix
+    ../../modules/nixos/system.nix
+    ../../modules/common/shell.nix
+    ../../modules/nixos/homelab
+    ../../modules/nixos/monitoring
+    ../../modules/common/stylix.nix
+    ../../modules/nixos/nfs.nix
+    ./networking.nix
+    ./services.nix
+    ./gatus.nix
+    inputs.nixflix.nixosModules.default
+    ../../modules/nixos/homelab/nixflix-prowlarr-indexers.nix
   ];
+
+  disabledModules = ["${inputs.nixflix}/modules/prowlarr/indexers.nix"];
 
   networking = {
     hostName = "zues";
@@ -25,17 +32,9 @@ in {
   };
   home-manager.sharedModules = homeProfiles.cli;
 
-  # Keep the shared palette and console target without enabling desktop theme
-  # integrations or their packages on the headless router/NAS.
   stylix.autoEnable = lib.mkForce false;
 
-  # The shared flake is a mutable working tree. Upgrades remain an intentional
-  # remote deployment from Leo instead of a router-side unattended switch.
   system.autoUpgrade.enable = false;
-
-  # Zues is a deployment target, not a development machine. Development shells
-  # and their nix-direnv GC roots belong on Leo.
-  modules.shell.dev.enable = lib.mkForce false;
 
   nix.gc = {
     automatic = true;
@@ -48,39 +47,40 @@ in {
   modules = {
     profile = {
       flakePath = "/mnt/smol/nixos-config";
-      hashedPasswordFile = config.age.secrets.juicy-password.path;
     };
     homelab = {
-      smtpEmail = "maxwellb9879@gmail.com";
-      filebrowser.enable = true;
-      jellyfin.enable = true;
-      mediaVote.enable = true;
-      media.enable = true;
-      swiparr.enable = true;
-      syncthing.enable = false;
-      gatus.enable = true;
-      vaultwarden.enable = true;
+      jellyfin.enable = homelabFeatures.jellyfin;
+      jellystat.enable = homelabFeatures.jellystat;
+      media.enable = homelabFeatures.media;
+      swiparr.enable = homelabFeatures.swiparr;
+      tidarr.enable = homelabFeatures.tidarr;
     };
     monitoring = {
-      enable = true;
+      enable = homelabFeatures.monitoring;
+      alertEmail = smtpEmail;
       host.enable = true;
       nas.enable = true;
-      writablePaths = ["/mnt/smol/backups"];
       vpnGuard = {
         service = "qbittorrent.service";
         namespace = "wg";
       };
     };
     system.media.enable = true;
-    shell.admin.enable = true;
+    shell = {
+      dev.enable = lib.mkForce false;
+      admin.enable = true;
+      atuin.syncUrl = "http://atuin.home.arpa";
+    };
     nfs = {
       exportPath = "/srv/chonk";
       # Restrict to known clients only; all clients are squashed to media.
       allowedHosts = [
+        "192.168.1.14"
         "192.168.1.54"
+        "192.168.1.47"
         "192.168.1.52"
       ];
-      anonUid = 2000;
+      anonUid = 1000;
       anonGid = 2000;
     };
   };
@@ -92,24 +92,35 @@ in {
     tcpdump
     conntrack-tools
     pv
-    restic
     smartmontools
     nvme-cli
   ];
 
-  services.tailscale = {
-    enable = true;
-    openFirewall = true;
-    useRoutingFeatures = "server";
-    extraUpFlags = [
-      "--accept-dns=false"
-      "--advertise-routes=192.168.1.0/24"
-      "--operator=juicy"
-    ];
+  services = {
+    atuin.enable = homelabFeatures.atuin;
+    filebrowser.enable = homelabFeatures.filebrowser;
+    gatus.enable = homelabFeatures.gatus;
+    syncthing.enable = homelabFeatures.syncthing;
+    vaultwarden = {
+      enable = homelabFeatures.vaultwarden;
+      config = {
+        SMTP_FROM = smtpEmail;
+        SMTP_USERNAME = smtpEmail;
+      };
+    };
+
+    tailscale = {
+      enable = true;
+      openFirewall = true;
+      useRoutingFeatures = "server";
+      extraUpFlags = [
+        "--accept-dns=false"
+        "--advertise-routes=192.168.1.0/24"
+        "--operator=juicy"
+      ];
+    };
   };
 
-  # Tailscale recommends these offload settings for Linux subnet routers.
-  # ethtool settings are not persistent, so apply them after every boot.
   systemd.services.tailscale-udp-gro-forwarding = {
     description = "Optimize UDP forwarding for Tailscale";
     wantedBy = ["multi-user.target"];
@@ -125,7 +136,8 @@ in {
     enable = true;
     protocol = "ssh-ng";
     write = true;
-    trusted = true;
+    # Permit store uploads without granting trusted-client privileges.
+    trusted = false;
     keys = [leoBuilderKey];
   };
 
