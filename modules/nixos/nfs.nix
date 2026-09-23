@@ -4,10 +4,29 @@
   ...
 }: let
   inherit (lib) concatMapStringsSep mkIf mkOption;
-  inherit (lib.types) ints listOf str;
+  inherit (lib.types) ints listOf str submodule;
   cfg = config.modules.nfs;
   lanSubnet = "192.168.1.0/24";
   nfsPort = 2049;
+  exportOptions = export: "${
+    if export.readOnly
+    then "ro"
+    else "rw"
+  },sync,no_subtree_check,insecure,all_squash,anonuid=${toString export.anonUid},anongid=${toString export.anonGid}";
+  mkExport = export:
+    concatMapStringsSep "\n" (
+      host: "${export.path} ${host}(${exportOptions export})"
+    )
+    export.allowedHosts;
+  exports =
+    [
+      {
+        path = cfg.exportPath;
+        inherit (cfg) allowedHosts anonUid anonGid;
+        readOnly = false;
+      }
+    ]
+    ++ cfg.additionalExports;
 in {
   options.modules.nfs = {
     exportPath = mkOption {
@@ -39,6 +58,38 @@ in {
       default = 100;
       description = "GID used for all_squash NFS clients.";
     };
+
+    additionalExports = mkOption {
+      default = [];
+      description = "Additional narrowly scoped NFS exports.";
+      type = listOf (submodule {
+        options = {
+          path = mkOption {
+            type = str;
+            description = "Path exported to the selected clients.";
+          };
+          allowedHosts = mkOption {
+            type = listOf str;
+            description = "IP addresses or CIDRs allowed to mount this export.";
+          };
+          anonUid = mkOption {
+            type = ints.unsigned;
+            default = cfg.anonUid;
+            description = "UID used for all_squash clients of this export.";
+          };
+          anonGid = mkOption {
+            type = ints.unsigned;
+            default = cfg.anonGid;
+            description = "GID used for all_squash clients of this export.";
+          };
+          readOnly = mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Whether this export is read-only.";
+          };
+        };
+      });
+    };
   };
 
   config = mkIf (cfg.exportPath != "") {
@@ -56,11 +107,7 @@ in {
       };
       nfs.server = {
         enable = true;
-        exports =
-          concatMapStringsSep "\n" (
-            host: "${cfg.exportPath} ${host}(rw,sync,no_subtree_check,insecure,all_squash,anonuid=${toString cfg.anonUid},anongid=${toString cfg.anonGid})"
-          )
-          cfg.allowedHosts;
+        exports = lib.concatStringsSep "\n" (map mkExport exports);
       };
     };
 
@@ -68,6 +115,6 @@ in {
       allowedTCPPorts = [nfsPort];
     });
 
-    systemd.services.nfs-server.unitConfig.RequiresMountsFor = [cfg.exportPath];
+    systemd.services.nfs-server.unitConfig.RequiresMountsFor = map (export: export.path) exports;
   };
 }

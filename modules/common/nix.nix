@@ -30,8 +30,6 @@ in {
           "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
         ];
 
-        warn-dirty = true;
-
         experimental-features = [
           "nix-command"
           "flakes"
@@ -40,7 +38,7 @@ in {
         trusted-users =
           [username]
           ++ (
-            if pkgs.stdenv.isDarwin
+            if pkgs.stdenv.hostPlatform.isDarwin
             then ["@admin"]
             else ["@wheel"]
           );

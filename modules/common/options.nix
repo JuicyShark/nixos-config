@@ -7,12 +7,6 @@
         description = "Primary user managed by this configuration.";
       };
 
-      homeDirectory = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = "Primary user's home directory; defaults by platform when unset.";
-      };
-
       flakePath = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
@@ -24,20 +18,10 @@
         default = "25.11";
         description = "Home Manager state version for the primary user.";
       };
-
-      hashedPasswordFile = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = "Optional age-managed hashed password file for the primary user.";
-      };
     };
 
     system = {
-      keyboard.zsa = lib.mkEnableOption "ZSA keyboard firmware (keymapp)";
-      highMemory.enable = lib.mkEnableOption "high-RAM optimizations (tmpfs for /tmp)";
       media.enable = lib.mkEnableOption "shared media user and group";
-
-      mullvad.enable = lib.mkEnableOption "Mullvad VPN client";
     };
 
     haPresence = {
@@ -51,14 +35,14 @@
 
       brokerHost = lib.mkOption {
         type = lib.types.str;
-        default = "";
+        default = "hass.home.arpa";
         description = "MQTT broker hostname or address.";
       };
 
       brokerPort = lib.mkOption {
         type = lib.types.port;
         default = 1883;
-        description = "MQTT broker port.";
+        description = "MQTT port shared by the presence controller and command publishers.";
       };
 
       username = lib.mkOption {
@@ -67,16 +51,16 @@
         description = "MQTT username used by the presence publisher.";
       };
 
-      idleTimeout = lib.mkOption {
+      stabilitySeconds = lib.mkOption {
         type = lib.types.ints.positive;
-        default = 300;
-        description = "Seconds of idle time before publishing the idle state.";
+        default = 30;
+        description = "Seconds a selected presence state must remain unchanged before publication.";
       };
 
-      sleepTimeout = lib.mkOption {
+      gamingQualificationSeconds = lib.mkOption {
         type = lib.types.ints.positive;
-        default = 900;
-        description = "Seconds of idle time before publishing the sleep state.";
+        default = 10 * 60;
+        description = "Seconds gaming must remain active before it can become the presence state.";
       };
     };
   };

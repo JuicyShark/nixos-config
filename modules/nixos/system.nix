@@ -6,8 +6,7 @@
   ...
 }: let
   inherit (inputs.home-manager.nixosModules) home-manager;
-  inherit (lib) mkIf optionals;
-  cfg = config.modules.system;
+  inherit (lib) optionals;
   profile = config.modules.profile;
   inherit (profile) username;
 in {
@@ -19,14 +18,22 @@ in {
     ./base/boot.nix
     ../common/nix.nix
     ../common/users.nix
-    ./base/locale.nix
     ./base/security.nix
     ../common/environment.nix
-    ./ports.nix
     ./base/networking.nix
   ];
 
   config = {
+    time.timeZone = "Australia/Brisbane";
+
+    i18n = {
+      defaultLocale = "en_AU.UTF-8";
+      supportedLocales = [
+        "en_AU.UTF-8/UTF-8"
+        "en_US.UTF-8/UTF-8"
+      ];
+    };
+
     age = {
       identityPaths = [
         "${config.users.users.${username}.home}/.ssh/id_rsa"
@@ -34,7 +41,11 @@ in {
         "/etc/ssh/ssh_host_ed25519_key"
       ];
       secrets =
-        {juicy-password.file = ../../secrets/juicy-password.age;}
+        {
+          login-password-hash = {
+            file = ../../secrets/login-password-hash.age;
+          };
+        }
         // lib.optionalAttrs config.modules.haPresence.enable {
           ha-mqtt-pass = {
             file = ../../secrets/ha-mqtt-pass.age;
@@ -46,24 +57,12 @@ in {
     environment = {
       defaultPackages = lib.mkForce [];
       systemPackages = with pkgs;
-        optionals cfg.keyboard.zsa [
+        optionals config.hardware.keyboard.zsa.enable [
           keymapp
         ];
     };
 
-    networking = {
-      useDHCP = lib.mkDefault true;
-      enableIPv6 = lib.mkDefault true;
-    };
-
-    services = {
-      resolved.settings.Resolve.LLMNR = "false";
-
-      mullvad-vpn = mkIf cfg.mullvad.enable {
-        enable = true;
-        enableExcludeWrapper = false;
-      };
-    };
+    services.resolved.settings.Resolve.LLMNR = "false";
 
     programs.nh = lib.mkIf (profile.flakePath != null) {
       flake = profile.flakePath;

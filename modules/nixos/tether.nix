@@ -34,7 +34,7 @@ in {
       openFirewall = false;
       publish.enable = true;
       publish.userServices = true;
-      allowInterfaces = lib.mkDefault [cfg.interface];
+      allowInterfaces = [cfg.interface];
     };
 
     networking.firewall.interfaces.${cfg.interface} = {

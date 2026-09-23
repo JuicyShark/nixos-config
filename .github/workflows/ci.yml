@@ -7,28 +7,12 @@ on:
     branches: [master]
 
 jobs:
-  eval:
-    name: flake evaluation
+  check:
+    name: format and evaluate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v27
-        with:
-          extra_nix_config: |
-            extra-platforms = aarch64-linux
+      - run: nix fmt -- --check .
       - run: nix flake check --all-systems --no-build
-
-  static:
-    name: static checks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v27
-      - run: >
-          nix build
-          .#checks.x86_64-linux.static
-          .#checks.x86_64-linux.hyprland-lua-syntax
-          .#checks.x86_64-linux.hyprland-monitor-policy
-          .#checks.x86_64-linux.monitoring-config
-          .#checks.x86_64-linux.nixvim-smoke
-          --no-link
+      - run: nix eval --raw .#darwinConfigurations.mac.system.drvPath

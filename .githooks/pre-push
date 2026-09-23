@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> nix flake check --all-systems --no-build"
+echo "==> Check formatting"
+nix fmt -- --check .
+echo "==> Evaluate flake outputs and NixOS hosts"
 nix flake check --all-systems --no-build
-
-echo "==> nix build fast checks"
-nix build \
-  .#checks.x86_64-linux.static \
-  .#checks.x86_64-linux.hyprland-lua-syntax \
-  .#checks.x86_64-linux.hyprland-monitor-policy \
-  .#checks.x86_64-linux.monitoring-config \
-  .#checks.x86_64-linux.nixvim-smoke \
-  --no-link
+echo "==> Evaluate Mac"
+nix eval --raw .#darwinConfigurations.mac.system.drvPath

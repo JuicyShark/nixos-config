@@ -6,19 +6,18 @@
   ...
 }: let
   isLinux = lib.hasSuffix "-linux" system;
-  isWorkstation = pkgs.stdenv.isDarwin || (config.modules.desktop.enable or false);
+  isWorkstation = pkgs.stdenv.hostPlatform.isDarwin || (config.modules.desktop.enable or false);
   cfg = config.modules.shell;
 in {
   options.modules.shell = {
     atuin.syncUrl = lib.mkOption {
       type = lib.types.str;
       default = "";
-      description = "Atuin sync server URL (empty string disables sync)";
+      description = "Atuin sync server URL (empty string leaves Atuin's default server)";
     };
 
     admin.enable = lib.mkEnableOption "host administration and hardware diagnostics";
     dev.enable = lib.mkEnableOption "development and Nix authoring tools";
-    extras.enable = lib.mkEnableOption "non-essential terminal toys";
   };
 
   config = lib.mkMerge [
@@ -64,11 +63,6 @@ in {
           gping
           trippy
           bandwhich # replaces: nethogs / iftop (per-process bandwidth)
-        ]
-        ++ lib.optionals (isWorkstation && cfg.extras.enable) [
-          timg
-          cmatrix
-          peaclock
         ];
 
       programs = {

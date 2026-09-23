@@ -5,7 +5,8 @@
   lib,
   ...
 }: let
-  terminalOpacity = 1.0;
+  # Subtle wallpaper/blur without washing out terminal text.
+  terminalOpacity = 0.94;
   fontSize = 13;
   isLinux = lib.hasSuffix "-linux" system;
 
@@ -20,7 +21,6 @@ in {
     stylix =
       {
         enable = true;
-        autoEnable = true;
         imageScalingMode = "fill";
         polarity = "dark";
 
@@ -29,7 +29,8 @@ in {
           sha256 = "sha256-XjOKKMQKzyfiT+CrLGjExpYGu7/AVRk/inBp+xDJG3o=";
         };
 
-        base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
+        # Read the already-pinned theme source without a platform-specific build.
+        base16Scheme = "${inputs.stylix.inputs.tinted-schemes}/base16/kanagawa.yaml";
 
         opacity = {
           terminal = terminalOpacity;
@@ -66,13 +67,14 @@ in {
         };
       }
       // lib.optionalAttrs isLinux {
-        targets.console.enable = true;
+        # Noctalia owns the greetd UI; avoid Stylix's unused ReGreet target.
+        targets.regreet.enable = false;
 
         icons = {
           enable = true;
-          package = pkgs.adwaita-icon-theme;
-          light = "Adwaita";
-          dark = "Adwaita-dark";
+          package = pkgs.papirus-icon-theme;
+          light = "Papirus-Light";
+          dark = "Papirus-Dark";
         };
         cursor = {
           package = pkgs.catppuccin-cursors.mochaGreen;

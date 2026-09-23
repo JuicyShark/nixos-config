@@ -9,7 +9,6 @@
   ...
 }: let
   inherit (lib) mkIf;
-  cfg = config.modules.system;
 in {
   config = {
     boot = {
@@ -17,10 +16,7 @@ in {
       # operator in secrets/initrd-recovery-password.age.
       initrd.systemd.emergencyAccess = "$6$J1Ma975obw7zdziD$P5MJ7sO.ezItQizSWomRjSR0tihaGtCYdNeGPz/5D4SBtcMPen8uGKqYVo16ilCON8894zBHPpCwxzYJKecsf/";
 
-      tmp =
-        if cfg.highMemory.enable
-        then {useTmpfs = true;}
-        else {cleanOnBoot = true;};
+      tmp.cleanOnBoot = lib.mkDefault (!config.boot.tmp.useTmpfs);
 
       loader = mkIf (!config.boot.isContainer) {
         systemd-boot = mkIf (pkgs.stdenv.hostPlatform.system != "aarch64-linux") {
@@ -41,13 +37,6 @@ in {
     systemd = {
       settings.Manager.DefaultTimeoutStopSec = "10s";
       services.NetworkManager-wait-online.enable = false;
-    };
-
-    # ZRam swap: enabled on high-memory machines to absorb transient pressure
-    # without hitting the swap partition (especially under gaming + compile loads).
-    zramSwap = {
-      inherit (cfg.highMemory) enable;
-      memoryPercent = 25;
     };
   };
 }

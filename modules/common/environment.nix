@@ -19,7 +19,7 @@ in {
       variables =
         {
           EDITOR = "nvim";
-          VISUAL = "nvim"; # emacs.nix overrides this to "emacs" when enabled
+          VISUAL = "nvim";
         }
         // lib.optionalAttrs (profile.flakePath != null) {
           FLAKE = profile.flakePath;

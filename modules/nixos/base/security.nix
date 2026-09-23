@@ -4,11 +4,9 @@
 {
   config,
   inputs,
-  lib,
   pkgs,
   ...
 }: let
-  cfg = config.modules.system;
   isDesktop = config.modules.desktop.enable or false;
 in {
   config = {
@@ -16,11 +14,9 @@ in {
       enable = true;
       openFirewall = false;
       settings = {
-        PubkeyAuthentication = true;
         PasswordAuthentication = false;
         KbdInteractiveAuthentication = false;
         PermitRootLogin = "no";
-        X11Forwarding = false;
         UseDns = false;
       };
     };
@@ -40,7 +36,6 @@ in {
       nix-index-database.comma.enable = true;
       gnupg.agent = {
         enable = true;
-        enableSSHSupport = false;
         pinentryPackage =
           if isDesktop
           then pkgs.pinentry-qt
@@ -50,7 +45,6 @@ in {
           max-cache-ttl = 14400;
         };
       };
-      ssh.startAgent = lib.mkDefault false;
     };
 
     security.sudo.extraConfig = ''
@@ -61,7 +55,5 @@ in {
       enable = true;
       authorizedKeysFiles = ["/etc/ssh/authorized_keys.d/%u"];
     };
-
-    hardware.keyboard.zsa.enable = lib.mkIf cfg.keyboard.zsa true;
   };
 }
